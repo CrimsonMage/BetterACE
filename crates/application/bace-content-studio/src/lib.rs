@@ -19,8 +19,8 @@ pub use entry::run;
 
 mod preview;
 mod preview_pixels;
-mod preview_scene;
 mod preview_render;
+mod preview_scene;
 
 #[cfg(test)]
 mod preview_tests;

@@ -161,7 +161,11 @@ fn skip_hook(r: &mut TableReader<'_>) -> Result<(), DatError> {
     let bytes = match kind {
         0 | 4 | 17 => 0,
         1 | 2 | 6 | 14 | 15 | 16 | 18 | 25 => 4,
-        5 => {r.u16()?;r.known_id(0x01000000)?;return Ok(());},
+        5 => {
+            r.u16()?;
+            r.known_id(0x01000000)?;
+            return Ok(());
+        }
         7 | 9 | 11 | 21 => 16,
         8 | 10 | 20 | 22 | 24 => 12,
         12 | 19 | 23 => 8,

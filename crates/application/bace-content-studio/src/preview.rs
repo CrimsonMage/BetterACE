@@ -1,49 +1,163 @@
-use crate::{preview_render::{self,Camera},preview_scene::{self,PreviewRequest,PreviewScene},theme};
+use crate::{
+    preview_render::{self, Camera},
+    preview_scene::{self, PreviewRequest, PreviewScene},
+    theme,
+};
 use eframe::egui;
-use std::{path::PathBuf,sync::mpsc,thread::JoinHandle};
+use std::{path::PathBuf, sync::mpsc, thread::JoinHandle};
 
 pub(crate) struct Preview {
-    path:Option<PathBuf>,setup:String,clothing:String,palette:String,template:u32,shade:f64,
-    scene:Option<PreviewScene>,job:Option<LoadJob>,notice:String,texture:Option<egui::TextureHandle>,
-    camera:Camera,filter:String,kind:usize,apply:Option<(u32,u32,u32)>,
+    path: Option<PathBuf>,
+    setup: String,
+    clothing: String,
+    palette: String,
+    template: u32,
+    shade: f64,
+    scene: Option<PreviewScene>,
+    job: Option<LoadJob>,
+    notice: String,
+    texture: Option<egui::TextureHandle>,
+    camera: Camera,
+    filter: String,
+    kind: usize,
+    apply: Option<(u32, u32, u32)>,
 }
-struct LoadJob {receiver:mpsc::Receiver<Result<PreviewScene,String>>,thread:JoinHandle<()>}
+struct LoadJob {
+    receiver: mpsc::Receiver<Result<PreviewScene, String>>,
+    thread: JoinHandle<()>,
+}
 impl Default for Preview {
-    fn default()->Self {Self{path:None,setup:"02000001".into(),clothing:"0".into(),palette:"0".into(),template:1,shade:0.0,scene:None,job:None,notice:String::new(),texture:None,camera:Camera::default(),filter:String::new(),kind:0,apply:None}}
-}
-impl Preview {
-    pub fn take_apply(&mut self)->Option<(u32,u32,u32)> {self.apply.take()}
-    fn load(&mut self,ctx:&egui::Context,appearance:Option<bace_content::WeenieV1>) {
-        let Some(path)=self.path.clone() else {self.notice="Choose your client_portal.dat first.".into();return;};
-        let request=(||Ok::<_,String>(PreviewRequest{path,setup:did(&self.setup)?,clothing:did(&self.clothing)?,palette:did(&self.palette)?,template:self.template,shade:self.shade,appearance}))();
-        let request=match request {Ok(r)=>r,Err(e)=>{self.notice=e;return;}};
-        let(sender,receiver)=mpsc::sync_channel(1);let ctx=ctx.clone();
-        match std::thread::Builder::new().name("studio-dat-preview".into()).spawn(move||{let _=sender.send(preview_scene::load(request));ctx.request_repaint();}) {
-            Ok(thread)=>{self.job=Some(LoadJob{receiver,thread});self.notice="Loading selected assets…".into();},Err(e)=>self.notice=e.to_string(),
+    fn default() -> Self {
+        Self {
+            path: None,
+            setup: "02000001".into(),
+            clothing: "0".into(),
+            palette: "0".into(),
+            template: 1,
+            shade: 0.0,
+            scene: None,
+            job: None,
+            notice: String::new(),
+            texture: None,
+            camera: Camera::default(),
+            filter: String::new(),
+            kind: 0,
+            apply: None,
         }
     }
-    fn raster(&mut self,ctx:&egui::Context) {
-        if let Some(scene)=&self.scene {match preview_render::render(scene,self.camera) {
-            Ok(image)=>{if let Some(texture)=&mut self.texture {texture.set(image,egui::TextureOptions::LINEAR);} else {self.texture=Some(ctx.load_texture("model-preview",image,egui::TextureOptions::LINEAR));}},
-            Err(e)=>self.notice=e,
-        }}
+}
+impl Preview {
+    pub fn take_apply(&mut self) -> Option<(u32, u32, u32)> {
+        self.apply.take()
     }
-    pub fn ui(&mut self,ui:&mut egui::Ui,document:Option<&toml::Value>) {
-        let ctx=ui.ctx().clone();
-        if self.job.as_ref().is_some_and(|j|j.thread.is_finished()) {
-            if let Some(job)=self.job.take() {
-                let joined=job.thread.join();
+    fn load(&mut self, ctx: &egui::Context, appearance: Option<bace_content::WeenieV1>) {
+        let Some(path) = self.path.clone() else {
+            self.notice = "Choose your client_portal.dat first.".into();
+            return;
+        };
+        let request = (|| {
+            Ok::<_, String>(PreviewRequest {
+                path,
+                setup: did(&self.setup)?,
+                clothing: did(&self.clothing)?,
+                palette: did(&self.palette)?,
+                template: self.template,
+                shade: self.shade,
+                appearance,
+            })
+        })();
+        let request = match request {
+            Ok(r) => r,
+            Err(e) => {
+                self.notice = e;
+                return;
+            }
+        };
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let ctx = ctx.clone();
+        match std::thread::Builder::new()
+            .name("studio-dat-preview".into())
+            .spawn(move || {
+                let _ = sender.send(preview_scene::load(request));
+                ctx.request_repaint();
+            }) {
+            Ok(thread) => {
+                self.job = Some(LoadJob { receiver, thread });
+                self.notice = "Loading selected assets…".into();
+            }
+            Err(e) => self.notice = e.to_string(),
+        }
+    }
+    fn raster(&mut self, ctx: &egui::Context) {
+        if let Some(scene) = &self.scene {
+            match preview_render::render(scene, self.camera) {
+                Ok(image) => {
+                    if let Some(texture) = &mut self.texture {
+                        texture.set(image, egui::TextureOptions::LINEAR);
+                    } else {
+                        self.texture = Some(ctx.load_texture(
+                            "model-preview",
+                            image,
+                            egui::TextureOptions::LINEAR,
+                        ));
+                    }
+                }
+                Err(e) => self.notice = e,
+            }
+        }
+    }
+    pub fn ui(&mut self, ui: &mut egui::Ui, document: Option<&toml::Value>) {
+        let ctx = ui.ctx().clone();
+        if self.job.as_ref().is_some_and(|j| j.thread.is_finished()) {
+            if let Some(job) = self.job.take() {
+                let joined = job.thread.join();
                 match job.receiver.try_recv() {
-                    Ok(Ok(scene)) if joined.is_ok()=>{self.notice=format!("Loaded {} triangles · {} textures",scene.triangles.len(),scene.textures.len());self.scene=Some(scene);self.camera=Camera::default();self.raster(&ctx);},
-                    Ok(Err(e))=>{self.notice=format!("Could not load preview: {e}");self.scene=None;self.texture=None;},
-                    _=>self.notice="DAT worker stopped unexpectedly".into(),
+                    Ok(Ok(scene)) if joined.is_ok() => {
+                        self.notice = format!(
+                            "Loaded {} triangles · {} textures",
+                            scene.triangles.len(),
+                            scene.textures.len()
+                        );
+                        self.scene = Some(scene);
+                        self.camera = Camera::default();
+                        self.raster(&ctx);
+                    }
+                    Ok(Err(e)) => {
+                        self.notice = format!("Could not load preview: {e}");
+                        self.scene = None;
+                        self.texture = None;
+                    }
+                    _ => self.notice = "DAT worker stopped unexpectedly".into(),
                 }
             }
-        } else if self.job.is_some() {ctx.request_repaint_after(std::time::Duration::from_millis(80));}
+        } else if self.job.is_some() {
+            ctx.request_repaint_after(std::time::Duration::from_millis(80));
+        }
         ui.horizontal_wrapped(|ui| {
-            if ui.add_enabled(self.job.is_none(),egui::Button::new("Choose client_portal.dat…")).clicked()
-                && let Some(path)=rfd::FileDialog::new().add_filter("Asheron's Call DAT",&["dat"]).pick_file() {self.path=Some(path);self.scene=None;self.texture=None;}
-            theme::subtitle(ui,&self.path.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"Select your installed client assets to enable preview".into()));
+            if ui
+                .add_enabled(
+                    self.job.is_none(),
+                    egui::Button::new("Choose client_portal.dat…"),
+                )
+                .clicked()
+                && let Some(path) = rfd::FileDialog::new()
+                    .add_filter("Asheron's Call DAT", &["dat"])
+                    .pick_file()
+            {
+                self.path = Some(path);
+                self.scene = None;
+                self.texture = None;
+            }
+            theme::subtitle(
+                ui,
+                &self
+                    .path
+                    .as_ref()
+                    .map(|p| p.display().to_string())
+                    .unwrap_or_else(|| {
+                        "Select your installed client assets to enable preview".into()
+                    }),
+            );
         });
         ui.add_enabled_ui(self.job.is_none(),|ui| {
             ui.horizontal_wrapped(|ui| {
@@ -74,7 +188,9 @@ impl Preview {
                 }
             });
         });
-        if self.job.is_some() {ui.spinner();}
+        if self.job.is_some() {
+            ui.spinner();
+        }
         ui.add_space(10.0);
         ui.columns(2,|columns| {
             let ui=&mut columns[0];
@@ -115,8 +231,22 @@ impl Preview {
                 egui::ScrollArea::both().id_salt("asset-report").max_height(200.0).show(ui,|ui|{for line in &scene.report {ui.monospace(line);}});
             }
         });
-        theme::notice(ui,&self.notice);
+        theme::notice(ui, &self.notice);
     }
 }
-fn did(text:&str)->Result<u32,String> {u32::from_str_radix(text.trim().trim_start_matches("0x").trim_start_matches("0X"),16).map_err(|_|"Enter a hexadecimal DID, for example 02000001; use 0 for none.".into())}
-impl Drop for Preview {fn drop(&mut self) {if let Some(job)=self.job.take(){let _=job.thread.join();}}}
+fn did(text: &str) -> Result<u32, String> {
+    u32::from_str_radix(
+        text.trim()
+            .trim_start_matches("0x")
+            .trim_start_matches("0X"),
+        16,
+    )
+    .map_err(|_| "Enter a hexadecimal DID, for example 02000001; use 0 for none.".into())
+}
+impl Drop for Preview {
+    fn drop(&mut self) {
+        if let Some(job) = self.job.take() {
+            let _ = job.thread.join();
+        }
+    }
+}
