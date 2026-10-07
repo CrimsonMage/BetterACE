@@ -323,9 +323,9 @@ pub(crate) fn load(request: PreviewRequest) -> Result<PreviewScene, String> {
                         if let Some(&uv) = uvs.get(index) {
                             coords[c] = vertex.uvs[usize::from(uv)];
                         }
-                        for axis in 0..3 {
-                            scene.bounds.0[axis] = scene.bounds.0[axis].min(points[c][axis]);
-                            scene.bounds.1[axis] = scene.bounds.1[axis].max(points[c][axis]);
+                        for (axis, coordinate) in points[c].iter().copied().enumerate() {
+                            scene.bounds.0[axis] = scene.bounds.0[axis].min(coordinate);
+                            scene.bounds.1[axis] = scene.bounds.1[axis].max(coordinate);
                         }
                     }
                     if scene.triangles.len() >= 50_000 {

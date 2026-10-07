@@ -113,6 +113,7 @@ Or launch the built `bace-content-gui` executable directly. Current workflows in
 - 📥 ACE/Lifestoned/GDLE JSON import and supported weenie SQL import through isolated MariaDB staging.
 - 📤 Legacy JSON/SQL export bundles with a complete native companion and explicit conversion notes.
 - 📦 A **Build** tab that compiles native TOML folders into immutable `.bace` files and a binary generation manifest.
+- 🔍 Early DAT-backed model/DID previews using local assets; selected model and clothing/palette cases have tests, not a general renderer-parity claim.
 
 Saves check for external changes and preserve dirty state on failure. Conversion/build output goes into fresh folders. Pack building does **not** publish to PostgreSQL or activate a server catalog.
 

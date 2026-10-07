@@ -103,14 +103,15 @@ fn dxt(t: &DatTexture) -> Result<Vec<[u8; 4]>, String> {
         let c1 = u16::from_le_bytes([colors[2], colors[3]]);
         let mut table = [rgb565(c0), rgb565(c1), [0; 4], [0; 4]];
         let four = c0 > c1 || stride == 16;
-        for k in 0..3 {
+        let (first, second) = (table[0], table[1]);
+        for (k, (a, b)) in first.into_iter().zip(second).take(3).enumerate() {
             table[2][k] = if four {
-                ((2 * u16::from(table[0][k]) + u16::from(table[1][k])) / 3) as u8
+                ((2 * u16::from(a) + u16::from(b)) / 3) as u8
             } else {
-                ((u16::from(table[0][k]) + u16::from(table[1][k])) / 2) as u8
+                ((u16::from(a) + u16::from(b)) / 2) as u8
             };
             table[3][k] = if four {
-                ((u16::from(table[0][k]) + 2 * u16::from(table[1][k])) / 3) as u8
+                ((u16::from(a) + 2 * u16::from(b)) / 3) as u8
             } else {
                 0
             };

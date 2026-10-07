@@ -4,7 +4,8 @@ use crate::preview_scene::{PreviewRequest, load};
 #[ignore = "Requires user-supplied client DAT; no proprietary assets committed"]
 fn supplied_model_preview() {
     let directory = std::env::var_os("BACE_DAT_DIRECTORY").expect("BACE_DAT_DIRECTORY");
-    for setup in [0x02000001] {
+    {
+        let setup = 0x02000001;
         let scene = load(PreviewRequest {
             path: std::path::PathBuf::from(&directory).join("client_portal.dat"),
             setup,

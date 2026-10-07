@@ -1,3 +1,5 @@
+# Public register: personal identifiers and source-server addresses are redacted.
+# The original private Markdown is not included in the repository.
 # User-supplied observations; this is not the BACE compatibility baseline.
 version = 1
 source = "user-provided divergences.md"

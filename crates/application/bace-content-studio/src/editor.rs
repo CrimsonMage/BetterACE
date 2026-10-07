@@ -308,14 +308,13 @@ impl Editor {
                 egui::ScrollArea::vertical().id_salt("preview-scroll").show(ui,|ui|self.preview.ui(ui,self.document.as_ref().map(|d|&d.value)));
                 if let Some((setup,clothing,palette))=self.preview.take_apply() {
                     if !self.forms.valid() || self.raw_dirty {self.notice="Apply source changes and correct numeric errors before changing DIDs.".into();}
-                    else if let Some(doc)=&mut self.document {
-                        if let Some(rows)=doc.value.get_mut("properties").and_then(|p|p.get_mut("data_ids")).and_then(toml::Value::as_array_mut) {
+                    else if let Some(doc)=&mut self.document
+                        && let Some(rows)=doc.value.get_mut("properties").and_then(|p|p.get_mut("data_ids")).and_then(toml::Value::as_array_mut) {
                             for (id,value) in [(1,setup),(7,clothing),(6,palette)] {
                                 if let Some(row)=rows.iter_mut().find(|p|p.get("id").and_then(toml::Value::as_integer)==Some(id)) {row["value"]=toml::Value::Integer(i64::from(value));}
                                 else {let mut row=toml::Table::new();row.insert("id".into(),toml::Value::Integer(id));row.insert("value".into(),toml::Value::Integer(i64::from(value)));rows.push(toml::Value::Table(row));}
                             }
                             self.forms.clear();self.notice=doc.checkpoint().err().unwrap_or_else(||"Appearance DIDs updated. Save to keep these changes.".into());
-                        }
                     }
                 }
             } else if self.raw_mode {
