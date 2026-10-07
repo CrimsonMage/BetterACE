@@ -1,0 +1,14 @@
+[package]
+name = "bace-content-gui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "BetterACE Content Studio launcher"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-content-studio.workspace = true

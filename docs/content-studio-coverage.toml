@@ -1,0 +1,40 @@
+version = 1
+reference = "https://github.com/harliq/Weenie-Fab"
+reference_commit = "2b2d514077209fc49b645f9467b9e0c418799b1a"
+authority = "Official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b defines content fields; Weenie-Fab is a workflow reference only. No Weenie-Fab source or assets copied."
+owner = "bace-content-studio"
+
+[[features]]
+name = "Native editor and property families"
+status = "foundation"
+scope = "New/open/save/save-as, cloning, validation, undo/redo, scalar properties, attributes/vitals/skills, body parts, spells, create lists, emotes/actions, books/pages, generators, positions and visual overrides"
+
+[[features]]
+name = "Legacy conversion"
+status = "foundation"
+scope = "JSON/SQL import and export with a complete native TOML companion and explicit metadata notes; native saves remain primary. SQL staging requires a private Linux MariaDB installation."
+
+[[features]]
+name = "Mapped pack compilation"
+status = "foundation"
+scope = "Bounded incremental TOML-to-.bace compiler with disk spool, compact ID index and restartable binary manifest. Runtime activation/cache integration remains unsupported."
+
+[[features]]
+name = "Saved editor preferences"
+status = "unsupported"
+scope = "Persistent preference storage is not implemented. Property and spell-name lookup uses pinned official ACE enums; unknown numeric IDs remain editable."
+
+[[features]]
+name = "EmoteScript language"
+status = "unsupported"
+scope = "Structured native emote/action editing is separate from .es language compilation/decompilation."
+
+[[features]]
+name = "Death treasure loot profiles"
+status = "unsupported"
+scope = "Requires a separate native content schema, importer and bace-loot interpretation; not a weenie property table."
+
+[[features]]
+name = "Gameplay-derived calculators"
+status = "unsupported"
+scope = "Automatic skill/vital/body-part/spell-probability calculations need source-backed gameplay contracts and differential fixtures. Raw authored values remain editable."

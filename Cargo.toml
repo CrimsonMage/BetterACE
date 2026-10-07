@@ -1,0 +1,91 @@
+[workspace]
+resolver = "3"
+members = ["apps/*", "crates/*/*", "tools/*"]
+default-members = ["apps/bace-server", "apps/bace-cli", "tools/xtask"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "AGPL-3.0-only"
+
+[workspace.metadata.project]
+name = "BetterACE"
+full-name = "BetterACEmulator"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+todo = "deny"
+unimplemented = "deny"
+
+[workspace.dependencies]
+bace-content-studio = { path = "crates/application/bace-content-studio" }
+eframe = { version = "0.36.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+rfd = "0.17.2"
+bace-types = { path = "crates/foundation/bace-types" }
+bace-geometry = { path = "crates/foundation/bace-geometry" }
+bace-config = { path = "crates/foundation/bace-config" }
+bace-observability = { path = "crates/foundation/bace-observability" }
+bace-dat = { path = "crates/assets/bace-dat" }
+bace-dat-service = { path = "crates/assets/bace-dat-service" }
+bace-content = { path = "crates/content/bace-content" }
+bace-content-tools = { path = "crates/content/bace-content-tools" }
+bace-import = { path = "crates/content/bace-import" }
+bace-wire = { path = "crates/network/bace-wire" }
+bace-transport = { path = "crates/network/bace-transport" }
+bace-auth = { path = "crates/network/bace-auth" }
+bace-session = { path = "crates/network/bace-session" }
+bace-replication = { path = "crates/network/bace-replication" }
+bace-entity = { path = "crates/simulation/bace-entity" }
+bace-gameplay-api = { path = "crates/simulation/bace-gameplay-api" }
+bace-motion = { path = "crates/simulation/bace-motion" }
+bace-physics = { path = "crates/simulation/bace-physics" }
+bace-world = { path = "crates/simulation/bace-world" }
+bace-simulation = { path = "crates/simulation/bace-simulation" }
+bace-character = { path = "crates/gameplay/bace-character" }
+bace-combat = { path = "crates/gameplay/bace-combat" }
+bace-magic = { path = "crates/gameplay/bace-magic" }
+bace-ai = { path = "crates/gameplay/bace-ai" }
+bace-inventory = { path = "crates/gameplay/bace-inventory" }
+bace-economy = { path = "crates/gameplay/bace-economy" }
+bace-crafting = { path = "crates/gameplay/bace-crafting" }
+bace-loot = { path = "crates/gameplay/bace-loot" }
+bace-spawning = { path = "crates/gameplay/bace-spawning" }
+bace-quests = { path = "crates/gameplay/bace-quests" }
+bace-emotes = { path = "crates/gameplay/bace-emotes" }
+bace-social = { path = "crates/gameplay/bace-social" }
+bace-fellowship = { path = "crates/gameplay/bace-fellowship" }
+bace-allegiance = { path = "crates/gameplay/bace-allegiance" }
+bace-housing = { path = "crates/gameplay/bace-housing" }
+bace-interactions = { path = "crates/gameplay/bace-interactions" }
+bace-world-events = { path = "crates/gameplay/bace-world-events" }
+bace-activities = { path = "crates/gameplay/bace-activities" }
+bace-persistence = { path = "crates/storage/bace-persistence" }
+bace-storage-codec = { path = "crates/storage/bace-storage-codec" }
+bace-db-postgres = { path = "crates/storage/bace-db-postgres" }
+bace-admin = { path = "crates/application/bace-admin" }
+bace-tooling = { path = "crates/application/bace-tooling" }
+bace-runtime = { path = "crates/application/bace-runtime" }
+bace-server = { path = "apps/bace-server" }
+bace-cli = { path = "apps/bace-cli" }
+bace-compat = { path = "tools/bace-compat" }
+xtask = { path = "tools/xtask" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
+thiserror = "2.0"
+toml = "0.9"
+postcard = { version = "1.1", features = ["alloc", "use-std"] }
+sha2 = "0.10"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time", "process", "io-util"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "tls-rustls-ring", "postgres", "migrate", "macros"] }
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+encoding_rs = "0.8"
+syn = { version = "2", features = ["full", "visit"] }
+cargo_metadata = "0.23"
+proc-macro2 = "1"
+tempfile = "3"

@@ -1,0 +1,16 @@
+[package]
+name = "bace-replication"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Authoritative visibility and packet output projection"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-types.workspace = true
+bace-wire.workspace = true
+bace-gameplay-api.workspace = true

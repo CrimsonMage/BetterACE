@@ -1,0 +1,13 @@
+[package]
+name = "bace-magic"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Casting, spells and enchantments"
+
+[lints]
+workspace = true
+
+[dependencies]

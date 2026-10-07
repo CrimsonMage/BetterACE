@@ -1,0 +1,43 @@
+{
+  "wcid": 900003,
+  "weenieType": 10,
+  "lastModified": "2026-10-07T00:00:00Z",
+  "modifiedBy": "synthetic-test-author",
+  "comments": "Synthetic fixture derived from pinned ACE.Adapter.GDLE.Models field definitions.",
+  "userChangeSummary": "All supported sections",
+  "isDone": true,
+  "changelog": [{"created": "2026-10-07T00:00:00Z", "author": "fixture", "comment": "initial"}],
+  "boolStats": [{"key": 1, "value": 1}],
+  "intStats": [{"key": 1, "value": 16}],
+  "int64Stats": [{"key": 90000, "value": 9223372036854775807}],
+  "floatStats": [{"key": 1, "value": 0.125}],
+  "didStats": [{"key": 1, "value": 4294967295}],
+  "iidStats": [{"key": 1, "value": 1234}],
+  "stringStats": [{"key": 1, "value": "Fixture NPC 雪"}],
+  "attributes": {
+    "strength": {"init_level": 100, "level_from_cp": 0, "cp_spent": 0},
+    "health": {"init_level": 100, "level_from_cp": 0, "cp_spent": 0, "current": 99}
+  },
+  "body": {"body_part_table": [{"key": 0, "value": {
+    "dtype": 1, "dval": 20, "dvar": 0.5, "bh": 1,
+    "acache": {"base_armor": 30, "armor_vs_slash": 30}, "bpsd": {"HLF": 0.25}
+  }}]},
+  "pageDataList": {"maxNumPages": 10, "maxNumCharsPerPage": 1000, "pages": [
+    {"authorID": 1, "authorName": "Author", "authorAccount": "synthetic", "ignoreAuthor": 0, "pageText": "First page"},
+    {"authorID": 2, "authorName": "Author", "ignoreAuthor": 1, "pageText": "Second page"}
+  ]},
+  "createList": [{"wcid": 100, "palette": 1, "shade": 0.5, "destination": 1, "stack_size": 2, "try_to_bond": 0}],
+  "skills": [{"key": 1, "value": {"level_from_pp": 2, "last_used_time": 0.125, "init_level": 5, "pp": 6, "resistance_of_last_check": 7, "sac": 2}}],
+  "emoteTable": [{"key": 1, "value": [{"category": 1, "probability": 1.0, "quest": "fixture",
+    "emotes": [
+      {"type": 1, "delay": 0.0, "extent": 1.0, "msg": "First action", "display": 1},
+      {"type": 2, "msg": "Second action", "heroxp64": 9223372036854775807,
+       "cprof": {"wcid": 100, "palette": 1, "shade": 0.5, "destination": 1, "stack_size": 1, "try_to_bond": 1},
+       "mPosition": {"objcell_id": 1234, "frame": {"origin": {"x": 1.0, "y": 2.0, "z": 3.0}, "angles": {"w": 1.0, "x": 0.0, "y": 0.0, "z": 0.0}}}}
+    ]}]}],
+  "spellbook": [{"key": 1, "value": {"casting_likelihood": 0.5}}],
+  "posStats": [{"key": 1, "value": {"objcell_id": 1234, "frame": {"origin": {"x": 1.0, "y": 2.0, "z": 3.0}, "angles": {"w": 1.0, "x": 0.0, "y": 0.0, "z": 0.0}}}}],
+  "generatorTable": [{"delay": 5.0, "initCreate": 1, "maxNum": 2, "objcell_id": 1234, "probability": 0.5,
+    "ptid": 1, "shade": 0.5, "slot": 50, "stackSize": 1, "type": 100, "whenCreate": 1, "whereCreate": 1,
+    "frame": {"origin": {"x": 1.0, "y": 2.0, "z": 3.0}, "angles": {"w": 1.0, "x": 0.0, "y": 0.0, "z": 0.0}}}]
+}

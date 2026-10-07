@@ -1,0 +1,24 @@
+[package]
+name = "bace-tooling"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "CLI workflows and maintenance orchestration"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-admin.workspace = true
+toml.workspace = true
+bace-auth.workspace = true
+bace-dat.workspace = true
+bace-content.workspace = true
+bace-content-tools.workspace = true
+bace-import.workspace = true
+bace-persistence.workspace = true
+bace-db-postgres.workspace = true
+clap.workspace = true
+tokio.workspace = true

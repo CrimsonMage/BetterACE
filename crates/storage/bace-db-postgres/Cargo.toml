@@ -1,0 +1,23 @@
+[package]
+name = "bace-db-postgres"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "SQL, migrations, transactions and publication journal"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-persistence.workspace = true
+bace-auth.workspace = true
+bace-types.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+tempfile.workspace = true

@@ -1,0 +1,6 @@
+bind_address = "127.0.0.1:9000"
+database_url_env = "BACE_DATABASE_URL"
+command_capacity = 4096
+max_sessions = 512
+database_connections = 4
+# dat_directory = "/absolute/path/to/user-supplied/DATS"

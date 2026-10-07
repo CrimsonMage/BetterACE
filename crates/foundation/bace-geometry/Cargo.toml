@@ -1,0 +1,14 @@
+[package]
+name = "bace-geometry"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Frames, shapes, bounds and geometric primitives"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde.workspace = true

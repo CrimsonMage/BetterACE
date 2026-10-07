@@ -1,0 +1,20 @@
+[package]
+name = "bace-compat"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Official ACE oracle fixtures and differential replay"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-wire.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+bace-transport.workspace = true
+bace-replication.workspace = true
+bace-dat.workspace = true

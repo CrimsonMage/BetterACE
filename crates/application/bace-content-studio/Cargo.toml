@@ -1,0 +1,23 @@
+[package]
+name = "bace-content-studio"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "BetterACE desktop content conversion"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-dat.workspace = true
+bace-content.workspace = true
+serde.workspace = true
+bace-import.workspace = true
+bace-content-tools.workspace = true
+eframe.workspace = true
+rfd.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+toml.workspace = true

@@ -1,0 +1,6 @@
+# A [[plans]] entry is required for each Rust file at or above 1000 lines.
+# path = "crates/.../src/module.rs"
+# owner = "bace-..."
+# destinations = ["module/one.rs", "module/two.rs"]
+# rationale = "Describe the responsibility boundary."
+plans = []

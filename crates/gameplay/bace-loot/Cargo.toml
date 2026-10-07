@@ -1,0 +1,13 @@
+[package]
+name = "bace-loot"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Treasure tables and generated items"
+
+[lints]
+workspace = true
+
+[dependencies]

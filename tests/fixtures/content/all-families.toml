@@ -1,0 +1,58 @@
+# Native aggregate fixture. Exercises schema coverage, not stock-client parity.
+schema_version = 1
+weenie_id = 900002
+class_name = "all-property-families"
+weenie_type = 10
+last_modified = "2026-10-07T00:00:00Z"
+
+[properties]
+bools = [{ id = 1, value = false }]
+data_ids = [{ id = 1, value = 4294967295 }]
+floats = [{ id = 1, value = -0.0 }]
+instance_ids = [{ id = 1, value = 4294967295 }]
+ints = [{ id = 1, value = -2147483648 }]
+int64s = [{ id = 1, value = -9223372036854775808 }]
+strings = [{ id = 1, value = "All families 雪" }]
+positions = [{ id = 1, value = { obj_cell_id = 1234, position_x = 1.25, rotation_w = 1.0 } }]
+spell_book = [{ id = -1, value = 0.75 }]
+animation_parts = [{ index = 255, animation_id = 4294967295 }]
+palettes = [{ sub_palette_id = 123, offset = 65535, length = 1 }]
+texture_maps = [{ part_index = 255, old_texture = 123, new_texture = 456 }]
+create_list = [{ database_record_id = 5, destination_type = 1, weenie_class_id = 600, stack_size = -1, palette = -128, shade = 0.5, try_to_bond = true }]
+event_filter = [-2147483648, 2147483647]
+generators = [{ database_record_id = 42, probability = 0.9, weenie_class_id = 999, delay = 1.5, init_create = 1, max_create = 2, when_create = 1, where_create = 4, origin_x = 5.0, angles_w = 1.0 }]
+attributes = [{ id = 1, value = { init_level = 100, level_from_cp = 1, cp_spent = 100 } }]
+secondary_attributes = [{ id = 1, value = { init_level = 100, level_from_cp = 1, cp_spent = 100, current_level = 99 } }]
+body_parts = [{ id = -1, value = { d_type = 1, d_val = 50, d_var = 0.25, base_armor = 30, bh = 1, hlf = 0.125 } }]
+skills = [{ id = 1, value = { level_from_pp = 65535, sac = 2, pp = 4294967295, init_level = 100, resistance_at_last_check = 2, last_used_time = 1234567890.125 } }]
+book_pages = [{ author_id = 4294967295, author_name = "Author", author_account = "fixture-account", ignore_author = false, page_text = "First page\nSecond line" }]
+
+[properties.book]
+max_num_pages = 5
+max_num_chars_per_page = 1000
+
+[[properties.emotes]]
+database_record_id = 20
+category = 1
+probability = 1.0
+quest = "fixture-quest"
+min_health = 0.0
+
+[[properties.emotes.actions]]
+database_record_id = 21
+type = 50
+delay = 1.5
+extent = 0.0
+message = "First action"
+min64 = -9223372036854775808
+max64 = 9223372036854775807
+hero_xp64 = 9223372036854775807
+
+[[properties.emotes.actions]]
+database_record_id = 22
+type = 1
+delay = 0.0
+extent = 1.0
+message = "Second action"
+origin_x = 1.25
+angles_w = 1.0

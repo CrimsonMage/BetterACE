@@ -1,0 +1,8 @@
+schema_version = 1
+weenie_id = 900001
+class_name = "rust-content-fixture"
+weenie_type = 1
+
+[properties]
+strings = [{ id = 1, value = "Rust content fixture" }]
+ints = [{ id = 1, value = 1 }]

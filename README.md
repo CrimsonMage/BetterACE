@@ -1,383 +1,332 @@
 # 🚀 BetterACE — BetterACEmulator
 
-> 🧠⚡ **A modern, compatibility-first reimplementation of ACEmulator/ACE — engineered for correctness, determinism, and ✨vibes✨.**
+> 🤖⚡ **An AI-assisted Rust emulator project powered by packet archaeology, strict ownership, and aggressively documented ✨vibes✨.**
 
-A Rust workspace for reimplementing official ACEmulator/ACE with exact legacy packet contracts, authoritative physics, compact PostgreSQL persistence, and live TOML-authored content.
+BetterACE reimplements official ACEmulator/ACE in Rust, targeting the unmodified Asheron's Call client. The work spans legacy networking, authoritative simulation, PostgreSQL persistence, native TOML content, and immutable `.bace` packs.
 
-[![🦀 Rust](https://img.shields.io/badge/Rust-1.96.1-orange?logo=rust)](https://www.rust-lang.org/)
-[![💾 PostgreSQL](https://img.shields.io/badge/PostgreSQL-supported-336791?logo=postgresql)](https://www.postgresql.org/)
+[![🦀 Rust](https://img.shields.io/badge/Rust-1.96.1-orange?logo=rust)](rust-toolchain.toml)
+[![CI](https://github.com/CrimsonMage/BetterACE/actions/workflows/ci.yml/badge.svg)](https://github.com/CrimsonMage/BetterACE/actions/workflows/ci.yml)
 [![📜 License](https://img.shields.io/badge/license-AGPL--3.0--only-blue)](LICENSE)
-[![🤖 AI-approved-ish](https://img.shields.io/badge/AI--generated%20README%20energy-%E2%9C%A8%F0%9F%A4%96%E2%9C%A8-purple)](#)
-[![✅ Build](https://img.shields.io/badge/build-passing%20(trust%20me)-brightgreen)](#-build--verify)
-[![🚀 Blazingly Fast](https://img.shields.io/badge/blazingly-fast%E2%84%A2-red)](#)
-[![🏰 MMO Status](https://img.shields.io/badge/MMO-not%20yet%20MMOing-lightgrey)](#-networking-status)
-[![📈 Emoji Coverage](https://img.shields.io/badge/emoji%20coverage-137%25-ff69b4)](#-ai-readme-disclaimer)
-[![☕ Made with](https://img.shields.io/badge/made%20with-%F0%9F%A6%80%20%2B%20%E2%98%95%20%2B%20invariants-yellow)](#)
+[![🤖 README energy](https://img.shields.io/badge/README%20energy-AI%20%2B%20emoji-purple)](#ai-disclaimer)
+[![🏰 Status](https://img.shields.io/badge/MMO-not%20yet%20MMOing-lightgrey)](#status)
 
-> ⚠️ **STATUS: WORKING FOUNDATION, NOT YET A PLAYABLE REPLACEMENT SERVER™**
+> 🚧 **Working foundations and usable authoring tools; not yet a playable replacement server.**
 >
-> The crate layout and MUST rules are implemented; complete stock-client login/world entry, AC collision and complete official-world SQL conversion remain outstanding.
-> See [implementation status](docs/implementation-status.md).
+> The host console, Content Studio, conversion tools, and validation harnesses run today. Complete stock-client world entry, authentic AC collision, gameplay/save composition, and full-world import remain unfinished. `serve` deliberately refuses readiness. See [implementation status](docs/implementation-status.md).
 
----
+The repository is **BetterACE**. Existing `bace-` executable/crate names, `BACE_*` environment variables, and `.bace` files keep their current spelling. 🧬
 
-## 📑 Table of Contents
+<a id="contents"></a>
+## 📑 Navigation, because every AI README needs a control panel
 
-- [🧭 Project Map](#-project-map)
-- [⚡ Quick Start (TL;DR)](#-quick-start-tldr)
-- [🦀🔨 Build & Verify](#-build--verify)
-- [🖥️✨ Host Console](#️-host-console)
-- [📦 Native Content](#-native-content)
-- [🧙‍♂️ SQL → TOML → Native Content Alchemy](#️-sql--toml--native-content-alchemy)
-- [🗺️ User-Supplied Assets](#️-user-supplied-assets)
-- [🧪🔬 Compatibility Oracle](#-compatibility-oracle)
-- [📡🌐 Networking Status](#-networking-status)
-- [🆚 Why BetterACE?](#-why-betterace)
-- [🗺️ Roadmap](#️-roadmap)
-- [❓ FAQ](#-faq)
-- [🤝 Contributing](#-contributing)
-- [📜 License](#-license)
-- [🤖✨ AI README Disclaimer](#-ai-readme-disclaimer)
+- [⚡ Quick start](#quick-start)
+- [🧰 Current commands](#commands)
+- [🎨 Content Studio](#content-studio)
+- [🖥️ Host console and accounts](#host-console)
+- [📦 Content conversion and publication](#content)
+- [🗺️ User-supplied assets](#assets)
+- [🧪 Build, tests, and oracles](#validation)
+- [📡 What actually works](#status)
+- [🧭 Architecture and roadmap](#roadmap)
+- [🤝 Contributing and license](#contributing)
+- [🤖 Extremely important disclaimer](#ai-disclaimer)
 
-> 🧠 A Table of Contents signals **enterprise readiness**. The links may or may not resolve. That is between you and GitHub's anchor slugger. 🎰
+<a id="quick-start"></a>
+## ⚡ Quick start — commands that actually do something
 
----
-
-## 🧭 Project Map
-
-If you're here to understand the machinery before touching the machinery:
-
-- 🏗️ [Architecture and crate ownership](ARCHITECTURE.md)
-- 🤖 [Mandatory contributor/agent rules](AGENTS.md)
-- 🧪 [Machine-checked dependency inventory](architecture.toml)
-- 🔐 [Pinned reference and data fingerprints](docs/baselines.toml)
-- 💾 [Storage/publication contracts](docs/persistence.md)
-- 📦 [Immutable `.bace` runtime pack format](docs/pack-format.md)
-- 🖥️ [Host console and restart protocol](docs/host-console.md)
-- ⚙️ [Physics precision and SIMD gates](docs/physics-math.md)
-- 📊 [Validation results and limits](docs/validation.md)
-
-> 💡 **Philosophy:** boring contracts, deterministic systems, explicit failure modes.  
-> ✨ **Aesthetic:** Rust, TOML, PostgreSQL, packet archaeology, and an unreasonable number of invariants.
-
----
-
-## ⚡ Quick Start (TL;DR)
-
-Get up and running in **3 easy steps**! 🏃💨
+Rust **1.96.1** is pinned. Examples use Bash. PostgreSQL is needed for database workflows/tests; the GUI and offline JSON/TOML conversion do not need a game database. Python 3 and .NET 10 are used by the compatibility tooling.
 
 ```sh
 git clone https://github.com/CrimsonMage/BetterACE.git
 cd BetterACE
-cargo run -p bace-server -- serve   # ❌ fails its readiness gate. This is correct. This is intended. ✅
+
+# Build the three user-facing executables once.
+cargo build -p bace-server -p bace-cli -p bace-content-gui
+
+# Use the built binaries directly in this shell.
+export PATH="$PWD/target/debug:$PATH"
+
+bace-cli --help
+bace-server --help
+bace-server check --config tests/fixtures/config/server.toml
+bace-server exercise --ticks 300 --players 100 --bodies 1000
 ```
 
-> 🎉 **Congratulations!** You have successfully *not* started an MMO.
-> This is the expected behavior and is covered by tests. 🧪
-> For the steps that actually do something, proceed to [Build & Verify](#-build--verify). 👇
+Content authors can then launch:
 
----
+```sh
+bace-content-gui
+```
 
-## 🦀🔨 Build & Verify
+Without changing `PATH`, use `./target/debug/bace-cli`, `./target/debug/bace-server`, and `./target/debug/bace-content-gui`. On Windows, the binaries have `.exe` suffixes. Platform-specific limitations are listed below; compiling portable code is not the same as validating every platform. 🧪
 
-Rust **1.96.1** is pinned. Database integration tests require PostgreSQL `initdb` and `pg_ctl` on `PATH`, run as an ordinary user. They create isolated temporary clusters; **no existing database is used.** 🛡️
+For a release build, add `--release` and use `target/release`. For a source-run equivalent, use `cargo run -p bace-cli -- <command>` or `cargo run -p bace-server -- <command>`.
+
+### 🦀 Toolchain reality check™
+
+In the supplied development environment, the named `1.96.1` installation lacks some tools, while `stable` contains the same Rust/Cargo **1.96.1** and complete tools. Use `cargo +stable ...` there, or repair the pinned installation. This is a local workaround, not permission to silently upgrade the compiler.
+
+> ✨ Build once. Type less. The borrow checker still gets a vote.
+
+<a id="commands"></a>
+## 🧰 Current command spellbook
+
+These are the implemented public commands. `help` / `--help` gives the exact arguments; internal supervisor commands are not an operator interface.
+
+| Executable | Command | What it does |
+|---|---|---|
+| `bace-server` | no command, or `host [--config FILE]` | Starts the authenticated local host dashboard and foundation child. |
+| `bace-server` | `check --config FILE` | Validates configuration without opening game sockets or a database. |
+| `bace-server` | `exercise [--ticks N] [--players N] [--bodies N]` | Runs the synthetic fixed-step simulation harness. |
+| `bace-server` | `content-worker --config FILE` | Validates durable publication candidates and delivers catalog generations. |
+| `bace-server` | `serve --config FILE` | Reports the unfinished game-readiness gate; does not start a playable world. |
+| `bace-cli` | `host-init [--state-directory DIR]` | Provisions separate host credentials from piped stdin. |
+| `bace-cli` | `account-create --name NAME [--password-env VAR]` | Creates an ordinary player account using a password environment variable. |
+| `bace-cli` | `convert --input FILE --output FILE --from FORMAT --to FORMAT` | Converts one template between supported legacy/native formats. |
+| `bace-cli` | `import-sql --input FILE --output-directory DIR` | Converts a supported weenie SQL batch into native TOML. |
+| `bace-cli` | `migrate` | Applies native PostgreSQL schema migrations. |
+| `bace-cli` | `publish --input FILE --format FORMAT` | Queues an immutable content candidate for validation. |
+| `bace-cli` | `content-status` | Reads persisted generation and content/publication counts. |
+| `bace-cli` | `dat-inspect FILE [--fingerprint] [--record HEX] [--output FILE]` | Inspects a DAT archive and optionally extracts a record. |
+| `bace-content-gui` | launch directly | Opens the native editor, importer/exporter, and pack builder. |
+| Cargo | `cargo xtask check` | Enforces architecture, dependency, source-size, and coverage rules. |
+
+CLI input formats are `toml`, `ace-json`, `binary`, and `ace-sql`; CLI output formats are `toml` and `binary`. Legacy JSON/SQL export and folder-to-pack builds currently live in **Content Studio**, not an undocumented CLI subcommand.
+
+Global CLI options: `--database-url-env VAR` defaults to `BACE_DATABASE_URL`; `--mariadb-basedir DIR` overrides `BACE_MARIADB_BASEDIR` for isolated SQL staging.
+
+### 🧹 Command diet: planned, not invented
+
+The command surface needs simplification: fewer repeated flags, consistent configuration discovery, and shorter common authoring/host workflows. That is follow-up work. The table above is today's interface; no imaginary `betterace start-everything` alias is hiding behind the curtain. 🎭
+
+<a id="content-studio"></a>
+## 🎨 Content Studio — the GUI has entered the chat
+
+```sh
+cargo run -p bace-content-gui
+```
+
+Or launch the built `bace-content-gui` executable directly. Current workflows include:
+
+- 📝 New/open/save/save-as, clone-as-new, bounded undo/redo, validation, and a TOML source view.
+- 🧩 Forms for 21 property families, with pinned ACE property names and editable unknown numeric IDs.
+- 📥 ACE/Lifestoned/GDLE JSON import and supported weenie SQL import through isolated MariaDB staging.
+- 📤 Legacy JSON/SQL export bundles with a complete native companion and explicit conversion notes.
+- 📦 A **Build** tab that compiles native TOML folders into immutable `.bace` files and a binary generation manifest.
+- 🔍 Early DAT-backed model/DID previews using local assets; selected model and clothing/palette cases have tests, not a general renderer-parity claim.
+
+Saves check for external changes and preserve dirty state on failure. Conversion/build output goes into fresh folders. Pack building does **not** publish to PostgreSQL or activate a server catalog.
+
+Linux UI flows have been exercised. Linux file dialogs need an XDG desktop portal backend or Zenity. Windows/macOS validation remains outstanding; legacy SQL staging is currently Linux-only. EmoteScript compilation, death-treasure editing, and automatic gameplay calculators remain unsupported.
+
+See [Content Studio](crates/application/bace-content-studio/README.md) and its [coverage register](docs/content-studio-coverage.toml).
+
+> 🪄 A real editor, real files, and a conspicuous absence of “save succeeded” when it did not.
+
+<a id="host-console"></a>
+## 🖥️ Host console and accounts
+
+Provision the host password once with a hidden prompt, then start the dashboard:
+
+```sh
+python3 -c "import getpass, sys; sys.stdout.write(getpass.getpass('Host password: '))" \
+  | bace-cli host-init --state-directory state/host
+
+bace-server
+# Equivalent explicit form:
+# bace-server host --config tests/fixtures/config/server.toml
+```
+
+Open the printed URL (default `http://127.0.0.1:8080`). Host privileges are separate from game accounts. The dashboard supervises a foundation child that reports game serving as unavailable.
+
+Native Windows host credential/ACL provisioning is not supported yet; macOS execution is unvalidated. Details: [host-console contract](docs/host-console.md).
+
+After setting `BACE_DATABASE_URL` for a dedicated development PostgreSQL database and applying `bace-cli migrate`, create a player account with:
+
+```sh
+read -rsp "Initial player password: " BACE_INITIAL_PASSWORD
+export BACE_INITIAL_PASSWORD
+bace-cli account-create --name ExamplePlayer
+unset BACE_INITIAL_PASSWORD
+```
+
+A duplicate account does not overwrite its password or privileges. No first-account auto-promotion. Native login policy defaults to automatic ordinary-player creation, configurable off; this does not make the gated game service playable.
+
+```toml
+[accounts]
+allow_auto_creation = false
+
+[dat_distribution]
+enabled = false
+```
+
+DAT distribution defaults off. Enabling it requires `dat_directory` and validated assets. Add these sections to a complete server configuration, such as [the example](tests/fixtures/config/server.toml).
+
+<a id="content"></a>
+## 📦 Content conversion and publication
+
+Native authoring uses TOML; runtime packs use versioned immutable `.bace` files. Single-template `binary` exports are interchange envelopes, not whole-world runtime packs.
+
+```sh
+bace-cli convert \
+  --input tests/fixtures/content/minimal.toml --from toml \
+  --output /tmp/weenie.bin --to binary
+
+bace-cli convert \
+  --input /tmp/weenie.bin --from binary \
+  --output /tmp/weenie.toml --to toml
+
+bace-cli convert \
+  --input /path/to/legacy-weenie.json --from ace-json \
+  --output /tmp/imported-weenie.toml --to toml
+```
+
+### 🧙 SQL → TOML, with actual prerequisites
+
+MariaDB is a conversion prerequisite, not a game-server dependency. Use a private installation for disposable staging:
+
+```sh
+BACE_MARIADB_BASEDIR=/path/to/mariadb/usr \
+  bace-cli import-sql --input /path/to/weenies.sql --output-directory /tmp/converted-weenies
+```
+
+The result is native TOML plus a source/count manifest. Unsupported SQL fails explicitly. Complete official-world dumps still contain unsupported systems; there is no “just import everything” button. Arbitrary MySQL SQL never runs against production PostgreSQL.
+
+See [legacy conversion boundaries](crates/content/bace-import/README.md).
+
+### 🐘 PostgreSQL publication
+
+Set `BACE_DATABASE_URL` securely for your dedicated database. Keep real credentials out of command arguments, tracked configuration, and commits.
+
+```sh
+bace-cli migrate
+bace-server content-worker --config tests/fixtures/config/server.toml
+
+# In another terminal with the same database environment:
+bace-cli publish --input tests/fixtures/content/minimal.toml --format toml
+bace-cli content-status
+```
+
+Candidates are immutable. The worker validates data, quarantines rejected batches, and publishes accepted catalog generations through bounded delivery. Publication does not itself spawn an object or start a world. Direct native SQL insertion follows the same durable publication journal.
+
+> 🤖 **Immutable candidates. Bounded queues. Explicit failures.** The infrastructure has read the architecture document.
+
+<a id="assets"></a>
+## 🗺️ User-supplied assets
+
+```sh
+bace-cli dat-inspect /path/to/client_cell_1.dat --fingerprint
+
+# Example: inspect the portal XP-table record.
+bace-cli dat-inspect /path/to/client_portal.dat --record 0x0E000018
+```
+
+`--output FILE` requires `--record HEX`; extracted DAT records must remain local. DAT archives and player captures are excluded from Git.
+
+Archive headers, BTree/sector chains, outdoor landblocks, XP/skill tables, and complete character-generation records have implemented readers. Actual portal data has been decoded and prepared for 38 skills and 13 heritages. Authentic motion/BSP/cell collision and full world composition are separate unfinished systems.
+
+<a id="validation"></a>
+## 🧪 Build, tests, and compatibility oracles
+
+Database integration tests require PostgreSQL `initdb` and `pg_ctl` on `PATH`, running as an ordinary user. They create disposable clusters rather than using an existing database.
 
 ```sh
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo xtask check
-cargo run -p bace-server -- check --config tests/fixtures/config/server.toml
-cargo run -p bace-server -- exercise --ticks 300 --players 100 --bodies 1000
 ```
 
-### 🧪 Toolchain Reality Check™️
-
-The supplied development environment's named `1.96.1` toolchain lacks Cargo/rustfmt/clippy executables despite reporting installed components. Its `stable` toolchain has the same compiler version and complete tools.
-
-👉 Use `cargo +stable ...` in that environment, or repair the named installation.
-
-> 🧠 **Important:** This does **not** change the repository's pin. The pin remains the pin. The compiler remains the compiler. The tools remain mysteriously elsewhere. 🔮
-
-The exercise command runs synthetic geometry on one dedicated simulation thread without networking. Physics and world state share this owner. Network/content adapters and the reserved save worker stay separate.
-
-🚫 `serve` fails its readiness gate until the playable milestone exists.
-
----
-
-## 🖥️✨ Host Console
-
-`bace-server` starts the local authenticated host dashboard by default.
-
-Provision its separate host credentials with `bace-cli host-init` using piped stdin from a hidden password prompt. See [host-console setup and current limitations](docs/host-console.md).
-
-> 🛑 The supervised foundation child reports game serving as unavailable.
->
-> Translation: **the dashboard can exist before the MMO does.** 😎
-
----
-
-## 📦 Native Content
-
-Runtime content databases use `.bace` files.
-
-Single-template binary exports below are interchange envelopes, distinct from the indexed runtime pack format.
+Additional suites need their stated prerequisites:
 
 ```sh
-cargo run -p bace-cli -- convert \
-  --input tests/fixtures/content/minimal.toml --from toml \
-  --output /tmp/weenie.bin --to binary
+BACE_DAT_DIRECTORY=/path/to/DATS \
+  cargo test -p bace-dat --test archive --test tables -- --ignored --nocapture
 
-cargo run -p bace-cli -- convert \
-  --input /tmp/weenie.bin --from binary \
-  --output /tmp/weenie.toml --to toml
+BACE_DAT_DIRECTORY=/path/to/DATS \
+  cargo test -p bace-runtime --test character_assets -- --ignored
+
+BACE_MARIADB_BASEDIR=/path/to/mariadb/usr \
+  cargo test -p bace-import --test mariadb -- --ignored
+
+cargo test -p bace-dat-service --test zlib_oracle -- --ignored
 ```
 
-### 🗄️ PostgreSQL + Content Publication Pipeline™
+The zlib check needs Python 3 with its system zlib module. Optional Studio/MariaDB checks are documented in the [Studio README](crates/application/bace-content-studio/README.md). An ignored check is not a passing check. 🧾
 
-Set `BACE_DATABASE_URL` in the environment for a dedicated development database.
+### 🔬 Pinned ACE, independently compiled
 
-> 🔐 **Security-shaped text:** Do not put credentials in tracked configuration or command-line arguments.
+Python 3 and .NET 10 regenerate synthetic fixtures from pinned official source:
 
 ```sh
-cargo run -p bace-cli -- migrate
-cargo run -p bace-server -- content-worker --config tests/fixtures/config/server.toml
-
-# In another terminal:
-cargo run -p bace-cli -- publish --input tests/fixtures/content/minimal.toml --format toml
-cargo run -p bace-cli -- content-status
+python3 tools/bace-compat/oracle/generate.py --dotnet dotnet
+python3 tools/bace-compat/oracle/message_generate.py --dotnet dotnet
+python3 tools/bace-compat/oracle/transport_generate.py --dotnet dotnet
+python3 tools/bace-compat/oracle/dat_generate.py --dotnet dotnet
+python3 crates/gameplay/bace-character/oracle/generate.py --dotnet dotnet
+python3 crates/gameplay/bace-quests/oracle/generate.py --dotnet dotnet
+cargo test -p bace-compat
 ```
 
-### 🔄 Immutable Publication Flow
-
-Publication queues immutable candidates.
-
-The worker:
-
-1. 🔍 validates binary data
-2. 🧬 verifies scalar identity
-3. ☣️ quarantines invalid batches
-4. 📚 publishes accepted catalog generations
-5. ⏱️ crosses the bounded tick-boundary channel
-6. 🚫 does **not** spawn a world object
-7. 🚫 does **not** run a game server
-
-Direct native SQL insertions use the same database trigger/journal path.
-
-> ✨ **Immutable candidates. Bounded channels. Explicit ownership.**
->
-> Because apparently the correct answer to legacy MMO infrastructure is **more invariants**.
-
----
-
-## 🧙‍♂️ SQL → TOML → Native Content Alchemy
-
-SQL/JSON conversion boundaries and supported legacy dialects are documented in [bace-import](crates/content/bace-import/README.md).
-
-Unsupported conversion fails explicitly.
-
-🚫 Arbitrary MySQL SQL is **never** sent to PostgreSQL.
-
-For isolated conversion of a supported weenie SQL batch, point the tool at a private MariaDB installation (**only conversion needs it**):
+The generators overwrite their corresponding synthetic fixtures and verify official source bytes. With a local checkout of the exact ACE pin, source coverage can also be verified:
 
 ```sh
-BACE_MARIADB_BASEDIR=/path/to/mariadb/usr cargo run -p bace-cli -- import-sql \
-  --input /path/to/weenies.sql --output-directory /tmp/converted-weenies
+python3 tools/bace-compat/oracle/network_inventory.py --check \
+  --source /path/to/pinned-ACE-checkout
 ```
 
-This emits one native TOML file per weenie plus a source/count manifest.
+Only tested features have compatibility evidence. See the [oracle documentation](tools/bace-compat/README.md), [pins](docs/baselines.toml), and [validation record](docs/validation.md). GDLE is a pinned secondary reference, not an override for official ACE.
 
-> ⚠️ Complete official-world dumps contain other systems and are explicitly rejected until those converters are implemented.
->
-> **No magical “just import everything” button.** 🪄❌
+> 🏅 Golden vectors beat “the packet looked right to the AI.” Every time.
 
----
+<a id="status"></a>
+## 📡 What actually works — status without the confetti cannon
 
-## 🗺️ User-Supplied Assets
+| Area | Implemented foundation | Still needed |
+|---|---|---|
+| 🔌 Networking | Paired UDP, reliability, bounded sessions/authentication, and source-backed object/social/inventory/trade/vendor/movement codecs | Remaining payloads, complete session/gameplay composition, stock-client qualification |
+| 🧠 Simulation | One owner, synthetic collision, character progression, bounded outcomes, retained state on recoverable shutdown | Authentic AC physics, full gameplay, durable character lifecycle |
+| 📚 Character assets | XP, skills, CharGen, validated creation/training rules | Complete player construction, appearance/world admission, saves |
+| 📦 Content/storage | TOML/binary tools, PostgreSQL foundations, immutable packs, publication/save workers | Complete world import and gameplay/runtime pack composition |
+| 🎨 Authoring | Native editor, supported import/export, offline pack builder | Remaining authoring systems and platform validation |
+| 🖥️ Hosting | Authenticated local supervisor/dashboard | Full game backend and cross-platform qualification |
+
+A real UDP integration test carries a progression action through typed dispatch, authoritative simulation, and primary XP/trait replies. It uses a **synthetic world**; it is not a stock-client playability test. Rank-up secondary effects and durable gameplay composition remain work.
 
 ```sh
-cargo run -p bace-cli -- dat-inspect /path/to/client_cell_1.dat
-BACE_DAT_DIRECTORY=/path/to/DATS cargo test -p bace-dat --test archive -- --ignored --nocapture
+# This currently returns a readiness error; no game socket opens.
+bace-server serve --config tests/fixtures/config/server.toml
 ```
 
-DAT header, BTree, sector chains and outdoor landblock records are implemented.
+For exact scope: [implementation status](docs/implementation-status.md), [network coverage](docs/network-coverage.toml), [gameplay parity](docs/gameplay-parity.toml), and [reported divergences](docs/divergences.toml).
 
-> 🧱 These readers are **not** a full AC collision engine.
->
-> 📁 DAT files are excluded from Git.
->
-> 🧠 The system knows this. The README knows this. The CI knows this. Everyone is aligned. 🤝
+<a id="roadmap"></a>
+## 🧭 Architecture and roadmap
 
----
+- 🏗️ [Architecture and ownership](ARCHITECTURE.md)
+- 🤖 [Contributor/agent MUST rules](AGENTS.md)
+- 📏 [Dependency inventory](architecture.toml)
+- 💾 [Persistence](docs/persistence.md)
+- 📦 [Runtime pack format](docs/pack-format.md)
+- 🖥️ [Host lifecycle](docs/host-console.md)
+- ⚙️ [Physics precision and SIMD gates](docs/physics-math.md)
 
-## 🧪🔬 Compatibility Oracle
+Next milestones are authentic geometry/motion, complete character/world entry, persistence and replication composition, remaining gameplay/content systems, stock-client scenarios, and failure/performance qualification. Command simplification is also on the list. No invented completion percentage required. 📊
 
-The [official C# oracle](tools/bace-compat/README.md) generates synthetic golden wire vectors from pinned unmodified sources.
+<a id="contributing"></a>
+## 🤝 Contributing and license
 
-Only enumerated tested features have compatibility evidence.
+Read the ownership rules before editing, keep crate roots thin, preserve upstream attribution, and run the relevant checks. Compatibility claims need source provenance and independent evidence. Never commit DAT assets, credentials, or player captures.
 
-> 🎯 **Compatibility is demonstrated, not manifested through vibes.**
->
-> Golden vectors > “trust me bro.” 🫡
+PR titles **and descriptions** should include emojis. The important part underneath the emojis is a concrete change, honest validation, and clear limitations. 🧪✨
 
----
+BetterACE uses **AGPL-3.0-only**. All workspace crates inherit the root license; [LICENSE](LICENSE) retains the full text and source notices.
 
-## 📡🌐 Networking Status
+<a id="ai-disclaimer"></a>
+## 🤖✨ AI README disclaimer
 
-Networking now has:
+This README contains AI-assisted prose, enthusiastic emoji, suspiciously organized tables, and one planned command diet. Its jokes do not establish compatibility, performance, or platform support.
 
-- 🔌 tested paired-UDP/session foundations
-- 🔐 bounded authentication
-- 📦 DAT preparation workers
-- 🧾 opcode catalogs
-- 🧬 selected source-backed codecs
+**The code handles the contracts. The tests handle the evidence. The README handles the ✨presentation✨.**
 
-🚧 **Full stock-client operation remains unavailable.**
-
-See:
-
-- 📋 [implementation status](docs/implementation-status.md)
-- 📡 [network coverage](docs/network-coverage.toml)
-- 🎮 [gameplay parity](docs/gameplay-parity.toml)
-- 🔎 [reported divergences](docs/divergences.toml)
-
-for exact scope and remaining work.
-
-> 🚀 **The packets are becoming packetier.**
->
-> 🧪 **The compatibility is becoming compatibilityier.**
->
-> 🏰 **The MMO is not yet MMOing.**
->
-> Progress! ✨
-
----
-
-## 🆚 Why BetterACE?
-
-| Feature | ACEmulator/ACE | BetterACE |
-|---|:---:|:---:|
-| 🦀 Written in Rust | ❌ | ✅ |
-| 🐘 PostgreSQL persistence | ❌ | ✅ |
-| 📜 Live TOML-authored content | ❌ | ✅ |
-| 🧾 Exact legacy packet contracts | ✅ | ✅ (with **golden vectors** 🏅) |
-| 🧠 Unreasonable number of invariants | some | ✅✅✅ |
-| 🎮 Playable MMO | ✅ | 🚧 Soon™ |
-| ✨ Emoji in README | ❌ | ✅ 137% |
-| 🤖 README written by a robot | ❌ | ✅ |
-
-> 📊 Table accuracy: **vibes-verified.** 🫡
-
----
-
-## 🗺️ Roadmap
-
-- [x] 🏗️ Crate layout
-- [x] 📏 MUST rules
-- [x] 🔌 Paired-UDP/session foundations
-- [x] 🔐 Bounded authentication workers
-- [x] 📦 `.bace` immutable runtime packs
-- [x] 🖥️ Host dashboard that exists before the game does
-- [ ] 🔑 Complete stock-client login/world entry
-- [ ] 🧱 AC collision
-- [ ] 🗄️ Complete official-world SQL conversion
-- [ ] 🏰 MMO actually MMOing
-- [x] ✨ README emoji saturation **(this PR)** 🎯
-
-> 🚀 **5 of 11 complete.** We're basically halfway to Dereth. 🧭
-
----
-
-## ❓ FAQ
-
-**Q: Is it playable?** 🎮
-A: No. 🏰 See [implementation status](docs/implementation-status.md).
-
-**Q: Can I log in?** 🔐
-A: The authentication worker is *bounded*. Your expectations should be too. 🙏
-
-**Q: Is it blazingly fast?** 🚀
-A: The exercise command runs 300 ticks, 100 players and 1000 bodies on one dedicated simulation thread. Blazingly. 🔥
-
-**Q: Why Rust?** 🦀
-A: Because the borrow checker is the only thing that has ever successfully enforced a MUST rule. 📏
-
-**Q: Can I just import the whole official world dump?** 🗄️
-A: No. ❌ It is *explicitly rejected*. The rejection is *documented*. The documentation is *immutable*. 📚
-
-**Q: Did an AI write this README?** 🤖
-A: ✨ Yes. ✨ The code, however, was written with ✨ *care* ✨ and *also* ✨ an AI. 🧠
-
----
-
-## 🤝 Contributing
-
-We ❤️ contributions!
-
-1. 📖 Read the [mandatory contributor/agent rules](AGENTS.md). The agents already did. 🤖
-2. 🧪 Run the full [Build & Verify](#-build--verify) gauntlet. All of it. `-D warnings` means **-D warnings**. 🛡️
-3. 📝 Open a PR with a title that contains at least one (1) emoji. This is now a **MUST rule**. ✨
-4. 🫡 Await review from a human, an agent, or an oracle. Whichever is available.
-
-> 🏆 **Contributors of the Month:** the borrow checker, `cargo clippy`, and whoever wrote the readiness gate.
-
----
-
-## 🧠 Architecture in One Extremely AI-Coded Sentence
-
-**Deterministic simulation ownership + explicit compatibility contracts + immutable content publication + bounded workers + PostgreSQL persistence + aggressively documented failure modes = BetterACE.** 🤖⚙️📦
-
----
-
-## ⭐ Star History
-
-```
-  ⭐
-  │                                                        ✨ you, right now?
-  │                                                       ╱
-  │                                                      ╱
-  │                                            ─────────╯
-  │                              ─────────────╯
-  │                  ───────────╯
-  │        ─────────╯
-  └──────────────────────────────────────────────────────────── 🕒
-        "Add files via upload"              "Make README 37% More AI"
-```
-
-> 📈 If this README made you feel something, consider starring the repo. ⭐
-> Stars do **not** affect the readiness gate. We checked. 🧪
-
----
-
-## 📜 License
-
-BetterACE is licensed under the **GNU Affero General Public License, version 3 only** (`AGPL-3.0-only`).
-
-See [LICENSE](LICENSE) for the full terms.
-
-All workspace crates inherit this license from the root `Cargo.toml`.
-
-Upstream copyright notices, source attribution and applicable third-party license terms are preserved; see crate provenance notes.
-
----
-
-## 🤖✨ AI README Disclaimer
-
-This README contains:
-
-- 🤖 AI-generated enthusiasm
-- ✨ unnecessary emoji
-- 🧠 suspiciously confident section titles
-- 📈 approximately 37% more “platform” energy
-- 📊 one (1) comparison table of questionable rigor
-- 🗺️ a roadmap where the only completed item is this README
-- ⭐ an ASCII star-history chart with n=1 data points
-- 🚀 zero additional gameplay functionality
-
-**The code remains responsible for being correct.**
-
-**The README remains responsible for looking extremely important.**
-
-**The MMO remains responsible for eventually MMOing.** 🏰
-
----
+**The MMO is still responsible for eventually MMOing.** 🏰
