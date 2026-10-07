@@ -1,0 +1,16 @@
+[package]
+name = "bace-dat-service"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Legacy DAT distribution behavior"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-dat = { path = "../bace-dat" }
+bace-wire = { path = "../../network/bace-wire" }
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }

@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BetterACE · Host console</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body><main><header><div><small>BetterACEmulator</small><h1>BetterACE host console</h1></div><button id="logout" hidden>Sign out</button></header>
+<p class="notice">Foundation build · Stock-client game serving is not implemented.</p>
+<section id="login"><h2>Host sign in</h2><p>Use the host password provisioned locally. Game accounts cannot manage this server.</p><form id="login-form"><label>Password <input id="password" type="password" autocomplete="current-password" required maxlength="1024"></label><button type="submit">Sign in</button></form></section>
+<div id="dashboard" hidden><section><h2>Worker status</h2><dl><dt>Lifecycle</dt><dd id="phase">Loading</dd><dt>Generation / process</dt><dd id="generation">—</dd><dt>Operation</dt><dd id="operation">—</dd></dl><p id="detail"></p><button id="restart">Restart foundation worker</button><button id="retry">Retry blocked operation</button></section>
+<section><h2>Recent and live diagnostics</h2><p id="log-health">Connecting</p><pre id="logs" aria-live="polite"></pre></section></div>
+<p id="message" role="status"></p><footer>Local host administration · Player pages and trading are planned.</footer></main></body></html>

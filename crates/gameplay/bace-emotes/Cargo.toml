@@ -1,0 +1,13 @@
+[package]
+name = "bace-emotes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Content-defined actions and NPC scripting"
+
+[lints]
+workspace = true
+
+[dependencies]

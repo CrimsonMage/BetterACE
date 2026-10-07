@@ -1,0 +1,18 @@
+[package]
+name = "bace-dat"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "DAT decoding, validation and immutable asset access"
+
+[lints]
+workspace = true
+
+[dependencies]
+sha2.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,0 +1,216 @@
+version = 1
+ace_commit = "47edade3bd3f6044b676d4eb877c4965c7eda62b"
+ace_repository = "https://github.com/ACEmulator/ACE"
+scope = "All gameplay implemented by the pinned official ACE baseline; full parity remains unimplemented."
+fresh_characters_only = true
+secondary_reference = "GDLE is supporting evidence, not a replacement compatibility authority."
+network_boundary = "bace-session decodes; gameplay-api carries typed requests; simulation validates/owns mutations; replication encodes immutable outcomes."
+durability_boundary = "Save adapters translate immutable projections into frozen storage DTOs; valuable operations report success only after confirmed durable completion."
+divergence_register = "docs/divergences.toml"
+reported_divergence_baseline = "User register references a different ACE 7ae5dad shard plus local changes. Retail claims are not independently verified here."
+
+[[features]]
+id = "progression-expenditure"
+owner = "bace-character"
+phase = 1
+status = "foundation"
+implemented = ["Validated cumulative XP tables", "Attribute/vital/trained/specialized skill expenditure", "Derived ranks", "Atomic rejection", "Dirty revisions and immutable projections"]
+source = ["Source/ACE.Server/WorldObjects/Player_Attributes.cs", "Source/ACE.Server/WorldObjects/Player_Vitals.cs", "Source/ACE.Server/WorldObjects/Player_Skills.cs", "Source/ACE.Server/WorldObjects/Player_Xp.cs"]
+evidence = ["crates/gameplay/bace-character/tests/fixtures/progression.csv", "crates/gameplay/bace-character/tests/progression.rs"]
+remaining = ["DAT XP table preparation", "Network-to-simulation worker composition", "Derived-stat refresh", "Ordered private updates and rank effects", "Frozen save DTO integration"]
+simulation_evidence = "crates/simulation/bace-simulation/tests/progression.rs: registered actor/account/session bindings, replay checks and bounded correlated outcomes"
+reported_divergences = [14, 15, 16, 36, 40]
+divergence_review = "Pinned source confirms private skill update after training, max-rank expenditure rejection and attribute-transfer SendWeenieError. Fixture covers max-rank rejection without assuming rank 190. Hand-edited rank inconsistencies are not imported; rank derives from XP. Creation allocation now explicitly preserves untrained locked-skill choices (#36); full training/transfer handlers remain unsupported."
+
+[[features]]
+id = "character-lifecycle"
+owner = "bace-character"
+phase = 2
+status = "foundation"
+implemented = ["Six-attribute allocation validation", "Exactly 55 skill choices against explicit prepared costs", "Atomic allocation result", "Trained/specialized initial bonuses"]
+evidence = ["crates/gameplay/bace-character/tests/fixtures/creation.csv", "crates/gameplay/bace-character/tests/creation.rs"]
+remaining = ["Creation and validation", "Appearance and starting gear", "Levels/XP/credits", "Attributes/skills/vitals and regeneration", "Training/untraining/augmentations/luminance/enlightenment", "Login/load/logout ownership"]
+dependencies = ["Validated DAT CharGen/XP/Skill/SecondaryAttribute tables", "Content templates", "Character/item frozen save aggregates", "Session and replication integration"]
+acceptance = ["Two fresh stock-client characters create/select/enter/reconnect", "Golden creation and progression formulas", "Invalid creation cannot partially persist"]
+
+[[features]]
+id = "spawn-lifecycle"
+owner = "bace-spawning"
+phase = 2
+status = "scaffolded"
+remaining = ["World-object creation", "Generators", "Respawn/despawn/decay", "Instance links and content revisions"]
+dependencies = ["Complete landblock/encounter import", "World ownership", "Prepared assets", "Immutable runtime catalogs"]
+acceptance = ["Published valid template spawns at accepted revision", "Invalid or missing geometry blocks admission", "Generator timers replay deterministically"]
+
+[[features]]
+id = "interactions"
+owner = "bace-interactions"
+phase = 2
+status = "scaffolded"
+remaining = ["Use/identify/appraisal", "Doors/locks/keys/switches", "Portals/lifestones", "Books", "Food/healing/mana and other usable object types"]
+dependencies = ["Authoritative range/collision", "Inventory ownership", "Prepared content"]
+acceptance = ["Outdoor/dungeon/portal stock-client scenarios", "Lifestone recall cannot mutate static stone position", "Appraisal outcomes match pinned source with explicit time/randomness"]
+reported_divergences = [4, 17, 18, 19, 28, 40, 41, 42, 43, 44, 56]
+divergence_review = "Pinned Player.cs uses AssessPerson/Deception and cached appraisal outcomes with a five-second failure window. Retail distance behavior, unsolicited replies and Enlightenment presence remain unverified. Preserve the reported lifestone aliasing case as a future regression; do not reproduce mutable position aliasing."
+
+[[features]]
+id = "inventory"
+owner = "bace-inventory"
+phase = 3
+status = "scaffolded"
+remaining = ["Containers", "Equipment/appearance", "Stack split/merge", "Pickup/drop/give", "Item use/consumption and ownership transfer"]
+acceptance = ["Atomic ownership constraints", "No duplication/loss across retry/disconnect/crash", "Burden and equipment update authoritative capabilities"]
+
+[[features]]
+id = "economy"
+owner = "bace-economy"
+phase = 3
+status = "scaffolded"
+remaining = ["Vendors", "Currency", "Player trade negotiation and commit"]
+dependencies = ["Inventory", "Durable operation receipts and participant reservations"]
+acceptance = ["Trade success follows durable commit", "Logout/cancel/uncertain commit resolve without duplicate transfer"]
+reported_divergences = [21, 23]
+
+[[features]]
+id = "crafting"
+owner = "bace-crafting"
+phase = 3
+status = "scaffolded"
+remaining = ["Recipes/cookbook", "Salvage", "Tinkering", "Tailoring and mutations"]
+dependencies = ["Complete recipe world import", "Inventory", "Durable operations"]
+acceptance = ["Seeded formula/outcome oracle", "Material/result conservation under retry", "No silent loss of unsuitable salvage inputs"]
+reported_divergences = [30, 31, 32]
+
+[[features]]
+id = "loot"
+owner = "bace-loot"
+phase = 3
+status = "scaffolded"
+remaining = ["Treasure generation", "Wielded/death treasure", "Material/quality/spell tables", "Rare/item mutations"]
+dependencies = ["Complete treasure table import", "Controlled random input", "Inventory"]
+acceptance = ["Seeded official treasure outcomes", "Bounded generation", "Content reference validation"]
+
+[[features]]
+id = "combat"
+owner = "bace-combat"
+phase = 4
+status = "scaffolded"
+remaining = ["Melee/missile attacks", "Damage/defenses", "PvP", "Death/corpses/vitae/rewards"]
+dependencies = ["Authoritative AC physics/motion", "Inventory", "Character stats", "Loot"]
+acceptance = ["Seeded official combat formulas", "No damage through invalid geometry", "Stock-client PvE/PvP/death/recovery"]
+reported_divergences = [5, 6, 7, 8, 9, 10, 37]
+
+[[features]]
+id = "magic"
+owner = "bace-magic"
+phase = 4
+status = "scaffolded"
+remaining = ["Casting and components", "Spell effects/projectiles", "Enchantments and expiration", "Recall/summon/portal spells"]
+dependencies = ["Spell/component DAT and world data", "Character", "Inventory", "Authoritative physics"]
+acceptance = ["Seeded official spell formulas", "Bounded effect chains", "Stock-client casting/cancellation/expiration"]
+reported_divergences = [11, 12, 13]
+
+[[features]]
+id = "ai"
+owner = "bace-ai"
+phase = 4
+status = "scaffolded"
+remaining = ["Awareness", "Navigation intent", "Combat decisions", "Pets"]
+dependencies = ["Authoritative world/physics", "Combat/magic typed effects", "Deterministic bounded timers"]
+acceptance = ["No per-entity tasks", "Obstacle and target-loss regressions", "Seeded behavior replay"]
+reported_divergences = [2, 3, 50]
+
+[[features]]
+id = "quests"
+owner = "bace-quests"
+phase = 5
+status = "foundation"
+implemented = ["Explicit-time cooldown eligibility", "Maximum/first solve ordering", "ColoArena scaling exemption", "Signed solve-range and bit predicates", "Overflow rejection"]
+evidence = ["crates/gameplay/bace-quests/tests/fixtures/eligibility.csv", "crates/gameplay/bace-quests/tests/eligibility.rs"]
+remaining = ["Quest counters/cooldowns", "Contracts", "Atomic rewards"]
+dependencies = ["Quest/contract data", "Frozen player quest saves", "Inventory/character typed effects"]
+acceptance = ["Official quest state/timer scenarios", "Restart-safe reward deduplication"]
+
+[[features]]
+id = "emotes"
+owner = "bace-emotes"
+phase = 5
+status = "scaffolded"
+remaining = ["Content action interpreter", "Conditions/branching", "Delayed sequences and cancellation"]
+dependencies = ["Typed subsystem effects", "Bounded simulation scheduler", "Validated emote content"]
+acceptance = ["Bounded recursive/sequential execution", "Official NPC scripts with deterministic time/randomness"]
+
+[[features]]
+id = "social"
+owner = "bace-social"
+phase = 5
+status = "scaffolded"
+remaining = ["Friends", "Local/direct/global chat", "Channels", "Squelch/consent"]
+dependencies = ["Visibility read projections", "Online/offline character identity", "Persistence"]
+acceptance = ["Recipient/squelch correctness", "Reconnect and offline notifications", "Bounded message fanout"]
+reported_divergences = [24, 25, 29, 55, 58]
+
+[[features]]
+id = "fellowship"
+owner = "bace-fellowship"
+phase = 5
+status = "scaffolded"
+remaining = ["Membership/leadership", "Shared rewards", "Fellow updates"]
+acceptance = ["Official membership/reward scenarios", "Duplicate/disconnect cleanup", "Ordered snapshots"]
+reported_divergences = [20]
+
+[[features]]
+id = "allegiance"
+owner = "bace-allegiance"
+phase = 5
+status = "scaffolded"
+remaining = ["Hierarchy/ranks", "Officers/permissions", "XP passup and offline rewards", "Hometown/chat"]
+dependencies = ["Durable multi-character ownership", "Offline XP receipts", "Social/character typed effects"]
+acceptance = ["Acyclic hierarchy constraints", "Exactly-once offline awards", "Official rank/passup formulas"]
+
+[[features]]
+id = "housing"
+owner = "bace-housing"
+phase = 5
+status = "scaffolded"
+remaining = ["Purchase/rent", "Guest/storage permissions", "Hooks", "House portals"]
+dependencies = ["House content", "Inventory", "Durable operations", "Authoritative permission checks"]
+acceptance = ["Atomic ownership/payment", "Unauthorized entry/storage rejected", "Rent and permissions survive restart"]
+reported_divergences = [33, 34, 38, 39, 45, 46, 47]
+
+[[features]]
+id = "world-events"
+owner = "bace-world-events"
+phase = 5
+status = "scaffolded"
+remaining = ["Scheduled/content-controlled event state", "Activation effects"]
+dependencies = ["Complete event data", "Explicit server time", "Emote/spawn typed effects"]
+acceptance = ["Restart/time-boundary cases", "Bounded catch-up", "Deterministic event activation"]
+
+[[features]]
+id = "activities"
+owner = "bace-activities"
+phase = 5
+status = "scaffolded"
+remaining = ["Chess", "Other implemented pinned-ACE minigames"]
+acceptance = ["Official move legality and match lifecycle", "Disconnect/timeout cleanup", "Stock-client interaction"]
+
+[[integration_gates]]
+id = "authoritative-world"
+owners = ["bace-world", "bace-physics", "bace-motion", "bace-simulation"]
+status = "unsupported"
+required = ["One 30-Hz simulation/world owner", "Authentic swept AC geometry", "Prepared immutable asset admission", "Legal movement reconciliation", "Server teleports with fresh epochs"]
+reported_divergences = [1, 7, 9, 10, 28, 35, 37, 50, 51]
+
+[[integration_gates]]
+id = "visibility-return"
+owners = ["bace-world", "bace-replication"]
+status = "unsupported"
+required = ["Return-before-forget race regression", "Same-cell and cross-cell recall", "Observer create/remove ordering", "Local-speech visibility remains consistent"]
+divergence_review = "User reports a modified shard's 25-second forget-timer race; pinned Player_Tracking.cs contains teleport_visibility_fix. Do not reproduce mutual visibility loss. Retail counterpart remains unverified."
+
+[[integration_gates]]
+id = "full-gameplay-acceptance"
+owners = ["bace-simulation", "bace-runtime", "bace-compat"]
+status = "unsupported"
+required = ["All implemented official behaviors assigned/evidenced", "Full stock-client scenarios", "Database failure and save fairness tests", "Packet loss/reorder/malformed-input tests", "Ten-minute measured mixed-load benchmark", "Windows/Linux/macOS validation"]

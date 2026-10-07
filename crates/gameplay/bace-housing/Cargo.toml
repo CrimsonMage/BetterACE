@@ -1,0 +1,13 @@
+[package]
+name = "bace-housing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Ownership, rent, permissions, hooks and storage"
+
+[lints]
+workspace = true
+
+[dependencies]

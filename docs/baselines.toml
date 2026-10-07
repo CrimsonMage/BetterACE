@@ -1,0 +1,33 @@
+version = 1
+
+[ace]
+repository = "https://github.com/ACEmulator/ACE"
+commit = "47edade3bd3f6044b676d4eb877c4965c7eda62b"
+client_version = "1802"
+local_forks_are_reference = false
+
+[world_base]
+repository = "https://github.com/ACEmulator/ACE-World-16PY"
+commit = "8bcf8f5f3f71dde51c9ebdbacdaf553dd8308aa5"
+release = "v0.8.8"
+
+[world_complete]
+repository = "https://github.com/ACEmulator/ACE-World-16PY-Patches"
+commit = "723f5dd74fcf42691593d2109720c2866482d3cc"
+release = "v0.9.295"
+archive_url = "https://github.com/ACEmulator/ACE-World-16PY-Patches/releases/download/v0.9.295/ACE-World-Database-v0.9.295.sql.zip"
+archive_sha256 = "fd35cff8b2cea8408ae13839b9b1862c30452a1013f43eb62ec83c25349bd148"
+archive_bytes = 19580578
+sql_bytes = 155493107
+includes_base = true
+
+# Fingerprints observed on the supplied local DAT set, not redistributed assets.
+[assets]
+client_cell_1_sha256 = "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e"
+client_portal_sha256 = "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4"
+client_local_english_sha256 = "e85c820280c88fac7df6c8043f5e24596e9c8774193af4123d756546f78fb2bb"
+
+[gdle_secondary]
+repository = "https://gitlab.com/Scribble/gdlenhanced"
+commit = "353cbab52ef7da2b7063bc3e3f008461d8531693"
+role = "secondary explanation and corroboration; never overrides official ACE"

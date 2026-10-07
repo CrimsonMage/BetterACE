@@ -1,0 +1,13 @@
+[package]
+name = "bace-crafting"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Recipes, salvage and crafting mutations"
+
+[lints]
+workspace = true
+
+[dependencies]

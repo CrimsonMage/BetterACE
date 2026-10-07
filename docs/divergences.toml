@@ -1,0 +1,599 @@
+# User-supplied observations; this is not the BACE compatibility baseline.
+version = 1
+source = "user-provided divergences.md"
+source_sha256 = "942983be9ac93b4ad6997f47fb8bd26f01f6c27217afc91dbc32b66730a782c5"
+reported_ace_revision = "7ae5dad plus settime changes"
+bace_ace_commit = "47edade3bd3f6044b676d4eb877c4965c7eda62b"
+policy = "Check observations against the BACE pin; preserve evidence uncertainty. Client-project instructions and decisions in the source do not govern BACE. Do not reproduce authority, durability, aliasing or visibility bugs as compatibility requirements."
+
+[[observations]]
+id = 1
+area = "movement"
+owners = ["bace-motion", "bace-physics", "bace-replication"]
+reported_retail = "Re-anchors the player with its OWN positions: `0xF748` every 0.31 s indoors / 0.50 s outdoors (median), 2.5 per `0xF753`."
+reported_shard = "Echoes each `0xF753` back as the player's `0xF748` \u2014 about once a second while moving, sooner at a cell or plane change (xref)."
+evidence_pointer = "`physics/movement.md` \u00a73.11.2 (j) 4\u20135; A\u00b7R284; LH1 map"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 2
+area = "movement"
+owners = ["bace-motion", "bace-physics", "bace-replication"]
+reported_retail = "Stuck monsters to players routinely (5.0 M monster sticky states); cadence not stated against the 1.0 s timeout."
+reported_shard = "Re-issues a melee monster's sticky state every 1.2\u20132.1 s (median 1.68 s) vs the client's 1.0 s `STICKY_TIMEOUT`: the stick lapses ~0.68 s per cycle."
+evidence_pointer = "`physics/collision.md` \u00a73.15.9 (i) + \"The WEDGED retreat\"; `physics/quantum.md` \u00a74.4\u2013\u00a74.5; A\u00b7R212 / A\u00b7R213 / A\u00b7R215"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 3
+area = "movement"
+owners = ["bace-motion", "bace-physics", "bace-replication"]
+reported_retail = "A `0xF748` for the creature accompanied 41,200 of 41,205 creature attack commands (A\u00b7R208's window)."
+reported_shard = "A stuck attacker gets no positions: 0 of 410 `0xF748`s inside the 1.0 s after a sticky arm; 26 of 178 sticky payloads come with one."
+evidence_pointer = "`physics/movement.md` \u00a73.11.1 \"What this shard and the retail corpus send\u2026\" (A\u00b7R208); `physics/quantum.md` \u00a74.4; `collision.md` \u00a73.15.9 (g)"
+source_status = "UNVERIFIED \u2014 census retail's `0xF748`s in the 1.0 s after each sticky arm"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 4
+area = "movement"
+owners = ["bace-motion", "bace-physics", "bace-replication"]
+reported_retail = "A give to a player: the type-6 carries UseSpheres at `distance_to_object` **0.60** (53 of 53)."
+reported_shard = "The live give carried **0.50** (ACE: `useRadius ?? target.UseRadius ?? 0.6`)."
+evidence_pointer = "`physics/movement.md` \u00a73.8.2 (the census + worked example); A\u00b7R254"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 5
+area = "combat"
+owners = ["bace-combat", "bace-motion"]
+reported_retail = "Melee type-6: bitfield `0x0041EFF0`, `distance_to_object` 0.5, `min_distance` 0.1, `walk_run_threshhold` 15."
+reported_shard = "`0x0001EFFF` (+CanWalk/Run/Sidestep/WalkBackwards), 0.6, **0**, 1.0; `fail_distance` 15 and `speed` 1.5 match."
+evidence_pointer = "`net/messages-inbound.md` \u00a73.7.13; `physics/movement.md` \u00a73.8.5 (e); A\u00b7R282; MF2 `obs: 226b5fb9`"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 6
+area = "combat"
+owners = ["bace-combat", "bace-motion"]
+reported_retail = "The PLAIN approach (charge option off) carries CanCharge + FailWalk: `fail_distance` FLT_MAX, speed 1.0, runs the whole way."
+reported_shard = "Plain order `0x1EE0F` has CanCharge (and FailWalk) clear, walk_run 15: the player runs, then **walks the last 15 m**."
+evidence_pointer = "`physics/movement.md` \u00a73.8.5 (a) / (b)1; `docs/audits/2026-09-26-item-mb1-consumption-map.md` (MB1)"
+source_status = "ACCEPTED \u2014 [redacted] 2026-09-27: the shard's; nothing special built; a server patch is OUT OF SCOPE for acre"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 7
+area = "combat"
+owners = ["bace-combat", "bace-motion"]
+reported_retail = "Swings when it judges the player in reach (76 % of approaches end so; median 0.27 s)."
+reported_shard = "Runs the charge on its OWN copy of the player from the last reported position, catching up to 2 s at once; the copy's swing or \"You charged too far!\" can come after a short run (xref)."
+evidence_pointer = "`physics/movement.md` \u00a73.8.5 (f) 1, 5 + CONTRADICTION note; `ui/panels.md` \u00a76.11.6.7 note; A\u00b7R283"
+source_status = "CLIENT COPES"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 8
+area = "combat"
+owners = ["bace-combat", "bace-motion"]
+reported_retail = "\"You charged too far!\": `WeenieError 0x3D` + `AttackDone 0x3D`."
+reported_shard = "`0x028A 0x3D` + `0x01A7 AttackDone 0x36`, no movement message; a `0x01B7` cancel gets `AttackDone 0x36` + `0x028A 0x36`."
+evidence_pointer = "`physics/movement.md` \u00a73.8.5 (c), (f) 1\u20132; `net/messages-inbound.md` \u00a73.7.13"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 9
+area = "combat"
+owners = ["bace-combat", "bace-motion"]
+reported_retail = "Ends a STALLED approach (a wall) ~1.3 s in: a type-0 stop + `AttackDone 0x39` \"Unable to move to object!\" (360 cases)."
+reported_shard = "Sends neither: its copy is stopped by the same wall, the player presses into it until he moves or attacks again."
+evidence_pointer = "`physics/movement.md` \u00a73.8.5 (c), (e), (f) 5; A\u00b7R282 / A\u00b7R283; CB2 / MF2 / MJ1 maps"
+source_status = "ACCEPTED \u2014 [redacted] 2026-09-27: the shard's; nothing special built; a server patch is OUT OF SCOPE for acre"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 10
+area = "combat"
+owners = ["bace-combat", "bace-motion"]
+reported_retail = "Unstated whether it refused, or gave up on, a melee target behind a wall."
+reported_shard = "Accepts the attack and steers a MoveTo straight at the target's bearing (no pathing); swings with no range test before the swing or the damage (xref)."
+evidence_pointer = "`physics/movement.md` \u00a73.8.5 (f) 1; `docs/audits/2026-09-26-item-mf2-consumption-map.md` (the 1 m wall, Drudge Hideout)"
+source_status = "UNVERIFIED \u2014 a retail capture of an attack on a target behind a wall"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 11
+area = "magic"
+owners = ["bace-magic"]
+reported_retail = "Lead-scarab spells: 0 forward index 0 in 16.8 M states; scarab windups ride `commands[]` as actions."
+reported_shard = "Sends Lead's `_gesture` `0x80000000` (Invalid) as the **forward command** of a type-0 state @ 2.0, then the talisman gesture."
+evidence_pointer = "`physics/animation.md` \u00a73.4.8 (a), \u00a73.6 (CORRECTED), \u00a76.21; A\u00b7R286; CW1 `6ea13cb8`, CW2 `92653244`"
+source_status = "CLIENT COPES"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 12
+area = "magic"
+owners = ["bace-magic"]
+reported_retail = "Unknown whether it set `PropertyBool 68 SpellComponentsRequired` on players."
+reported_shard = "Leaves Bool 68 false yet enforces components itself: a recall comes back `0x01C7 UseDone 0x400` \"You don't have all the components\u2026\"."
+evidence_pointer = "`net/messages-outbound.md` \u00a73.10.4 item 2; CT1 `f51bcdd0` map"
+source_status = "UNVERIFIED \u2014 census Bool 68 in retail PlayerDesc captures"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 13
+area = "magic"
+owners = ["bace-magic"]
+reported_retail = "Unrecorded."
+reported_shard = "Refused an Other spell at the admin `+Shadowgain` (\"\u2026 cannot be cast on +Shadowgain\") and Strength Other on a drudge (`0x02EB`): ACE's rule, not the client's."
+evidence_pointer = "`ui/panels.md` \u00a76.4.2.1 (the client's own target rule); `docs/GUIDE-STATE.md` casting triage (2026-09-26); CT1 map"
+source_status = "RESOLVED \u2014 NOT A DIVERGENCE ([redacted] 2026-09-27: `@attackable` on/off blocked buffing that player; with it off, +Shadowgain buffs fine)"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 14
+area = "character"
+owners = ["bace-character", "bace-wire"]
+reported_retail = "Answered a skill TRAIN with the public `0x02E2 UpdateSkillAC` (205 of 206)."
+reported_shard = "Answers with `0x02DD PrivateUpdateSkill` (xref)."
+evidence_pointer = "`net/messages-inbound.md` \u00a76J"
+source_status = "ACCEPTED"
+bace_status = "pinned_wire_private_skill_verified; gameplay_training_pending"
+
+[[observations]]
+id = 15
+area = "character"
+owners = ["bace-character", "bace-wire"]
+reported_retail = "No refusal message for an attribute raise (0 in the corpus; retail's getters price 0 past rank 190)."
+reported_shard = "At a stored rank \u2265 190 sends `0xF7E0` type 0 \"Your attempt to raise <Attr> has failed.\" and nothing else (xref + the shard log)."
+evidence_pointer = "`net/messages-inbound.md` \u00a73.12.5.1; A\u00b7R247"
+source_status = "ACCEPTED"
+bace_status = "pinned_maximum_rank_domain_regression"
+
+[[observations]]
+id = 16
+area = "character"
+owners = ["bace-character", "bace-wire"]
+reported_retail = "Records obeyed \u00a73.5's rank law."
+reported_shard = "`+Black Breath`'s wire ranks are > 190 over a spend deriving 153\u2013178 (hand-levelled character data)."
+evidence_pointer = "`types/character.md` \u00a73.5.1; A\u00b7R247"
+source_status = "ACCEPTED"
+bace_status = "fresh_progression_derives_rank_from_xp"
+
+[[observations]]
+id = 17
+area = "objects"
+owners = ["bace-interactions", "bace-replication", "bace-wire"]
+reported_retail = "Doors: no `0xF74B` on open / close; the create names On / Off."
+reported_shard = "Creates name On / Off like retail (DR1 measured), but `Open` / `FinalizeClose` also broadcast `0xF74B SetState` (xref, not captured)."
+evidence_pointer = "`net/messages-inbound.md` \u00a73.7.11 note; `physics/animation.md` \u00a73.19; A\u00b7R280; DR1 map"
+source_status = "ACCEPTED"
+bace_status = "state_codec_verified; door_lifecycle_pending"
+
+[[observations]]
+id = 18
+area = "objects"
+owners = ["bace-interactions", "bace-replication", "bace-wire"]
+reported_retail = "Static state `0x1040C` (the mana pool)."
+reported_shard = "`0x40C`: vanilla ACE omits `HAS_PHYSICS_BSP 0x10000`."
+evidence_pointer = "`render/particles.md` \u00a73.9 (\"Is the shard the reason? No.\"); `physics/collision.md` \u00a73.8.1 (c)"
+source_status = "ACCEPTED"
+bace_status = "explicit_physics_state_bits_preserved; asset_projection_pending"
+
+[[observations]]
+id = 19
+area = "objects"
+owners = ["bace-interactions", "bace-replication", "bace-wire"]
+reported_retail = "Answers `0xF6EA` ForceObjdesc, when it answers, with a full `0xF745`."
+reported_shard = "A bare `0xF625 ObjDescEvent` (appearance only), and only when it finds the object (xref)."
+evidence_pointer = "`net/messages-outbound.md` \u00a73.18"
+source_status = "ACCEPTED"
+bace_status = "appearance_only_and_full_object_codecs_verified; missing_object_recovery_pending"
+
+[[observations]]
+id = 20
+area = "objects"
+owners = ["bace-interactions", "bace-replication", "bace-wire"]
+reported_retail = "`0x01C9 FellowshipFellowUpdateDone` carries its `u32` word."
+reported_shard = "Sends it WITHOUT the word (16 bytes) after every Create."
+evidence_pointer = "`net/messages-inbound.md` \u00a73.14.8.1; A\u00b7R242; ED1 map"
+source_status = "CLIENT COPES"
+bace_status = "pinned_empty_event_verified"
+
+[[observations]]
+id = 21
+area = "objects"
+owners = ["bace-interactions", "bace-replication", "bace-wire"]
+reported_retail = "`@fillcomps clear` = `{0, \u22121}` clears the buy table."
+reported_shard = "Rejects WCID 0 (\"invalid spell component wcid\"): never clears; stores any amount unchecked (xref; CP1 saw the \u22121 stored unsigned)."
+evidence_pointer = "`ui/panels.md` \u00a76.4.3 xref note; `net/messages-outbound.md` \u00a73.20.4; CP1 map"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 22
+area = "objects"
+owners = ["bace-interactions", "bace-replication", "bace-wire"]
+reported_retail = "`QueryAge` / `QueryBirth` payload is the client's `u32`."
+reported_shard = "Reads it as a `String16L` (xref)."
+evidence_pointer = "`net/messages-outbound.md` \u00a73.20.4"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 23
+area = "objects"
+owners = ["bace-interactions", "bace-replication", "bace-wire"]
+reported_retail = "Closes a trade at a client `0x01F7` with reason 1105 (211 of 211); overall 1105 \u00d7333, 2 \u00d7148."
+reported_shard = "Closed a trade at a partner's logout with reason `0x1`."
+evidence_pointer = "`ui/panels.md` \u00a76.7.7 item 5; A\u00b7R267; TR3 map"
+source_status = "UNVERIFIED \u2014 close a trade with `0x01F7` on the shard and read the reason"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 24
+area = "chat"
+owners = ["bace-social", "bace-wire"]
+reported_retail = "Turbine chat `0xF7DE`: `L` = the frame, `size` = the body."
+reported_shard = "Both words are **+8** (`size` 64 for a 56-byte body)."
+evidence_pointer = "`net/messages-inbound.md` \u00a73.13.12.1; CH11 `e974a1e2`, CH13 `d8f75e29` map"
+source_status = "CLIENT COPES"
+bace_status = "pinned_turbine_plus_eight_length_arithmetic_verified"
+
+[[observations]]
+id = 25
+area = "chat"
+owners = ["bace-social", "bace-wire"]
+reported_retail = "Friends: no such character \u2192 `0x02EB` \"That character does not exist.\"; already listed \u2192 `0x028B 0x562` (the client's own line)."
+reported_shard = "`0xF7E0` \"That character does not exist\" (no period); `0xF7E0` \"That character is already in your friends list\"; `0x0025` answered with nothing (xref)."
+evidence_pointer = "`ui/panels.md` \u00a76.30 \"What the server says back\"; A\u00b7R253"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 26
+area = "other"
+owners = ["bace-session", "bace-motion"]
+reported_retail = "`0xF7C9 Jump_NonAutonomous`: never captured; its caller in the client is unstated."
+reported_shard = "Lists the opcode (`JumpNonAutonomous`); what it does with it is unread."
+evidence_pointer = "`net/messages-outbound.md` \u00a73.5.4, \u00a76 (the ACE oracle cross-check); `physics/movement.md` \u00a73.7.3; JM1 map"
+source_status = "UNVERIFIED \u2014 RE: who calls `DoJump(false)`"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 27
+area = "other"
+owners = ["bace-session", "bace-motion"]
+reported_retail = "`@settime` adjusts the time without harming the retail client (none of retail's servers had the command)."
+reported_shard = "After `@settime`, the RETAIL client crashes on the next server tick ([redacted] 2026-09-27, twice; the A\u00b7R300 / A\u00b7R304 retail runs set the time, let it crash, relaunch). What ACE sends that retail rejects is unread."
+evidence_pointer = "`docs/GUIDE-STATE.md` (the retail fps reference, 2026-09-27); `render/pipeline.md` \u00a73.10.6 \u00a76 recipe; A\u00b7R300 / A\u00b7R304"
+source_status = "UNVERIFIED \u2014 capture ACE's post-`@settime` traffic and find the message retail rejects"
+bace_status = "portal_origin_bounds_regression_tested; reported_settime_crash_cause_unverified"
+
+[[observations]]
+id = 28
+area = "collision"
+owners = ["bace-physics", "bace-interactions"]
+reported_retail = "The door-hold probe (client side) builds a sphere-less body's `dummy_sphere` at scale **1.0**."
+reported_shard = "ACE's server-side `PhysicsObj.check_collision` passes the object's `Scale` with its dummy sphere (xref), so the SERVER's door hold can differ for a scaled sphere-less body."
+evidence_pointer = "`physics/collision.md` \u00a73.13.2 (the UNKNOWN note, ~4312); A\u00b7R295"
+source_status = "UNVERIFIED \u2014 a scaled sphere-less body held in a closing door on the shard"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 29
+area = "chat"
+owners = ["bace-social", "bace-wire"]
+reported_retail = "`@age`'s answer (`0xF7B0` `0x01C3`) prints the age as `2d 17h 21m 25s` (45 corpus instances)."
+reported_shard = "The age text adds `y` / `w` units and drops a zero seconds unit (`1w 6d 21h 31m 1s`)."
+evidence_pointer = "`net/messages-inbound.md` \u00a73.24; `ui/chat.md` \u00a73.10.1; A\u00b7R313; CQ2 `00961994`"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 30
+area = "objects"
+owners = ["bace-interactions", "bace-replication", "bace-wire"]
+reported_retail = "Salvage `0x02B4` lists unsuitable items in `not_salvagable` \u2192 \" The following were not suitable for salvaging: \u2026\"."
+reported_shard = "ACE always sends an EMPTY `not_salvagable` and skips an unsuitable id silently \u2014 that line never appears on the shard."
+evidence_pointer = "`ui/panels.md` \u00a76.34.9; A\u00b7R316"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 31
+area = "objects"
+owners = ["bace-interactions", "bace-replication", "bace-wire"]
+reported_retail = "A salvage that yields nothing still answers `0x02B4` \u2192 \"Salvaging Failed!\"."
+reported_shard = "ACE sends NO `0x02B4` when nothing was salvaged."
+evidence_pointer = "`ui/panels.md` \u00a76.34.9; A\u00b7R316"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 32
+area = "objects"
+owners = ["bace-interactions", "bace-replication", "bace-wire"]
+reported_retail = "One salvage result per `0x02B4` (6,413 retail messages never carried more than one)."
+reported_shard = "ACE groups results BY SKILL into one `0x02B4`, so a mixed batch arrives as one message with several results (the \"A, B and C\" form); `aug_bonus` = `AugmentationBonusSalvage \u00d7 25` for skill 40, else 0."
+evidence_pointer = "`ui/panels.md` \u00a76.34.9; A\u00b7R316"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 33
+area = "housing"
+owners = ["bace-housing", "bace-replication"]
+reported_retail = "Sends the house-restriction update `0x0248` BARE."
+reported_shard = "Wraps `0x0248` in a `0xF7B0` game event; both reach the same client dispatcher."
+evidence_pointer = "`physics/collision.md` \u00a73.16; A\u00b7R317"
+source_status = "CLIENT COPES"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 34
+area = "housing"
+owners = ["bace-housing", "bace-replication"]
+reported_retail = "Which players receive `0x0248` is unstated (2 of 8 open/close and 2 of 5 add-guest commands got none back in the corpus)."
+reported_shard = "Sends `0x0248` to EVERY player who knows the house."
+evidence_pointer = "`physics/collision.md` \u00a73.16 (UNKNOWNs); A\u00b7R317"
+source_status = "UNVERIFIED \u2014 retail's recipient rule"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 35
+area = "movement"
+owners = ["bace-motion", "bace-physics", "bace-replication"]
+reported_retail = "Sends a RUNNING remote player's `0xF748` every 0.785 s outdoors (0.621 s within 20 m; 1.878 s beyond 100 m) / 0.282 s indoors; 0.372 s after a stop (61 captures, 1,378 players)."
+reported_shard = "One per the runner's own `0xF753`, ~1.0 s everywhere (xref + [redacted]'s log: Rare's 0.996 / 1.001 s)."
+evidence_pointer = "`physics/movement.md` \u00a73.11.3 (c), (f); A\u00b7R338"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 36
+area = "character"
+owners = ["bace-character", "bace-wire"]
+reported_retail = "Retail's creator never sends a locked skill (Arcane Lore, Magic Defense, Jump, Run, Loyalty, Salvaging) below Trained (0 of 215 creates), and its server refuses an untrain of them with `0x4D9` (text in the binary; never captured)."
+reported_shard = "Vanilla ACE ACCEPTS a `0xF656` create with a locked skill at 1 (UNTRAINED) \u2014 [redacted] made one on 2026-09-29."
+evidence_pointer = "`ui/frontend.md` \u00a76.9.3; `ui/panels.md` \u00a76.2.4; A\u00b7R339"
+source_status = "ACCEPTED"
+bace_status = "pinned_creation_allocation_behavior_verified"
+
+[[observations]]
+id = 37
+area = "movement"
+owners = ["bace-motion", "bace-physics", "bace-replication"]
+reported_retail = "Retail's server sends WeenieError `0x3E` (\"You are too tired to do that!\") as a `0x028A`/`0x028B` refusal when stamina runs out (one in the retail sample, a `0x028B` mid-fight); the client's own `0x3E` literals are dead code."
+reported_shard = "Vanilla ACE defines the code but never sends it \u2014 no \"too tired\" line ever prints on this shard."
+evidence_pointer = "`physics/movement.md` \u00a73.9.2 (k) + (f); A\u00b7R343 `cfcd3007`"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 38
+area = "housing"
+owners = ["bace-housing", "bace-replication"]
+reported_retail = "Retail's server refuses an under-level house purchase (`0x021C`) with `0x0259` (WeenieError 1121) \u2014 the client answers it with a `0x0258 QueryLord`, whose `0x021D` re-opens the panel (`ui/slumlord.md`)."
+reported_shard = "Vanilla ACE refuses it with `0x028B WeenieErrorWithString 1160 \"20\"` and sends no `0x0259` \u2014 the re-query never fires (HP1 leg, +Acreyqerww 2026-09-29)."
+evidence_pointer = "`ui/slumlord.md`; A\u00b7R334; HP1 `790a63d2`"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 39
+area = "housing"
+owners = ["bace-housing", "bace-replication"]
+reported_retail = "After a successful purchase retail's server sends a `0x0225` house status update to the buyer (A\u00b7R334)."
+reported_shard = "Vanilla ACE sent none within HP1's leg (2026-09-29, +Black Breath buying cottage 0x442) \u2014 only the re-sent `0x021D` with the owner."
+evidence_pointer = "`ui/slumlord.md`; HP1 map"
+source_status = "OBSERVED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 40
+area = "character"
+owners = ["bace-character", "bace-wire"]
+reported_retail = "After an attribute-transfer gem's Yes, retail's server sends the success as the `0x01C7` UseDone RESULT `0x4E1` (`ui/temples.md`; 51 of 51 in the corpus) \u2014 the client prints it through HandleFailureEvent."
+reported_shard = "Vanilla ACE sends `0x028A 0x4E1` instead of the UseDone result."
+evidence_pointer = "`ui/temples.md`; A\u00b7R354 `df05091f`"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 41
+area = "appraisal"
+owners = ["bace-interactions"]
+reported_retail = "Retail's server fails player appraisals by DISTANCE past ~20\u201325 m (96 % success at 10\u201320 m, 47 % at 25\u201330 m, 11 % past 50 m; 42,609 appraisals, A\u00b7R358 \u00a73.16.6 / \u00a76.13); no bonus for closing in (56.9 % under 1 m on targets that ever failed)."
+reported_shard = "Vanilla ACE rolls AssessPerson vs Deception (`1 \u2212 1/(1+e^(0.03\u00b7\u0394))`) with no distance term."
+evidence_pointer = "`types/appraisal.md` \u00a73.16.6, \u00a76.13; A\u00b7R358 `19d32590`"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 42
+area = "appraisal"
+owners = ["bace-interactions"]
+reported_retail = "In retail a target's appraisal success can REVERT to failure within a sequence (682 success\u2192fail flips) and a failure holds on the client's re-asks 97.6 % of the time."
+reported_shard = "ACE: once a target succeeds it never re-rolls; a failure holds for 5 s then re-rolls."
+evidence_pointer = "`types/appraisal.md` \u00a76.13; A\u00b7R358"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 43
+area = "appraisal"
+owners = ["bace-interactions"]
+reported_retail = "Retail's server sends UNSOLICITED `0x00C9` responses (28 % of them, mostly 4\u20136 s apart) while a panel is open \u2014 the \u00a73.2.2 poll's answers plus its own pushes."
+reported_shard = "ACE never sends an unsolicited `0x00C9`; only the client's 0x00C8 is answered."
+evidence_pointer = "`types/appraisal.md` \u00a73.2.2, \u00a76.13; A\u00b7R358"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 44
+area = "appraisal"
+owners = ["bace-interactions"]
+reported_retail = "Retail's server puts Int 390 Enlightenment in EVERY player appraisal (488,034 of 488,034, A\u00b7R352 \u00a72 [C4]), so the client's presence-gated row reads `Enlightenment: 0` on everyone."
+reported_shard = "Vanilla ACE's player appraisal carries no Int 390 \u2014 the row never shows on this shard (EN2 live, +Black Breath)."
+evidence_pointer = "`ui/enlightenment.md` \u00a72; `types/appraisal.md` \u00a73.16.2; EN2 `8e0dc92a`"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 45
+area = "housing"
+owners = ["bace-housing", "bace-replication"]
+reported_retail = "Retail's `0x0225 HouseData` `m_rent_time` is the CURRENT period's start, not anchored at the purchase (1,116 of 1,531 corpus values are not a whole number of periods after `buy_time`; A\u00b7R361 \u00a74.1)."
+reported_shard = "Vanilla ACE sets `m_rent_time = buy_time + k\u00b7period`."
+evidence_pointer = "`ui/house.md` \u00a74.1 / \u00a74.2; A\u00b7R361 `98723621`"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 46
+area = "housing"
+owners = ["bace-housing", "bace-replication"]
+reported_retail = "Retail's server sent `m_maintenance_free = 0` in every `0x0225` (1,531 of 1,531), so the page's row 7 is decided by the rent list."
+reported_shard = "Vanilla ACE sends `m_maintenance_free = 1` when the house is InActive or `house_rent_enabled` is off \u2014 the green \"already been paid\" row shows where retail would have tested the rent list."
+evidence_pointer = "`ui/house.md` \u00a73.3 row 7, \u00a74.2; A\u00b7R361"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 47
+area = "housing"
+owners = ["bace-housing", "bace-replication"]
+reported_retail = "After a maintenance payment retail's server sent `0x0228 UpdateRentPayment` (14 in the corpus); `0x0227 UpdateRentTime` exists for the rent-time change."
+reported_shard = "Vanilla ACE re-sends the whole `0x0225` and never sends `0x0227` or `0x0228`."
+evidence_pointer = "`ui/house.md` \u00a73.2, \u00a74.2; A\u00b7R361"
+source_status = "ACCEPTED"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 48
+area = "net"
+owners = ["bace-transport", "bace-session", "bace-wire"]
+reported_retail = "Retail's client sends `ICmdCommand 0x400000 {1, 0}` every 110 s as its own unsequenced packet to the server's port + 1 (`net/session.md` \u00a73.2 periodic-sends table, A\u00b7R393; 666,467 corpus client packets)."
+reported_shard = "Vanilla ACE ignores it (no handler; the packet is dropped silently)."
+evidence_pointer = "`net/session.md` \u00a73.2; A\u00b7R393"
+source_status = "unspecified"
+bace_status = "pinned_companion_command_ignore_verified"
+
+[[observations]]
+id = 49
+area = "net"
+owners = ["bace-transport", "bace-session", "bace-wire"]
+reported_retail = "Retail's `EchoRequest 0x02000000` carries the client's f32 `local_time`, queued with every `TimeSync` every 3.0 s on a sequenced packet (`net/session.md` \u00a73.2, A\u00b7R393)."
+reported_shard = "ACE's echo check logs a player off for \"speedhacking\" after 10 drifts over 2 s between the echoed local clock and its own; retail's server had no such check in the corpus (no log-off follows a drift)."
+evidence_pointer = "`net/session.md` \u00a73.2; A\u00b7R393"
+source_status = "unspecified"
+bace_status = "intentional_hardening_clock_observations_do_not_grant_authority_or_prove_cheating"
+
+[[observations]]
+id = 50
+area = "physics"
+owners = ["bace-physics", "bace-motion", "bace-replication"]
+reported_retail = "Retail's server keeps sending positions to a jammed attacker: each sticky attack `0xF74C` carries a `0xF748` for the same creature (93 of 93 within 0.2 s, 79 in the same packet; ~one per 0.69 s per creature; sticky states repeat every 1.36 s), and the ring is let overlap the player (deepest 0.60 m) \u2014 `physics/collision.md` \u00a73.15.9 (g), A\u00b7R392, `pkt_2017-1-20_1484931712` cell 0x002B01A9."
+reported_shard = "Vanilla ACE sends NO `0xF748` to a sticky attacker (A\u00b7R212 measured on this shard), so the ring section's opening mechanism never runs here."
+evidence_pointer = "`physics/collision.md` \u00a73.15.9 (g); A\u00b7R212, A\u00b7R392"
+source_status = "unspecified"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 51
+area = "physics"
+owners = ["bace-physics", "bace-motion", "bace-replication"]
+reported_retail = "Retail's server sends a remote player's jump as a bare `0xF74E` VectorUpdate; the retail CLIENT's `CMotionInterp::LeaveGround` (no player check) then overwrites that velocity from the interpreted state, so a remote that was running / walking is FLATTENED at takeoff (v_z = 0) and only a remote at Ready flies the full arc \u2014 `physics/movement.md` \u00a73.7.2 non-player section, `quantum.md` step 22, A\u00b7R398; corpus `pkt_2017-1-28_1485632100`: 9 running remote jumps, all flattened."
+reported_shard = "Vanilla ACE sends an EMPTY `0xF74C` (decodes as Ready) immediately before the `0xF74E` (its source comment: to avoid \"an uncharged shallow arc\"), so on ACE every remote jump takes the keep-velocity branch and shows the full arc."
+evidence_pointer = "`physics/movement.md` \u00a73.7.2; A\u00b7R398"
+source_status = "unspecified"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 52
+area = "net"
+owners = ["bace-transport", "bace-session", "bace-wire"]
+reported_retail = "Retail's server always sent `0xF7DC AccountBooted` WITH a reason String16L (6 of 6 corpus boots: \" by the authorization server\") \u2014 `net/messages-inbound.md` \u00a73.5.3, A\u00b7R401; the client shows the DISCONNECTED screen \"You have been booted from Asheron's Call\" + the string, never reconnects."
+reported_shard = "Vanilla ACE's `GameMessageBootAccount` with a null reason sends `0xF7DC` with NO String (4 bytes)."
+evidence_pointer = "`net/messages-inbound.md` \u00a73.5.3; A\u00b7R401"
+source_status = "unspecified"
+bace_status = "pinned_null_boot_reason_verified"
+
+[[observations]]
+id = 53
+area = "net"
+owners = ["bace-transport", "bace-session", "bace-wire"]
+reported_retail = "Retail's world login may send a Referral; the client resends the WorldLoginRequest every 1/3 s and gives up after the 841st send (`Net_WorldConnectionError`) \u2014 `net/session.md` \u00a73.6, A\u00b7R401 (Tusker Abode.pcap: 60 resends 0.334 s apart)."
+reported_shard = "Vanilla ACE never sends a Referral, so the retry loop and its cap are never exercised against it."
+evidence_pointer = "`net/session.md` \u00a73.6; A\u00b7R401"
+source_status = "unspecified"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 54
+area = "ui"
+owners = ["bace-session", "bace-interactions"]
+reported_retail = "Retail's client sends `0x0140 ReportAbuse` as {name, 1, complaint} and expects an answer (`0x4B8`\u2013`0x4BA`) \u2014 `ui/panels.md` \u00a76.41, `net/messages-outbound.md`, A\u00b7R402 (retail's answer has NO corpus witness: 0 sends)."
+reported_shard = "Vanilla ACE 7ae5dad has NO handler for `0x0140`, so the abuse form stays on \"Please wait\u2026\"."
+evidence_pointer = "`ui/panels.md` \u00a76.41; A\u00b7R402"
+source_status = "unspecified"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 55
+area = "chat"
+owners = ["bace-social", "bace-wire"]
+reported_retail = "Retail's urgent-assistance form sends `0x0147` on channel `0x400` (Help), then shows its third page \u2014 `ui/panels.md` \u00a76.41, A\u00b7R402 (0 corpus sends)."
+reported_shard = "Vanilla ACE answers a Help-channel `0x0147` with the server line \"GameActionChatChannel TellHelp Needs work.\" before broadcasting it."
+evidence_pointer = "`ui/panels.md` \u00a76.41; A\u00b7R402"
+source_status = "unspecified"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 56
+area = "ui"
+owners = ["bace-session", "bace-interactions"]
+reported_retail = "Retail's book messages (`0x00B4` / `0x00B8`) carry `authorAccount`; the client shows it only to a PSR \u2014 `ui/book.md`, A\u00b7R402 (retail's value not tallied)."
+reported_shard = "Vanilla ACE sends `authorAccount` as the literal \"beer good\" (`0x00B4`) or \"Password is cheese\" (`0x00B8`) to non-admins."
+evidence_pointer = "`ui/book.md`; A\u00b7R402"
+source_status = "unspecified"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 57
+area = "world"
+owners = ["bace-spawning", "bace-content"]
+reported_retail = "Retail's Holtburg (block `0xA260`) has ONE Town Crier, a creature appraised with a creature block (`0x00C9` flags) \u2014 `docs/audits/2026-09-22-item-tp4-consumption-map.md` \u00a71a; `world/objects.md`."
+reported_shard = "Vanilla ACE's world spawns TWO live Town Criers at `0xA260`, `0x800012D9` and `0x80001697`, and appraises both; `0x800012D9`'s `0x00C9` carries no creature block and a capacity row, so the client renders it as a container."
+evidence_pointer = "TP4 map \u00a71a; pointers re-triage #124"
+source_status = "unspecified"
+bace_status = "requires_pinned_review"
+
+[[observations]]
+id = 58
+area = "chat"
+owners = ["bace-social", "bace-wire"]
+reported_retail = "Retail's Turbine chat answers a SendToRoomByID with RESPONSE 5/2 (ByID), so a failed send prints `ui/chat.md` \u00a73.9's \"Failed to send text\" line (hresult \u2260 0)."
+reported_shard = "Vanilla ACE answers a SendToRoomByID with RESPONSE dispatch 1 (ByName), so the \u00a73.9 failure print can never fire on this shard."
+evidence_pointer = "`ui/chat.md` \u00a73.9 (RESPONSE 5/2); CH13 map `docs/audits/2026-09-26-item-ch13-consumption-map.md`; pointers re-triage #243"
+source_status = "unspecified"
+bace_status = "pinned_byname_response_dispatch_verified"
+
+[[regressions]]
+id = "lifestone-position-alias"
+owners = ["bace-interactions", "bace-physics"]
+description = "2026-10-05: recalling through an aliased lifestone Position reportedly mutates the stone. BACE teleport targets must be value snapshots; assert the stone stays fixed."
+status = "pending"
+
+[[regressions]]
+id = "teleport-forget-race"
+owners = ["bace-replication", "bace-world"]
+description = "2026-10-06: returning near a 25-second forget deadline reportedly loses mutual visibility and local speech. Invalidate stale removal work on re-entry; test symmetric visibility, same-cell recall and different-cell recall. Reported workaround value 1 is shard-specific; retail behavior remains unverified."
+status = "knowledge_tracker_regression_tested; world_visibility_composition_pending"

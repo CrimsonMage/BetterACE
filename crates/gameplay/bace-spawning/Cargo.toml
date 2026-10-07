@@ -1,0 +1,13 @@
+[package]
+name = "bace-spawning"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Generators, spawning, despawning and decay"
+
+[lints]
+workspace = true
+
+[dependencies]

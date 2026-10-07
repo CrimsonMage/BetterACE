@@ -1,0 +1,13 @@
+[package]
+name = "bace-interactions"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Doors, locks, switches, portals, lifestones and books"
+
+[lints]
+workspace = true
+
+[dependencies]

@@ -1,0 +1,13 @@
+[package]
+name = "bace-economy"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Vendors, currencies and player trading"
+
+[lints]
+workspace = true
+
+[dependencies]

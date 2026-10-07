@@ -1,0 +1,510 @@
+{
+  "repository": "https://github.com/ACEmulator/ACE",
+  "commit": "47edade3bd3f6044b676d4eb877c4965c7eda62b",
+  "source_sha256": {
+    "Source/ACE.DatLoader/IUnpackable.cs": "de0d0b462e450b7cfbbe01e57205aa3ce765c6a8eb9db659d93868da883eafd7",
+    "Source/ACE.DatLoader/BinaryReaderExtensions.cs": "c8aacc633f15f29329f963c6cc3222322291d926dd66cde9e31fbd4f4966adb1",
+    "Source/ACE.DatLoader/UnpackableExtensions.cs": "13f137cf709de76f27a27189fda48ebb7da64b1948c7a6666cd591309453c354",
+    "Source/ACE.DatLoader/DatFileType.cs": "377114eb1a7707309b85a1dd2526aff8bab9e2be371e812fff2e6b91fb73835a",
+    "Source/ACE.DatLoader/DatFileTypeAttribute.cs": "568f7432af38762d1b72d05d910d379dfb9a2b2c56acb53fd5440ed640a8488c",
+    "Source/ACE.DatLoader/DatDatabaseType.cs": "096c584d94d491b724f15b584c155102a6ca1c4a286c5f559456266dd6f25224",
+    "Source/ACE.DatLoader/DatDatabaseTypeAttribute.cs": "ef84e7062727f050d4beffceed0f55d908526cc7970226c99bbce382fe71d2e0",
+    "Source/ACE.DatLoader/DatFileTypeExtensionAttribute.cs": "4ff225e1e29fea9ee2b9308299fb56de007588805651219d7b35fbb78549b233",
+    "Source/ACE.DatLoader/DatFileTypeIdRangeAttribute.cs": "002652e46a6128fb10ec092c795ff5a6c650b4301e06771245b33be90c3324d5",
+    "Source/ACE.DatLoader/FileTypes/FileType.cs": "6f94f96626381dd574e45c778fc80aacfbf439b9b8138c2885ebdbca7c3d8665",
+    "Source/ACE.DatLoader/FileTypes/XpTable.cs": "bfe241bacc04959ea4b04393a7bc8bedab1aa1552b53abf19a4130c626819a6a",
+    "Source/ACE.DatLoader/FileTypes/SkillTable.cs": "6406db1ea959ae3d040816a00018b92025fd2dccb5ec9054add59cb9058acd6b",
+    "Source/ACE.DatLoader/FileTypes/CharGen.cs": "88005e85cc1ec45e63d4c76ac64360ad065eb93417d53c463d99d8e927a8cf71",
+    "Source/ACE.DatLoader/Entity/SkillBase.cs": "b871eb599ccd688d6a2292d47faee7ff6e766acab3b9bc0c9e33866acd665ad0",
+    "Source/ACE.DatLoader/Entity/SkillFormula.cs": "8995eadd22e30e41a5c80810aab14fb8bd1bc952077e23c488678a66e7030916",
+    "Source/ACE.DatLoader/Entity/StarterArea.cs": "207e6f4e1779520fb611873385c7ea78ce923dcae09345de1837abff88f2174d",
+    "Source/ACE.DatLoader/Entity/HeritageGroupCG.cs": "947472853ed20615a4f0d5d2763832dcaa4cfbefae095436848b78dffc24dc7a",
+    "Source/ACE.DatLoader/Entity/SkillCG.cs": "0b576a69a0600b7c557ec88365352d757875fa96d91850aa75fe2d87db836c52",
+    "Source/ACE.DatLoader/Entity/TemplateCG.cs": "4b168f36747972c52ba46c11ae209f01949670f9c3deb835a66ee53afa24009b",
+    "Source/ACE.DatLoader/Entity/SexCG.cs": "25d2091df14b728a48e54d2f87656051c979a71246f8210d40f8e8479ac67893",
+    "Source/ACE.DatLoader/Entity/Position.cs": "e318c984208a3d8b1feac8c99f20214a12ef79e60c55ca689b5542b66757d0f4",
+    "Source/ACE.DatLoader/Entity/Frame.cs": "57f448a605d93361f40e28246851934b25a749b193a2d581ae324d2a873474fe",
+    "Source/ACE.DatLoader/Entity/ObjDesc.cs": "fd8f4ddf4a071c3a9114ae5159da00532074286e267e39df6bf197dd6113cd33",
+    "Source/ACE.DatLoader/Entity/HairStyleCG.cs": "5dace3d353a1d5c2e58162c8611dd7f5b85dc9c54fec8f4b2354437fefa70417",
+    "Source/ACE.DatLoader/Entity/EyeStripCG.cs": "8f21caca75edbe0aaf49e7d6c9cb4cba398cf79d8af8d4ae3c1cd53032d33cf2",
+    "Source/ACE.DatLoader/Entity/FaceStripCG.cs": "6af9c35e7af59a139372f350208818b75792ac6b0b5269ffbb7afc544d822457",
+    "Source/ACE.DatLoader/Entity/GearCG.cs": "6c4645d07d666d9940b333a3088057e2fce40f3d801b2f8df9d8122b42786ba9",
+    "Source/ACE.DatLoader/Entity/SubPalette.cs": "07979603d2173ef8e56b61055c01d7249af7d0773e56c0da2b19f6da5694ef65",
+    "Source/ACE.DatLoader/Entity/TextureMapChange.cs": "56d362fe964a2c85d704a703f98319548c446561fd47f9a6a46e7ebb39c8275d",
+    "Source/ACE.DatLoader/Entity/AnimationPartChange.cs": "6dd652dc96145b0f4eea5b013d1939ac428f93748b53a2c3c0b49201a0c65c17",
+    "Source/ACE.Entity/Enum/Skill.cs": "3e74683d6bb7ffa60c92f52bbb0f438e375faa8a503b2d66f0823a6b30e7abc8",
+    "Source/ACE.Entity/Enum/Properties/PropertyAttribute.cs": "e959f2b1aebcbd3765be356d0aeba0730ef31f6349edd7c1c18e5f858cc78ceb",
+    "Source/ACE.Entity/Enum/AttributeExtensions.cs": "07b9d955ac5ddcab1c7da216652c0faa30cfed4e0c363c977b13d6d4f5fde47e"
+  },
+  "harness_sha256": "a6c1c294dc5e180ea4e388436a449516ba5051f656f3b5a471e2156a8bad0698",
+  "harness": "Synthetic BinaryWriter record construction; all table and nested decoders are unchanged official sources. Unused Frame convenience-constructor dependency ACE.Entity.Position is a synthetic stub.",
+  "vectors": {
+    "xp": [
+      {
+        "bytes": "1800000E000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "decoded": {
+          "AttributeXpList": [
+            0
+          ],
+          "VitalXpList": [
+            0
+          ],
+          "TrainedSkillXpList": [
+            0
+          ],
+          "SpecializedSkillXpList": [
+            0
+          ],
+          "CharacterLevelXPList": [
+            0
+          ],
+          "CharacterLevelSkillCreditList": [
+            0
+          ],
+          "Id": 234881048
+        }
+      },
+      {
+        "bytes": "1800000E0200000000000000010000000000000002000000000000000A0000001E00000000000000000000000E020000000000000000000000000000D204000000000000BC9A785634120000000000000100000002000000",
+        "decoded": {
+          "AttributeXpList": [
+            0,
+            10,
+            30
+          ],
+          "VitalXpList": [
+            0
+          ],
+          "TrainedSkillXpList": [
+            0,
+            526
+          ],
+          "SpecializedSkillXpList": [
+            0
+          ],
+          "CharacterLevelXPList": [
+            0,
+            1234,
+            20015998343868
+          ],
+          "CharacterLevelSkillCreditList": [
+            0,
+            1,
+            2
+          ],
+          "Id": 234881048
+        }
+      }
+    ],
+    "skills": {
+      "bytes": "0400000E02002000060000001B0053796E74686574696320636166C3A9206465736372697074696F6ECCCCCC080044C3A966656E7365CCCC07000006060000000C000000010000000100000002000000020000000100000003000000040000000100000004000000666666666666EE3F000000000000D03F000000000000F83F320000000000CCCC090053796E746865746963CC33000006FFFFFFFF0C000000010000000100000002000000020000000100000003000000040000000100000004000000666666666666EE3F000000000000D03F000000000000F83F",
+      "decoded": {
+        "SkillBaseHash": {
+          "6": {
+            "Description": "Synthetic caf\u00e9 description",
+            "Name": "D\u00e9fense",
+            "IconId": 100663303,
+            "TrainedCost": 6,
+            "SpecializedCost": 12,
+            "Category": 1,
+            "ChargenUse": 1,
+            "MinLevel": 2,
+            "Formula": {
+              "W": 2,
+              "X": 1,
+              "Y": 3,
+              "Z": 4,
+              "Attr1": 1,
+              "Attr2": 4
+            },
+            "UpperBound": 0.95,
+            "LowerBound": 0.25,
+            "LearnMod": 1.5,
+            "UpgradeCostFromTrainedToSpecialized": 6
+          },
+          "50": {
+            "Description": "",
+            "Name": "Synthetic",
+            "IconId": 100663347,
+            "TrainedCost": -1,
+            "SpecializedCost": 12,
+            "Category": 1,
+            "ChargenUse": 1,
+            "MinLevel": 2,
+            "Formula": {
+              "W": 2,
+              "X": 1,
+              "Y": 3,
+              "Z": 4,
+              "Attr1": 1,
+              "Attr2": 4
+            },
+            "UpperBound": 0.95,
+            "LowerBound": 0.25,
+            "LearnMod": 1.5,
+            "UpgradeCostFromTrainedToSpecialized": 13
+          }
+        },
+        "Id": 234881028
+      }
+    },
+    "chargen": [
+      {
+        "bytes": "0200000E7B000000000100",
+        "decoded": {
+          "StarterAreas": [],
+          "HeritageGroups": {},
+          "Id": 234881026
+        }
+      },
+      {
+        "bytes": "0200000E7B000000011353796E74686574696320F09F9982206172656101010034120000803F00000040000040400000803F0000000000000000000000000101070000001253796E7468657469632068657269746167650100000601000002020000024A010000340000000100000000000206000000060000000C00000032000000FFFFFFFFFFFFFFFF011253796E7468657469632074656D706C61746503000006070000000A000000140000001E00000028000000320000003C0000000106000000013200000001010100000082014E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E4E64000000010000020100002001000006010000040100000F010000090200000901000030CCCC110101010700018045230300040A000B00050C008082000000040100000402000004030000040400000405000004060000040700000408000004090000040A0000040B0000040C0000040D0000040E0000040F000004100000041100000412000004130000041400000415000004160000041700000418000004190000041A0000041B0000041C0000041D0000041E0000041F000004200000042100000422000004230000042400000425000004260000042700000428000004290000042A0000042B0000042C0000042D0000042E0000042F000004300000043100000432000004330000043400000435000004360000043700000438000004390000043A0000043B0000043C0000043D0000043E0000043F000004400000044100000442000004430000044400000445000004460000044700000448000004490000044A0000044B0000044C0000044D0000044E0000044F000004500000045100000452000004530000045400000455000004560000045700000458000004590000045A0000045B0000045C0000045D0000045E0000045F000004600000046100000462000004630000046400000465000004660000046700000468000004690000046A0000046B0000046C0000046D0000046E0000046F000004700000047100000472000004730000047400000475000004760000047700000478000004790000047A0000047B0000047C0000047D0000047E0000047F000004800000048100000401020000060103000002110000000101000004010100000602000006CCCC11000000110101010700018045230300040A000B00050C000103000006CCCCCC110000000103000006CCCCCC11000000010E53796E7468657469632067656172010000102A000000010E53796E7468657469632067656172010000102A000000010E53796E7468657469632067656172010000102A000000010E53796E7468657469632067656172010000102A0000000101000004",
+        "decoded": {
+          "StarterAreas": [
+            {
+              "Name": "Synthetic \ud83d\ude42 area",
+              "Locations": [
+                {
+                  "ObjCellID": 305397761,
+                  "Frame": {
+                    "Origin": {
+                      "X": 1,
+                      "Y": 2,
+                      "Z": 3
+                    },
+                    "Orientation": {
+                      "IsIdentity": true,
+                      "X": 0,
+                      "Y": 0,
+                      "Z": 0,
+                      "W": 1
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "HeritageGroups": {
+            "7": {
+              "Name": "Synthetic heritage",
+              "IconImage": 100663297,
+              "SetupID": 33554433,
+              "EnvironmentSetupID": 33554434,
+              "AttributeCredits": 330,
+              "SkillCredits": 52,
+              "PrimaryStartAreas": [
+                0
+              ],
+              "SecondaryStartAreas": [],
+              "Skills": [
+                {
+                  "SkillNum": 6,
+                  "NormalCost": 6,
+                  "PrimaryCost": 12
+                },
+                {
+                  "SkillNum": 50,
+                  "NormalCost": -1,
+                  "PrimaryCost": -1
+                }
+              ],
+              "Templates": [
+                {
+                  "Name": "Synthetic template",
+                  "IconImage": 100663299,
+                  "Title": 7,
+                  "Strength": 10,
+                  "Endurance": 20,
+                  "Coordination": 30,
+                  "Quickness": 40,
+                  "Focus": 50,
+                  "Self": 60,
+                  "NormalSkillsList": [
+                    6
+                  ],
+                  "PrimarySkillsList": [
+                    50
+                  ]
+                }
+              ],
+              "Genders": {
+                "1": {
+                  "Name": "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+                  "Scale": 100,
+                  "SetupID": 33554433,
+                  "SoundTable": 536870913,
+                  "IconImage": 100663297,
+                  "BasePalette": 67108865,
+                  "SkinPalSet": 251658241,
+                  "PhysicsTable": 150994945,
+                  "MotionTable": 150994946,
+                  "CombatTable": 805306369,
+                  "BaseObjDesc": {
+                    "PaletteID": 67108871,
+                    "SubPalettes": [
+                      {
+                        "SubID": 67183429,
+                        "Offset": 24,
+                        "NumColors": 2048
+                      }
+                    ],
+                    "TextureChanges": [
+                      {
+                        "PartIndex": 4,
+                        "OldTexture": 83886090,
+                        "NewTexture": 83886091
+                      }
+                    ],
+                    "AnimPartChanges": [
+                      {
+                        "PartIndex": 5,
+                        "PartID": 16777228
+                      }
+                    ]
+                  },
+                  "HairColorList": [
+                    67108864,
+                    67108865,
+                    67108866,
+                    67108867,
+                    67108868,
+                    67108869,
+                    67108870,
+                    67108871,
+                    67108872,
+                    67108873,
+                    67108874,
+                    67108875,
+                    67108876,
+                    67108877,
+                    67108878,
+                    67108879,
+                    67108880,
+                    67108881,
+                    67108882,
+                    67108883,
+                    67108884,
+                    67108885,
+                    67108886,
+                    67108887,
+                    67108888,
+                    67108889,
+                    67108890,
+                    67108891,
+                    67108892,
+                    67108893,
+                    67108894,
+                    67108895,
+                    67108896,
+                    67108897,
+                    67108898,
+                    67108899,
+                    67108900,
+                    67108901,
+                    67108902,
+                    67108903,
+                    67108904,
+                    67108905,
+                    67108906,
+                    67108907,
+                    67108908,
+                    67108909,
+                    67108910,
+                    67108911,
+                    67108912,
+                    67108913,
+                    67108914,
+                    67108915,
+                    67108916,
+                    67108917,
+                    67108918,
+                    67108919,
+                    67108920,
+                    67108921,
+                    67108922,
+                    67108923,
+                    67108924,
+                    67108925,
+                    67108926,
+                    67108927,
+                    67108928,
+                    67108929,
+                    67108930,
+                    67108931,
+                    67108932,
+                    67108933,
+                    67108934,
+                    67108935,
+                    67108936,
+                    67108937,
+                    67108938,
+                    67108939,
+                    67108940,
+                    67108941,
+                    67108942,
+                    67108943,
+                    67108944,
+                    67108945,
+                    67108946,
+                    67108947,
+                    67108948,
+                    67108949,
+                    67108950,
+                    67108951,
+                    67108952,
+                    67108953,
+                    67108954,
+                    67108955,
+                    67108956,
+                    67108957,
+                    67108958,
+                    67108959,
+                    67108960,
+                    67108961,
+                    67108962,
+                    67108963,
+                    67108964,
+                    67108965,
+                    67108966,
+                    67108967,
+                    67108968,
+                    67108969,
+                    67108970,
+                    67108971,
+                    67108972,
+                    67108973,
+                    67108974,
+                    67108975,
+                    67108976,
+                    67108977,
+                    67108978,
+                    67108979,
+                    67108980,
+                    67108981,
+                    67108982,
+                    67108983,
+                    67108984,
+                    67108985,
+                    67108986,
+                    67108987,
+                    67108988,
+                    67108989,
+                    67108990,
+                    67108991,
+                    67108992,
+                    67108993
+                  ],
+                  "HairStyleList": [
+                    {
+                      "IconImage": 100663298,
+                      "Bald": true,
+                      "AlternateSetup": 33554435,
+                      "ObjDesc": {
+                        "PaletteID": 0,
+                        "SubPalettes": [],
+                        "TextureChanges": [],
+                        "AnimPartChanges": []
+                      }
+                    }
+                  ],
+                  "EyeColorList": [
+                    67108865
+                  ],
+                  "EyeStripList": [
+                    {
+                      "IconImage": 100663297,
+                      "IconImageBald": 100663298,
+                      "ObjDesc": {
+                        "PaletteID": 0,
+                        "SubPalettes": [],
+                        "TextureChanges": [],
+                        "AnimPartChanges": []
+                      },
+                      "ObjDescBald": {
+                        "PaletteID": 67108871,
+                        "SubPalettes": [
+                          {
+                            "SubID": 67183429,
+                            "Offset": 24,
+                            "NumColors": 2048
+                          }
+                        ],
+                        "TextureChanges": [
+                          {
+                            "PartIndex": 4,
+                            "OldTexture": 83886090,
+                            "NewTexture": 83886091
+                          }
+                        ],
+                        "AnimPartChanges": [
+                          {
+                            "PartIndex": 5,
+                            "PartID": 16777228
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "NoseStripList": [
+                    {
+                      "IconImage": 100663299,
+                      "ObjDesc": {
+                        "PaletteID": 0,
+                        "SubPalettes": [],
+                        "TextureChanges": [],
+                        "AnimPartChanges": []
+                      }
+                    }
+                  ],
+                  "MouthStripList": [
+                    {
+                      "IconImage": 100663299,
+                      "ObjDesc": {
+                        "PaletteID": 0,
+                        "SubPalettes": [],
+                        "TextureChanges": [],
+                        "AnimPartChanges": []
+                      }
+                    }
+                  ],
+                  "HeadgearList": [
+                    {
+                      "Name": "Synthetic gear",
+                      "ClothingTable": 268435457,
+                      "WeenieDefault": 42
+                    }
+                  ],
+                  "ShirtList": [
+                    {
+                      "Name": "Synthetic gear",
+                      "ClothingTable": 268435457,
+                      "WeenieDefault": 42
+                    }
+                  ],
+                  "PantsList": [
+                    {
+                      "Name": "Synthetic gear",
+                      "ClothingTable": 268435457,
+                      "WeenieDefault": 42
+                    }
+                  ],
+                  "FootwearList": [
+                    {
+                      "Name": "Synthetic gear",
+                      "ClothingTable": 268435457,
+                      "WeenieDefault": 42
+                    }
+                  ],
+                  "ClothingColorsList": [
+                    67108865
+                  ]
+                }
+              }
+            }
+          },
+          "Id": 234881026
+        }
+      }
+    ]
+  }
+}

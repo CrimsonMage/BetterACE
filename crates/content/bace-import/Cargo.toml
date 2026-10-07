@@ -1,0 +1,21 @@
+[package]
+name = "bace-import"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-content.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+
+[dev-dependencies]
+bace-content-tools.workspace = true

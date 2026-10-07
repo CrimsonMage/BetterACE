@@ -1,0 +1,24 @@
+[package]
+name = "bace-storage-codec"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+# Sole workspace exception: the private mapping module has one audited mmap call.
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+dbg_macro = "deny"
+todo = "deny"
+unimplemented = "deny"
+
+[dependencies]
+serde.workspace = true
+postcard.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+memmap2 = "0.9.11"
+tempfile.workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "bace-auth"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Account authentication and access policy"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-types.workspace = true
+argon2 = { version = "0.5.3", features = ["zeroize"] }
+rand_core = { version = "0.6", features = ["getrandom"] }

@@ -1,0 +1,15 @@
+[package]
+name = "bace-entity"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Runtime entity state and read projections"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-types.workspace = true
+bace-physics.workspace = true

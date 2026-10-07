@@ -1,0 +1,49 @@
+[package]
+name = "bace-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Service composition, workers, startup and shutdown"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-auth.workspace = true
+bace-types.workspace = true
+bace-gameplay-api.workspace = true
+bace-character.workspace = true
+bace-replication.workspace = true
+bace-session.workspace = true
+bace-transport.workspace = true
+bace-wire.workspace = true
+bace-dat-service.workspace = true
+bace-dat.workspace = true
+bace-admin.workspace = true
+bace-observability.workspace = true
+bace-storage-codec.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+serde.workspace = true
+hmac = "0.12"
+rand_core = { version = "0.6", features = ["getrandom"] }
+bace-config.workspace = true
+bace-content.workspace = true
+bace-content-tools.workspace = true
+bace-persistence.workspace = true
+bace-db-postgres.workspace = true
+bace-simulation.workspace = true
+tokio.workspace = true
+thiserror.workspace = true
+clap.workspace = true
+
+[dev-dependencies]
+bace-entity.workspace = true
+bace-world.workspace = true
+bace-physics.workspace = true
+bace-motion.workspace = true
+bace-geometry.workspace = true
+tempfile.workspace = true
+sqlx.workspace = true

@@ -1,0 +1,13 @@
+[package]
+name = "bace-world-events"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Scheduled and content-controlled world events"
+
+[lints]
+workspace = true
+
+[dependencies]

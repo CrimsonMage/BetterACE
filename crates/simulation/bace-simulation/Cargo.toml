@@ -1,0 +1,22 @@
+[package]
+name = "bace-simulation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Tick phases and gameplay-system orchestration"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-character.workspace = true
+bace-gameplay-api.workspace = true
+bace-entity.workspace = true
+bace-motion.workspace = true
+bace-types.workspace = true
+bace-geometry.workspace = true
+bace-physics.workspace = true
+bace-world.workspace = true
+thiserror.workspace = true

@@ -1,0 +1,12 @@
+/target/
+/.local/
+/.reference/
+/.env
+/state/
+*.dat
+*.pcap
+*.pcapng
+
+# Generated Python oracle caches
+__pycache__/
+*.py[cod]

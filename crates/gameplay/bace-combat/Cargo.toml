@@ -1,0 +1,13 @@
+[package]
+name = "bace-combat"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Attacks, damage, defenses and PvP rules"
+
+[lints]
+workspace = true
+
+[dependencies]

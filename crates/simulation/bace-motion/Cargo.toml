@@ -1,0 +1,15 @@
+[package]
+name = "bace-motion"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "AC locomotion and motion tables"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-geometry.workspace = true
+thiserror.workspace = true
