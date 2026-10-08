@@ -57,3 +57,22 @@ fn decode_account(row: PgRow) -> Result<AccountRecord, StoreError> {
         disabled: row.try_get("disabled")?,
     })
 }
+
+impl PgStore {
+    /// Authenticated account eligibility evidence; NULL means historical age is unknown.
+    pub async fn account_creation_time(
+        &self,
+        account: AccountId,
+    ) -> Result<Option<i64>, StoreError> {
+        let id = i64::try_from(account.0)
+            .ok()
+            .filter(|id| *id > 0)
+            .ok_or(StoreError::Invalid("invalid account identity"))?;
+        let row = sqlx::query("SELECT created_unix FROM accounts WHERE id=$1")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?
+            .ok_or(StoreError::Invalid("account does not exist"))?;
+        row.try_get("created_unix").map_err(StoreError::from)
+    }
+}

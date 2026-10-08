@@ -156,7 +156,7 @@ class Program
         }).ToArray();
         Console.WriteLine(JsonSerializer.Serialize(new {
             catalogs = new { messages = Catalog<GameMessageOpcode>(), actions = Catalog<GameActionType>(), events = Catalog<GameEventType>(), character_errors = Catalog<CharacterError>(), groups = Catalog<GameMessageGroup>() },
-            messages, iteration_sets = iterationSets, actions, progression_requests = progressionRequests, creation_requests = creationRequests, movement = MovementHarness.Run(), objects = ObjectHarness.Run(), social = SocialHarness.Run(), inventory = InventoryHarness.Run(),
+            messages, iteration_sets = iterationSets, actions, progression_requests = progressionRequests, creation_requests = creationRequests, movement = MovementHarness.Run(), objects = ObjectHarness.Run(), social = SocialHarness.Run(), inventory = InventoryHarness.Run(), combat = CombatHarness.Run(), world_control = CombatHarness.WorldControl(), player_description = PlayerDescriptionHarness.Run(), character_lifecycle = CharacterLifecycleHarness.Run(), login_order = PlayerDescriptionHarness.LoginOrder(),
         }));
     }
 }
@@ -178,7 +178,7 @@ namespace ACE.Server.Network {
         public void HandleActionRaiseSkill(Skill skill, uint amount) { LastTarget = (uint)skill; LastAmount = amount; }
         public void HandleActionTrainSkill(Skill skill, int amount) { LastTarget = (uint)skill; LastAmount = amount; }
     }
-    public sealed class Session { public string Account; public AccessLevel AccessLevel; public HarnessPlayer Player; public uint GameEventSequence; }
+    public sealed partial class Session { public string Account; public AccessLevel AccessLevel; public HarnessPlayer Player; public uint GameEventSequence; }
 }
 namespace ACE.Database.Models.Shard {
     public sealed class Character { public uint Id; public string Name; public bool IsPlussed; public ulong DeleteTime; }
@@ -214,7 +214,7 @@ namespace ACE.Entity.Enum.Properties {
     public enum PropertyInt64 : ushort { }
     public enum PropertyBool : ushort { }
     public enum PropertyFloat : ushort { }
-    public enum PropertyString : ushort { }
+    public enum PropertyString : ushort { Name=1 }
     public enum PropertyDataId : ushort { }
     public enum PropertyInstanceId : ushort { }
     public enum PropertyAttribute : ushort { }

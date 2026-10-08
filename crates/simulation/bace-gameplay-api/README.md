@@ -20,6 +20,16 @@ not the reversed PropertyAttribute ID order. It intentionally represents only
 allocation validation, not complete character creation or name reservation.
 
 `CharacterBinding` identifies the authoritative session/account/actor association.
+
+`StaffAction::Audit` is an internal post-commit staff action, not a client
+message. Simulation rechecks Sentinel authority and routes accepted Audit text
+to the social owner. An outcome acknowledges owner admission, not downstream
+network or external feed delivery.
+
+`StaffInspection::WhoAmI` retains the distinct pinned Developer source output
+under the existing authenticated, read-only staff inspection contract.
+`StaffInspection::Gps` likewise names the pinned one-line Developer location
+inspection; simulation, rather than command text, supplies accepted pose.
 `ProgressionOutcome` distinguishes stale sequencing or identity failures from
 domain expenditure rejection; its original `ActionContext` remains available
 for routing without client-selected authority. Simulation supplies the bounded
@@ -39,3 +49,15 @@ families are not implemented. Add each typed family with its owning subsystem an
 source-backed behavior; do not bypass unavailable systems with successful no-ops.
 
 Implementation belongs in named modules. Crate roots remain declaration-only.
+
+`StaffAction::Heal.target_name` is a bounded copy of the accepted visibility
+blueprint's display name made by the runtime owner. It is output text for the
+pinned ACE nonplayer rejection only; simulation still checks current staff
+authority, target presence, landblock scope and player identity before mutation.
+
+`ProgressionActionRejection::DurabilityPending` is an explicit pre-authorization
+hold: it consumes no action sequence and permits retrying the identical request.
+Other progression rejections are terminal attempts. Simulation returns this bounded
+outcome instead of stopping its command queue ahead of the receipt that releases
+the reservation. The inventory/XP queue regression covers that deadlock and the
+subsequent valid same-sequence attempt; malformed or replayed actions still reject.

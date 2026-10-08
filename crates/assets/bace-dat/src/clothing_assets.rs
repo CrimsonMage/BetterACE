@@ -36,6 +36,8 @@ pub struct ClothingTable {
     pub id: u32,
     pub setups: BTreeMap<u32, Vec<ClothingPart>>,
     pub templates: BTreeMap<u32, ClothingTemplate>,
+    /// Authored hash-table order: the first template is the ACE fallback.
+    pub template_order: Vec<u32>,
 }
 impl DatPalette {
     pub fn decode(bytes: &[u8]) -> Result<Self, DatError> {
@@ -98,8 +100,10 @@ impl ClothingTable {
         r.count(n, 12)?;
         r.reserve_entries(n)?;
         let mut templates = BTreeMap::new();
+        let mut template_order = Vec::with_capacity(n);
         for _ in 0..n {
             let key = r.u32()?;
+            template_order.push(key);
             let icon = r.u32()?;
             let mut palettes = Vec::new();
             for _ in 0..count(&mut r, 8)? {
@@ -124,6 +128,7 @@ impl ClothingTable {
             id,
             setups,
             templates,
+            template_order,
         })
     }
 }

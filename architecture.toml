@@ -3,12 +3,21 @@ soft_line_limit = 1000
 hard_line_limit = 1500
 
 [[crates]]
+name = "bace-random"
+path = "crates/foundation/bace-random"
+layer = "foundation"
+purpose = "Versioned keyed event and character rare randomness with unbiased bounded sampling"
+status = "foundation"
+allowed_dependencies = []
+allowed_external_dependencies = ["hmac", "sha2"]
+
+[[crates]]
 name = "bace-content-studio"
 path = "crates/application/bace-content-studio"
 layer = "application"
-purpose = "Native weenie editor, desktop conversion UI and bounded offline jobs"
+purpose = "Native content editors, read-only pack inspection, candidate builds and DAT previews"
 status = "foundation"
-allowed_dependencies = ["bace-content", "bace-import", "bace-content-tools", "bace-dat"]
+allowed_dependencies = ["bace-content", "bace-import", "bace-content-tools", "bace-dat", "bace-storage-codec", "bace-asset-overlay", "bace-emotes", "bace-gameplay-api", "bace-types"]
 allowed_external_dependencies = ["eframe", "rfd", "serde", "sha2", "tempfile", "toml"]
 
 [[crates]]
@@ -75,10 +84,19 @@ allowed_dependencies = ["bace-dat", "bace-wire"]
 allowed_external_dependencies = ["flate2"]
 
 [[crates]]
+name = "bace-asset-overlay"
+path = "crates/assets/bace-asset-overlay"
+layer = "assets"
+purpose = "Pure validated overlays of native content patches onto decoded DAT assets"
+status = "foundation"
+allowed_dependencies = ["bace-content", "bace-dat"]
+allowed_external_dependencies = []
+
+[[crates]]
 name = "bace-content"
 path = "crates/content/bace-content"
 layer = "content"
-purpose = "Typed content definitions, validation and immutable catalogs"
+purpose = "Typed weenie, loot, clothing and character-start definitions, validation and immutable catalogs"
 status = "foundation"
 allowed_dependencies = ["bace-types"]
 allowed_external_dependencies = ["serde", "thiserror"]
@@ -87,7 +105,7 @@ allowed_external_dependencies = ["serde", "thiserror"]
 name = "bace-content-tools"
 path = "crates/content/bace-content-tools"
 layer = "content"
-purpose = "TOML authoring, compilation and publication"
+purpose = "Native TOML authoring, frozen weenie/world/treasure-table/ClothingBase codecs and offline pack compilation"
 status = "foundation"
 allowed_dependencies = ["bace-content", "bace-storage-codec"]
 allowed_external_dependencies = ["thiserror", "toml", "tempfile"]
@@ -96,9 +114,9 @@ allowed_external_dependencies = ["thiserror", "toml", "tempfile"]
 name = "bace-import"
 path = "crates/content/bace-import"
 layer = "content"
-purpose = "Official ACE SQL and JSON conversion"
+purpose = "Official ACE SQL/JSON conversion, CustomClothingBase interchange and Rust EmoteScript tooling"
 status = "foundation"
-allowed_dependencies = ["bace-content", "bace-content-tools"]
+allowed_dependencies = ["bace-content", "bace-content-tools", "bace-storage-codec"]
 allowed_external_dependencies = ["serde", "serde_json", "sha2", "tempfile", "thiserror"]
 
 [[crates]]
@@ -141,7 +159,7 @@ allowed_external_dependencies = []
 name = "bace-replication"
 path = "crates/network/bace-replication"
 layer = "network"
-purpose = "Authoritative visibility and packet output projection"
+purpose = "Authoritative visibility and packet output projection, including canonical session progression, atomic skill-device/inventory output and shared-object motion counter ownership"
 status = "foundation"
 allowed_dependencies = ["bace-wire", "bace-entity", "bace-types", "bace-gameplay-api"]
 allowed_external_dependencies = []
@@ -159,7 +177,7 @@ allowed_external_dependencies = []
 name = "bace-gameplay-api"
 path = "crates/simulation/bace-gameplay-api"
 layer = "simulation"
-purpose = "Typed commands, effects and subsystem contracts"
+purpose = "Typed commands, effects and subsystem contracts, including explicit pre-authorization progression retry outcomes"
 status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry"]
 allowed_external_dependencies = []
@@ -168,7 +186,7 @@ allowed_external_dependencies = []
 name = "bace-motion"
 path = "crates/simulation/bace-motion"
 layer = "simulation"
-purpose = "AC locomotion and motion tables"
+purpose = "AC locomotion, motion tables and bounded action programs, including recall animation tokens independent of command timers"
 status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api"]
 allowed_external_dependencies = ["thiserror"]
@@ -195,16 +213,16 @@ allowed_external_dependencies = ["thiserror"]
 name = "bace-simulation"
 path = "crates/simulation/bace-simulation"
 layer = "simulation"
-purpose = "Tick phases and gameplay-system orchestration"
+purpose = "Tick phases and gameplay orchestration, including atomic generated forests, bounded non-world creature construction/promotion, request-specific identities, immutable retirement captures and operation-fenced portal adoption"
 status = "foundation"
-allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-entity", "bace-motion", "bace-physics", "bace-world", "bace-content", "bace-persistence", "bace-character", "bace-combat", "bace-magic", "bace-ai", "bace-inventory", "bace-economy", "bace-crafting", "bace-loot", "bace-spawning", "bace-quests", "bace-emotes", "bace-social", "bace-fellowship", "bace-allegiance", "bace-housing", "bace-interactions", "bace-world-events", "bace-activities"]
+allowed_dependencies = ["bace-random", "bace-types", "bace-geometry", "bace-gameplay-api", "bace-entity", "bace-motion", "bace-physics", "bace-world", "bace-content", "bace-persistence", "bace-character", "bace-combat", "bace-magic", "bace-ai", "bace-inventory", "bace-economy", "bace-crafting", "bace-loot", "bace-spawning", "bace-quests", "bace-emotes", "bace-social", "bace-fellowship", "bace-allegiance", "bace-housing", "bace-interactions", "bace-world-events", "bace-activities"]
 allowed_external_dependencies = ["thiserror"]
 
 [[crates]]
 name = "bace-character"
 path = "crates/gameplay/bace-character"
 layer = "gameplay"
-purpose = "Character creation, progression, attributes and vitals"
+purpose = "Character creation and taboo policy, progression, skill transitions, attributes, vitals, per-character UI and immutable progression read snapshots"
 status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
@@ -214,7 +232,7 @@ name = "bace-combat"
 path = "crates/gameplay/bace-combat"
 layer = "gameplay"
 purpose = "Attacks, damage, defenses and PvP rules"
-status = "scaffolded"
+status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
@@ -223,8 +241,8 @@ name = "bace-magic"
 path = "crates/gameplay/bace-magic"
 layer = "gameplay"
 purpose = "Casting, spells and enchantments"
-status = "scaffolded"
-allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
+status = "foundation"
+allowed_dependencies = ["bace-random", "bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
 [[crates]]
@@ -232,7 +250,7 @@ name = "bace-ai"
 path = "crates/gameplay/bace-ai"
 layer = "gameplay"
 purpose = "Awareness, behavior, navigation intent and combat pets"
-status = "scaffolded"
+status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
@@ -240,8 +258,8 @@ allowed_external_dependencies = []
 name = "bace-inventory"
 path = "crates/gameplay/bace-inventory"
 layer = "gameplay"
-purpose = "Containers, equipment, stacks and ownership"
-status = "scaffolded"
+purpose = "Containers, equipment, stacks, fresh-template atomic split proposals and ownership"
+status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
@@ -250,7 +268,7 @@ name = "bace-economy"
 path = "crates/gameplay/bace-economy"
 layer = "gameplay"
 purpose = "Vendors, currencies and player trading"
-status = "scaffolded"
+status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
@@ -258,9 +276,9 @@ allowed_external_dependencies = []
 name = "bace-crafting"
 path = "crates/gameplay/bace-crafting"
 layer = "gameplay"
-purpose = "Recipes, salvage and crafting mutations"
-status = "scaffolded"
-allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
+purpose = "Source-derived crafting and GDLE salvage proposals with isolated character operation randomness"
+status = "foundation"
+allowed_dependencies = ["bace-random", "bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
 [[crates]]
@@ -268,17 +286,17 @@ name = "bace-loot"
 path = "crates/gameplay/bace-loot"
 layer = "gameplay"
 purpose = "Treasure tables and generated items"
-status = "scaffolded"
-allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
-allowed_external_dependencies = []
+status = "foundation"
+allowed_dependencies = ["bace-random", "bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
+allowed_external_dependencies = ["serde_json", "toml"]
 
 [[crates]]
 name = "bace-spawning"
 path = "crates/gameplay/bace-spawning"
 layer = "gameplay"
 purpose = "Generators, spawning, despawning and decay"
-status = "scaffolded"
-allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
+status = "foundation"
+allowed_dependencies = ["bace-random", "bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
 [[crates]]
@@ -295,15 +313,15 @@ name = "bace-emotes"
 path = "crates/gameplay/bace-emotes"
 layer = "gameplay"
 purpose = "Content-defined actions and NPC scripting"
-status = "scaffolded"
-allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
+status = "foundation"
+allowed_dependencies = ["bace-random", "bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
 [[crates]]
 name = "bace-social"
 path = "crates/gameplay/bace-social"
 layer = "gameplay"
-purpose = "Friends, chat, channels and squelch"
+purpose = "Friends, chat, channels, squelch and accepted public chat projections"
 status = "scaffolded"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
@@ -313,7 +331,7 @@ name = "bace-fellowship"
 path = "crates/gameplay/bace-fellowship"
 layer = "gameplay"
 purpose = "Fellowship membership and shared rewards"
-status = "scaffolded"
+status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
@@ -321,7 +339,7 @@ allowed_external_dependencies = []
 name = "bace-allegiance"
 path = "crates/gameplay/bace-allegiance"
 layer = "gameplay"
-purpose = "Allegiance hierarchy and rules"
+purpose = "Indexed allegiance hierarchy, bindings, permissions and pinned GDLE XP proposals"
 status = "scaffolded"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
@@ -331,7 +349,7 @@ name = "bace-housing"
 path = "crates/gameplay/bace-housing"
 layer = "gameplay"
 purpose = "Ownership, rent, permissions, hooks and storage"
-status = "scaffolded"
+status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
@@ -339,8 +357,8 @@ allowed_external_dependencies = []
 name = "bace-interactions"
 path = "crates/gameplay/bace-interactions"
 layer = "gameplay"
-purpose = "Doors, locks, switches, portals, lifestones and books"
-status = "scaffolded"
+purpose = "Doors, locks, switches, portals, lifestone/allegiance bindings, recalls, player death rules and immutable zone policies"
+status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
@@ -349,7 +367,7 @@ name = "bace-world-events"
 path = "crates/gameplay/bace-world-events"
 layer = "gameplay"
 purpose = "Scheduled and content-controlled world events"
-status = "scaffolded"
+status = "foundation"
 allowed_dependencies = ["bace-types", "bace-geometry", "bace-gameplay-api", "bace-content", "bace-entity"]
 allowed_external_dependencies = []
 
@@ -366,7 +384,7 @@ allowed_external_dependencies = []
 name = "bace-persistence"
 path = "crates/storage/bace-persistence"
 layer = "storage"
-purpose = "Repository ports, dirty saves and durable acknowledgments"
+purpose = "Repository ports, dirty saves, exact acknowledgments, durable login and account-ban receipts, and atomic allegiance/player/placement contracts"
 status = "foundation"
 allowed_dependencies = ["bace-types", "bace-storage-codec"]
 allowed_external_dependencies = ["thiserror"]
@@ -375,7 +393,7 @@ allowed_external_dependencies = ["thiserror"]
 name = "bace-storage-codec"
 path = "crates/storage/bace-storage-codec"
 layer = "storage"
-purpose = "Versioned binary DTOs, codecs and migrations"
+purpose = "Versioned binary DTOs, codecs and migrations, including explicit corpse restore identity and frozen constructed-creature item companions"
 status = "foundation"
 allowed_dependencies = ["bace-content", "bace-types"]
 allowed_external_dependencies = ["postcard", "serde", "sha2", "thiserror", "memmap2", "tempfile"]
@@ -384,7 +402,7 @@ allowed_external_dependencies = ["postcard", "serde", "sha2", "thiserror", "memm
 name = "bace-db-postgres"
 path = "crates/storage/bace-db-postgres"
 layer = "storage"
-purpose = "SQL, migrations, transactions and publication journal"
+purpose = "SQL, migrations, transactions, indexed allegiance forests, revision-fenced account bans, and mixed mapped-content/valuable-operation journals"
 status = "foundation"
 allowed_dependencies = ["bace-persistence", "bace-storage-codec", "bace-content", "bace-auth", "bace-types"]
 allowed_external_dependencies = ["sha2", "sqlx", "tempfile", "thiserror", "tokio"]
@@ -393,7 +411,7 @@ allowed_external_dependencies = ["sha2", "sqlx", "tempfile", "thiserror", "tokio
 name = "bace-admin"
 path = "crates/application/bace-admin"
 layer = "application"
-purpose = "Administrative command handling"
+purpose = "Administrative command authorization and dispatch, host console with reviewed content inbox, and scoped read-only public/staff chat API"
 status = "foundation"
 allowed_dependencies = ["bace-types", "bace-gameplay-api", "bace-auth", "bace-config", "bace-observability"]
 allowed_external_dependencies = ["axum", "futures-util", "rand_core", "serde", "serde_json", "tokio", "toml", "thiserror", "tempfile", "tower"]
@@ -404,17 +422,17 @@ path = "crates/application/bace-tooling"
 layer = "application"
 purpose = "CLI workflows and maintenance orchestration"
 status = "foundation"
-allowed_dependencies = ["bace-config", "bace-dat", "bace-content", "bace-content-tools", "bace-import", "bace-storage-codec", "bace-persistence", "bace-db-postgres", "bace-runtime", "bace-auth", "bace-admin"]
-allowed_external_dependencies = ["clap", "tokio", "toml"]
+allowed_dependencies = ["bace-random", "bace-loot", "bace-config", "bace-dat", "bace-content", "bace-content-tools", "bace-import", "bace-storage-codec", "bace-persistence", "bace-db-postgres", "bace-runtime", "bace-auth", "bace-admin"]
+allowed_external_dependencies = ["clap", "tokio", "toml", "tempfile"]
 
 [[crates]]
 name = "bace-runtime"
 path = "crates/application/bace-runtime"
 layer = "application"
-purpose = "Service composition, workers, startup and shutdown"
+purpose = "Service composition, reviewed content-inbox scan and immutable delta publication, bounded durable gameplay adapters including portals, authenticated recall preparation/routing, exact reliable portal and known-audience observer publication with visibility fences, equipment visibility handoff, workers, startup and shutdown"
 status = "foundation"
-allowed_dependencies = ["bace-config", "bace-observability", "bace-simulation", "bace-gameplay-api", "bace-character", "bace-world", "bace-physics", "bace-types", "bace-geometry", "bace-content", "bace-content-tools", "bace-storage-codec", "bace-persistence", "bace-db-postgres", "bace-transport", "bace-wire", "bace-session", "bace-auth", "bace-replication", "bace-dat", "bace-dat-service", "bace-admin", "bace-motion", "bace-entity"]
-allowed_external_dependencies = ["clap", "tempfile", "thiserror", "tokio", "sqlx", "serde", "serde_json", "sha2", "hmac", "rand_core"]
+allowed_dependencies = ["bace-social", "bace-allegiance", "bace-spawning", "bace-combat", "bace-interactions", "bace-quests", "bace-emotes", "bace-crafting", "bace-magic", "bace-loot", "bace-inventory", "bace-housing", "bace-random", "bace-config", "bace-observability", "bace-simulation", "bace-gameplay-api", "bace-character", "bace-world", "bace-physics", "bace-types", "bace-geometry", "bace-content", "bace-content-tools", "bace-storage-codec", "bace-persistence", "bace-db-postgres", "bace-transport", "bace-wire", "bace-session", "bace-auth", "bace-replication", "bace-dat", "bace-dat-service", "bace-admin", "bace-motion", "bace-entity"]
+allowed_external_dependencies = ["clap", "tempfile", "thiserror", "tokio", "sqlx", "serde", "serde_json", "sha2", "hmac", "rand_core", "toml"]
 
 [[crates]]
 name = "bace-server"
@@ -440,7 +458,7 @@ path = "tools/bace-compat"
 layer = "verification"
 purpose = "Official ACE oracle fixtures and differential replay"
 status = "foundation"
-allowed_dependencies = ["bace-wire", "bace-transport", "bace-session", "bace-replication", "bace-dat"]
+allowed_dependencies = ["bace-motion", "bace-character", "bace-magic", "bace-wire", "bace-transport", "bace-session", "bace-replication", "bace-dat", "bace-gameplay-api", "bace-types", "bace-physics", "bace-geometry"]
 allowed_external_dependencies = ["serde_json"]
 
 [[crates]]

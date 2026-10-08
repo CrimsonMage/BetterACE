@@ -1,0 +1,41 @@
+schema_version = 1
+id = 1
+root = "treasure"
+
+[[nodes]]
+id = "treasure"
+selection = "all"
+branches = [{ id = "equipment", target = "equipment-table", minimum_rolls = 1, maximum_rolls = 2 }]
+
+[[nodes]]
+id = "equipment-table"
+selection = "weighted"
+branches = [
+  { id = "weapon", target = "weapons", minimum_rolls = 1, maximum_rolls = 1, weight = 3 },
+  { id = "nothing", target = "empty", minimum_rolls = 1, maximum_rolls = 1, weight = 1 },
+]
+
+[[nodes]]
+id = "weapons"
+selection = "weighted"
+branches = [
+  { id = "sword", target = "sword", minimum_rolls = 1, maximum_rolls = 1, weight = 1 },
+  { id = "axe", target = "axe", minimum_rolls = 1, maximum_rolls = 1, weight = 1 },
+]
+
+[[nodes]]
+id = "sword"
+selection = "item"
+item = { template = 1, minimum_stack = 1, maximum_stack = 1 }
+branches = []
+
+[[nodes]]
+id = "axe"
+selection = "item"
+item = { template = 2, minimum_stack = 1, maximum_stack = 1 }
+branches = []
+
+[[nodes]]
+id = "empty"
+selection = "nothing"
+branches = []

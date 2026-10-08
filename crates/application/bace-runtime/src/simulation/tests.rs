@@ -133,15 +133,135 @@ fn preloaded_progression_requests_require_recovery_even_without_a_character() {
         .unwrap();
     let (_input, inbox) = channel(1);
     let (output, _receive) = mpsc::sync_channel(1);
+    let (combat, _combat_receiver) = mpsc::sync_channel(1);
+    let (events, _event_receiver) = mpsc::sync_channel(1);
     let recovered = drive_owned(
         kernel,
         inbox,
         Arc::new(AtomicBool::new(true)),
         SimulationConfig::default(),
-        output,
+        test_outputs(output, combat, events),
     );
     assert_eq!(recovered.report.ticks, 0);
     assert!(!recovered.kernel.has_characters());
     assert!(recovered.kernel.has_queued_progression());
     assert!(recovered.requires_recovery());
+}
+
+#[test]
+fn attribute_transfer_outcome_survives_worker_output_disconnect() {
+    let (input, inbox) = channel(1);
+    input
+        .try_submit(Command::AttributeTransfer(
+            bace_simulation::AttributeTransferCommand::Rollback { operation: 1 },
+        ))
+        .unwrap();
+    let (progression, _) = mpsc::sync_channel(1);
+    let (combat, _) = mpsc::sync_channel(1);
+    let (events, _) = mpsc::sync_channel(1);
+    let exit = drive_owned(
+        bace_simulation::synthetic_scenario(1, 0).unwrap(),
+        inbox,
+        Arc::new(AtomicBool::new(false)),
+        SimulationConfig {
+            command_capacity: 1,
+            tick_limit: Some(1),
+            real_time: false,
+        },
+        test_outputs(progression, combat, events),
+    );
+    assert_eq!(exit.undelivered_attribute_transfer_outcomes.len(), 1);
+    assert!(exit.requires_recovery());
+}
+
+#[test]
+fn preloaded_combat_requires_recovery_before_first_tick_without_an_actor() {
+    use bace_gameplay_api::{ActionContext, CombatRequest, SessionId};
+    let mut kernel = Kernel::new(bace_world::World::default(), 1).unwrap();
+    kernel
+        .enqueue(Command::Combat {
+            context: ActionContext {
+                session: SessionId(1),
+                account: bace_types::AccountId(1),
+                actor: EntityId(1),
+                sequence: 1,
+            },
+            request: CombatRequest::CancelAttack,
+        })
+        .unwrap();
+    let (_input, inbox) = channel(1);
+    let (output, _) = mpsc::sync_channel(1);
+    let (combat, _) = mpsc::sync_channel(1);
+    let (events, _) = mpsc::sync_channel(1);
+    let exit = drive_owned(
+        kernel,
+        inbox,
+        Arc::new(AtomicBool::new(true)),
+        SimulationConfig::default(),
+        test_outputs(output, combat, events),
+    );
+    assert_eq!(exit.report.ticks, 0);
+    assert!(exit.kernel.has_queued_combat());
+    assert!(exit.requires_recovery());
+}
+
+fn test_outputs(
+    progression: mpsc::SyncSender<ProgressionOutcome>,
+    combat: mpsc::SyncSender<CombatOutcome>,
+    events: mpsc::SyncSender<CombatEvent>,
+) -> SimulationOutputs {
+    let (deaths, _) = mpsc::sync_channel(1);
+    let (pve, _) = mpsc::sync_channel(1);
+    let (doors, _) = mpsc::sync_channel(1);
+    let (door_events, _) = mpsc::sync_channel(1);
+    SimulationOutputs {
+        social: social::channels(1).0,
+        player_deaths: death_outputs::channels(1).0,
+        interactions: interaction_outputs::channels(1).0,
+        regions: regions::channels(1).0,
+        player_admissions: player_admissions::channels(1).0,
+        region_admissions: region_admissions::channels(1).0,
+        player_snapshots: player_snapshots::channels(1).0,
+        pve_services: pve_service_outputs::channels(1).0,
+        npc_services: npc_service_outputs::channels(1).0,
+        inventory_output: inventory_outputs::channels(1).0,
+        visibility: visibility_outputs::channels(1).0,
+        object_view: object_view_outputs::channels(1).0,
+        locomotion: locomotion_outputs::channels(1).0,
+        physical_resource: physical_resource_outputs::channels(1).0,
+        magic_resource: magic_resource_outputs::channels(1).0,
+        generator_requests: mpsc::sync_channel(1).0,
+        generator_events: mpsc::sync_channel(1).0,
+        generator_outcomes: mpsc::sync_channel(1).0,
+        generator_retirements: mpsc::sync_channel(1).0,
+        npc_proposals: mpsc::sync_channel(1).0,
+        npc_notifications: mpsc::sync_channel(1).0,
+        cast_outcomes: mpsc::sync_channel(1).0,
+        magic_events: mpsc::sync_channel(1).0,
+        inventory_proposals: mpsc::sync_channel(1).0,
+        pet_events: mpsc::sync_channel(1).0,
+        pet_outcomes: mpsc::sync_channel(1).0,
+        vendor_outcomes: mpsc::sync_channel(1).0,
+        portal_events: mpsc::sync_channel(1).0,
+        portal_proposals: mpsc::sync_channel(1).0,
+        physical_launches: mpsc::sync_channel(1).0,
+        physical_events: mpsc::sync_channel(1).0,
+        server_cast_outcomes: mpsc::sync_channel(1).0,
+        housing_proposals: mpsc::sync_channel(1).0,
+        skill_outcomes: mpsc::sync_channel(1).0,
+        skill_device_outcomes: mpsc::sync_channel(1).0,
+        skill_device_proposals: mpsc::sync_channel(1).0,
+        attribute_transfer_outcomes: mpsc::sync_channel(1).0,
+        attribute_transfer_proposals: mpsc::sync_channel(1).0,
+        crafting_proposals: mpsc::sync_channel(1).0,
+        crafting_outcomes: mpsc::sync_channel(1).0,
+        ui_outcomes: mpsc::sync_channel(1).0,
+        progression,
+        combat,
+        events,
+        deaths,
+        pve,
+        doors,
+        door_events,
+    }
 }

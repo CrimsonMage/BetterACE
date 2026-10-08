@@ -43,3 +43,11 @@ pub struct XpReceipt {
     pub cached_xp: u64,
     pub newly_applied: bool,
 }
+
+/// Exact committed login sequence receipt. Source Int32 range is enforced by the
+/// database; ownership epochs are deliberately not protocol instance counters.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OnlineLoginReceipt {
+    pub lease: CharacterLease,
+    pub total_logins: u32,
+}

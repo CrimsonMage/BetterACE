@@ -96,7 +96,7 @@ pub(crate) async fn write_all(
     for id in ids {
         crate::ownership::lock_object(tx, id).await?;
         let owned: bool = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM character_ownership WHERE character_id=$1)",
+            "SELECT EXISTS(SELECT 1 FROM character_ownership WHERE character_id=$1 UNION ALL SELECT 1 FROM item_ownership WHERE item_id=$1 OR container_id=$1 UNION ALL SELECT 1 FROM house_ownership WHERE object_id=$1 UNION ALL SELECT 1 FROM item_places WHERE item_id=$1)",
         )
         .bind(i64::from(id))
         .fetch_one(&mut **tx)
@@ -111,6 +111,34 @@ pub(crate) async fn write_all_unchecked(
     tx: &mut Transaction<'_, Postgres>,
     snapshots: &[SaveSnapshot],
 ) -> Result<Vec<SaveAck>, StoreError> {
+    write_all_inner(tx, snapshots, false).await
+}
+pub(crate) async fn write_world_death_unchecked(
+    tx: &mut Transaction<'_, Postgres>,
+    snapshots: &[SaveSnapshot],
+) -> Result<Vec<SaveAck>, StoreError> {
+    write_all_inner(tx, snapshots, true).await
+}
+async fn write_all_inner(
+    tx: &mut Transaction<'_, Postgres>,
+    snapshots: &[SaveSnapshot],
+    allow_death_marker: bool,
+) -> Result<Vec<SaveAck>, StoreError> {
+    if !allow_death_marker
+        && snapshots.iter().any(|snapshot| {
+            snapshot.bytes.len() >= 12
+                && snapshot.bytes.starts_with(b"ACERBIN\0")
+                && u16::from_le_bytes([snapshot.bytes[10], snapshot.bytes[11]])
+                    == bace_storage_codec::PVE_DEATH_RECEIPT_KIND
+        })
+    {
+        return Err(StoreError::Invalid(
+            "PVE marker needs world death operation",
+        ));
+    }
+    // Even paths which already checked ownership must preserve embedded identity.
+    // Validate the entire batch before the first mutation/receipt can commit.
+    crate::snapshot_identity::validate(tx, snapshots).await?;
     // Stable lock order avoids deadlock between overlapping valuable operations.
     let mut sorted: Vec<_> = snapshots.iter().collect();
     sorted.sort_by_key(|s| s.object_id);

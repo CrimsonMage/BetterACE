@@ -1,0 +1,10 @@
+ACEmulator/ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b
+The vector fixes Strength rank-up base 101, reached maximum, Advancement chat.
+It is transcribed from the pinned RaiseAttribute handler's exact text and the
+pinned GameMessageSystemChat String16L/alignment/Int32 writer, independently of
+the BetterACE projector. Source files and SHA-256:
+26202271f186605af9a38c2efa91dab3b88ada021cb07605bf2641f5a4d8a544 Source/ACE.Server/WorldObjects/Player_Attributes.cs
+6354bb81c65bda0db0f21779e6a459bddfb6efd6ba779d72a79659fef58d83ed Source/ACE.Server/WorldObjects/Player_Vitals.cs
+817176e5356cbf9dd8058f9be9ca25855b780cd32cc6f53d598de4eb4e7ee7a9 Source/ACE.Server/WorldObjects/Player_Skills.cs
+bfedde9615938116c65e6252e06f7713d48288cb996b770eeccd8498caee0116 Source/ACE.Server/Network/GameMessages/Messages/GameMessageSound.cs
+2cb07d2c46c915f72855b4bde259371f57a62d92601850f2c4812473ce727e33 Source/ACE.Server/Network/GameMessages/Messages/GameMessageSystemChat.cs

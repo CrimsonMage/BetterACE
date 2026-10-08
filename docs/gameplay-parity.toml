@@ -1,11 +1,21 @@
 version = 1
 ace_commit = "47edade3bd3f6044b676d4eb877c4965c7eda62b"
 ace_repository = "https://github.com/ACEmulator/ACE"
-scope = "All gameplay implemented by the pinned official ACE baseline; full parity remains unimplemented."
+scope = "Gameplay coverage against pinned ACE with owner-directed GDLE door/monster authority; complete gameplay remains unimplemented."
 fresh_characters_only = true
-secondary_reference = "GDLE is supporting evidence, not a replacement compatibility authority."
+secondary_reference = "GDLE is primary for server-side door/monster authority by owner direction; ACE remains the wire baseline and default for other gameplay."
 network_boundary = "bace-session decodes; gameplay-api carries typed requests; simulation validates/owns mutations; replication encodes immutable outcomes."
 durability_boundary = "Save adapters translate immutable projections into frozen storage DTOs; valuable operations report success only after confirmed durable completion."
+
+[[features]]
+id = "recall-and-portal-delivery"
+owner = "bace-runtime"
+phase = 3
+status = "foundation"
+implemented = ["Bounded authenticated recall preparation and correlated region readiness", "Atomic authored stance/action admission with independent source recall timer", "Authenticated lifestone and allegiance bindstone Use with authoritative range, source motion/sound/message and durable sanctuary/stamina completion", "Linked, summoned, removed, blocked and aborted portal output paths", "Summoned visible blueprint from accepted portalgateway WCID 1955 with separate linked original portal metadata", "Composed synthetic accepted-view gateway Create/reliable receipt through lifetime Removed/Delete/reliable receipt, with retained ticket revalidation", "Initial-login portal component override after exact ClientReady, once per entered character binding", "Immutable accepted portal views and canonical property stamps", "Retained exact reliable private publication and known-audience observer fanout", "Generation-fenced readiness rejection and disconnected lifecycle handoff", "Composed admitted-session announcement, motion, teleport and materialization backend transcript with cancellation and exact failed-completion ticket tests", "Pinned moved-too-far WeenieError before recall teleport and disconnected cancellation silence", "Packetless exact summoned completion ticket drain despite pending gateway Create receipt or full private capacity"]
+source = ["Source/ACE.Server/WorldObjects/Player_Location.cs", "Source/ACE.Server/WorldObjects/Lifestone.cs", "Source/ACE.Server/WorldObjects/Bindstone.cs", "Source/ACE.Server/WorldObjects/WorldObject_Magic.cs"]
+evidence = ["crates/application/bace-runtime/oracle/recall_output.py", "crates/application/bace-runtime/oracle/portal_state.py", "crates/application/bace-runtime/oracle/binding_output.py", "crates/application/bace-runtime/tests/binding_source.rs", "crates/application/bace-runtime/src/game_runtime/portals/controls/tests.rs", "crates/application/bace-runtime/src/game_runtime/portals/publications/tests.rs", "crates/application/bace-runtime/src/game_runtime/portals/disconnect/tests.rs", "crates/application/bace-runtime/src/game_runtime/portals/summons/tests.rs", "crates/application/bace-runtime/src/game_runtime/recalls/output/tests.rs", "crates/simulation/bace-simulation/tests/recall_destinations.rs", "crates/simulation/bace-simulation/tests/magic_portals.rs"]
+remaining = ["Full live ingress and stock-client announcement/motion/teleport/visibility qualification deliberately deferred", "BetterACE recall-origin durable failure or abort output has no pinned post-Teleport handler; obligation retained without invented failure code", "Actual simulation portal expiry timing and DAT/client rendering qualification"]
 divergence_register = "docs/divergences.toml"
 reported_divergence_baseline = "User register references a different ACE 7ae5dad shard plus local changes. Retail claims are not independently verified here."
 
@@ -14,13 +24,13 @@ id = "progression-expenditure"
 owner = "bace-character"
 phase = 1
 status = "foundation"
-implemented = ["Validated cumulative XP tables", "Attribute/vital/trained/specialized skill expenditure", "Derived ranks", "Atomic rejection", "Dirty revisions and immutable projections"]
+implemented = ["Validated cumulative XP tables", "Attribute/vital/trained/specialized skill expenditure", "Derived ranks", "Atomic rejection", "Dirty revisions and immutable projections", "Simulation-frozen rank base and maximum with pinned RaiseTrait/Advancement/WeddingBliss projection"]
 source = ["Source/ACE.Server/WorldObjects/Player_Attributes.cs", "Source/ACE.Server/WorldObjects/Player_Vitals.cs", "Source/ACE.Server/WorldObjects/Player_Skills.cs", "Source/ACE.Server/WorldObjects/Player_Xp.cs"]
-evidence = ["crates/gameplay/bace-character/tests/fixtures/progression.csv", "crates/gameplay/bace-character/tests/progression.rs"]
-remaining = ["DAT XP table preparation", "Network-to-simulation worker composition", "Derived-stat refresh", "Ordered private updates and rank effects", "Frozen save DTO integration"]
+evidence = ["crates/gameplay/bace-character/tests/fixtures/progression.csv", "crates/gameplay/bace-character/tests/progression.rs", "crates/network/bace-replication/tests/fixtures/rank_effect.hex", "crates/network/bace-replication/tests/progression.rs", "crates/simulation/bace-simulation/tests/progression.rs"]
+remaining = ["Qualify rank effects with complete live skill/vital profiles and stock-client transcript", "Derived vital follow-up and optional run-rate effects", "Full stock-client service composition"]
 simulation_evidence = "crates/simulation/bace-simulation/tests/progression.rs: registered actor/account/session bindings, replay checks and bounded correlated outcomes"
 reported_divergences = [14, 15, 16, 36, 40]
-divergence_review = "Pinned source confirms private skill update after training, max-rank expenditure rejection and attribute-transfer SendWeenieError. Fixture covers max-rank rejection without assuming rank 190. Hand-edited rank inconsistencies are not imported; rank derives from XP. Creation allocation now explicitly preserves untrained locked-skill choices (#36); full training/transfer handlers remain unsupported."
+divergence_review = "Pinned source confirms private skill update after training, max-rank expenditure rejection and attribute-transfer SendWeenieError. Fixture covers max-rank rejection without assuming rank 190. Hand-edited rank inconsistencies are not imported; rank derives from XP. Locked skill transitions (#36) now have source-tested runtime device handling. Approved #14 uses the public skill-class layout with independent client-offset fixture; changed PP/rank/init also emits a private full snapshot. Attribute-transfer device (#40) has a separate authenticated type-3 confirmation, combined character/item receipt and pinned-ACE WeenieError output; retail UseDone behavior remains a reported divergence and stock-client playback is untested."
 
 [[features]]
 id = "character-lifecycle"
@@ -29,7 +39,7 @@ phase = 2
 status = "foundation"
 implemented = ["Six-attribute allocation validation", "Exactly 55 skill choices against explicit prepared costs", "Atomic allocation result", "Trained/specialized initial bonuses"]
 evidence = ["crates/gameplay/bace-character/tests/fixtures/creation.csv", "crates/gameplay/bace-character/tests/creation.rs"]
-remaining = ["Creation and validation", "Appearance and starting gear", "Levels/XP/credits", "Attributes/skills/vitals and regeneration", "Training/untraining/augmentations/luminance/enlightenment", "Login/load/logout ownership"]
+remaining = ["Full level-up/refund/service orchestration", "Regeneration", "Complete stock-client admission and all creation supplements"]
 dependencies = ["Validated DAT CharGen/XP/Skill/SecondaryAttribute tables", "Content templates", "Character/item frozen save aggregates", "Session and replication integration"]
 acceptance = ["Two fresh stock-client characters create/select/enter/reconnect", "Golden creation and progression formulas", "Invalid creation cannot partially persist"]
 
@@ -37,8 +47,11 @@ acceptance = ["Two fresh stock-client characters create/select/enter/reconnect",
 id = "spawn-lifecycle"
 owner = "bace-spawning"
 phase = 2
-status = "scaffolded"
-remaining = ["World-object creation", "Generators", "Respawn/despawn/decay", "Instance links and content revisions"]
+status = "foundation"
+implemented = ["Pinned ACE generator selection, queues, timing and lifecycle", "Immutable incarnation/content-fenced spawn receipts", "Nested generators and region links", "Actual DAT geometry admission and bounded placement", "Transient inventory and retained vendor stock contributions", "Epoch-fenced atomic acquisition and generated retirement", "Atomic mixed Creature/Cow and item Contain forests", "Frozen constructed-item V4 companion and lossless generic save propagation", "Cold contained Creature/Cow V4 restoration and pre-spawn generator occupancy reconciliation", "Dedicated first durable generated Creature/Cow graph promotion with world-fenced receipt, relational forest checks, rollback and exact replay", "Exact source CreateList destination through prepared generated children and V5 save/reload", "Authenticated Shop Use through source/cell/range fencing, source-ordered lazy stock, atomic marker/forest receipt, cold adoption and reliable listing admission", "Atomic vendor source/forest cold read and pure-default marker-v2 restoration with separate durable marker revision", "Bounded source-derived default Buy quote with accepted stock identity, stack partition and checked price arithmetic; no live Buy transaction", "One-proposal vendor coin debit and fresh leaf grant with ACE-order stack selection, authenticated simulation reservation, joint receipt gate and generic-inventory bypass protection", "Composite real PostgreSQL default Buy receipt across vendor, player, coin, fresh grant and marker with exact replay/rollback", "Separate passive Pet simulation owner and CombatPet live charge/visibility lifecycle", "Disconnected confirmed rejected pet summon releases only its exact actor/device Use owner"]
+source = ["Source/ACE.Server/WorldObjects/WorldObject_Generators.cs", "Source/ACE.Server/Entity/GeneratorProfile.cs", "Source/ACE.Server/WorldObjects/Vendor.cs", "Source/ACE.Server/WorldObjects/Container.cs", "Source/ACE.Server/WorldObjects/Player_Commerce.cs"]
+evidence = ["crates/gameplay/bace-spawning/tests/generators.rs", "crates/gameplay/bace-spawning/tests/placement.rs", "crates/simulation/bace-simulation/tests/generated_inventory.rs", "crates/simulation/bace-simulation/tests/vendor_buy.rs", "crates/simulation/bace-simulation/tests/passive_pets.rs", "crates/application/bace-runtime/src/game_runtime/vendors/preparation.rs", "crates/application/bace-runtime/src/game_runtime/pets/tests.rs", "crates/application/bace-runtime/tests/generator_delivery.rs", "crates/application/bace-runtime/tests/generated_recovery.rs", "crates/storage/bace-storage-codec/tests/item_v5.rs", "crates/storage/bace-db-postgres/tests/postgres/vendor_stock.rs", "crates/storage/bace-db-postgres/tests/postgres/vendor_default_buy.rs", "crates/storage/bace-db-postgres/tests/postgres/constructed_promotion.rs"]
+remaining = ["Specialized nested Creature tree runtime and promotion lifecycle qualification", "DAT-backed composed authenticated Shop Use transcript and vendor Buy/Sell commerce", "Passive Pet mixed-device output and CombatPet crash restoration", "GamePiece activity owner", "Equipment proc/periodic aura consumption", "Client qualification deferred by user", "Cross-platform and representative capacity qualification"]
 dependencies = ["Complete landblock/encounter import", "World ownership", "Prepared assets", "Immutable runtime catalogs"]
 acceptance = ["Published valid template spawns at accepted revision", "Invalid or missing geometry blocks admission", "Generator timers replay deterministically"]
 
@@ -46,8 +59,9 @@ acceptance = ["Published valid template spawns at accepted revision", "Invalid o
 id = "interactions"
 owner = "bace-interactions"
 phase = 2
-status = "scaffolded"
-remaining = ["Use/identify/appraisal", "Doors/locks/keys/switches", "Portals/lifestones", "Books", "Food/healing/mana and other usable object types"]
+status = "foundation"
+implemented = ["Authenticated lifestone and allegiance bindstone Use with authoritative range and durable binding", "Source binding motion, sound and message projection", "Stationary lifestone position-copy regression"]
+remaining = ["Composed live binding runtime regression and stock-client qualification", "Identify/appraisal NPC wake and tolerance integration", "Doors/locks/keys/switches", "Remaining portal completion paths", "Books", "Food/healing/mana and other usable object types"]
 dependencies = ["Authoritative range/collision", "Inventory ownership", "Prepared content"]
 acceptance = ["Outdoor/dungeon/portal stock-client scenarios", "Lifestone recall cannot mutate static stone position", "Appraisal outcomes match pinned source with explicit time/randomness"]
 reported_divergences = [4, 17, 18, 19, 28, 40, 41, 42, 43, 44, 56]
@@ -57,15 +71,17 @@ divergence_review = "Pinned Player.cs uses AssessPerson/Deception and cached app
 id = "inventory"
 owner = "bace-inventory"
 phase = 3
-status = "scaffolded"
-remaining = ["Containers", "Equipment/appearance", "Stack split/merge", "Pickup/drop/give", "Item use/consumption and ownership transfer"]
+status = "foundation"
+implemented = ["Authenticated pickup/drop and container transfer through exact durable receipts", "Noncombat equip/dequip with complete gear, vital, appearance and magic handoff", "In-combat equip/dequip with authored stance transition under the same reservation and durable operation", "Fresh split-to-wield with initialized template state and source/fresh stack receipt fencing", "Ordinary stack split/merge and canonical equipment visibility handoff"]
+evidence = ["crates/simulation/bace-simulation/src/kernel/inventory_commands/equipment/tests.rs", "crates/simulation/bace-simulation/src/inventory/equipment_operation/tests.rs", "crates/application/bace-runtime/tests/stack_factory.rs", "crates/application/bace-runtime/src/game_runtime/inventory/equipment_output.rs", "crates/gameplay/bace-inventory/tests/actions.rs"]
+remaining = ["Stock-client inventory and authored motion transcript qualification deferred by user", "All item use/consumption and ownership-transfer families", "Complete external container and commerce integration"]
 acceptance = ["Atomic ownership constraints", "No duplication/loss across retry/disconnect/crash", "Burden and equipment update authoritative capabilities"]
 
 [[features]]
 id = "economy"
 owner = "bace-economy"
 phase = 3
-status = "scaffolded"
+status = "foundation"
 remaining = ["Vendors", "Currency", "Player trade negotiation and commit"]
 dependencies = ["Inventory", "Durable operation receipts and participant reservations"]
 acceptance = ["Trade success follows durable commit", "Logout/cancel/uncertain commit resolve without duplicate transfer"]
@@ -75,8 +91,11 @@ reported_divergences = [21, 23]
 id = "crafting"
 owner = "bace-crafting"
 phase = 3
-status = "scaffolded"
-remaining = ["Recipes/cookbook", "Salvage", "Tinkering", "Tailoring and mutations"]
+status = "foundation"
+implemented = ["ACE material/attempt/skill chance arithmetic", "Exact owner-directed 33%/38% imbue caps", "Independent character/operation RNG", "Confirmed immutable crafting and typed mutations", "GDLE salvage yield and complete bag outputs", "Unsuitable stack preservation", "Atomic V3 player/item inventory freezing", "Bounded commands, receipts and output projection"]
+source = ["Source/ACE.Server/Factories/RecipeManager.cs", "pinned GDLE Source/Player.cpp"]
+evidence = ["crates/gameplay/bace-crafting/tests/chance.rs", "crates/gameplay/bace-crafting/tests/salvage.rs", "crates/simulation/bace-simulation/tests/crafting.rs", "crates/application/bace-runtime/tests/crafting_saves.rs", "crates/network/bace-wire/tests/crafting.rs"]
+remaining = ["Complete cookbook preparation", "Special recipe scripts/result creation", "Tailoring", "Stock-client service admission"]
 dependencies = ["Complete recipe world import", "Inventory", "Durable operations"]
 acceptance = ["Seeded formula/outcome oracle", "Material/result conservation under retry", "No silent loss of unsuitable salvage inputs"]
 reported_divergences = [30, 31, 32]
@@ -85,8 +104,11 @@ reported_divergences = [30, 31, 32]
 id = "loot"
 owner = "bace-loot"
 phase = 3
-status = "scaffolded"
-remaining = ["Treasure generation", "Wielded/death treasure", "Material/quality/spell tables", "Rare/item mutations"]
+status = "foundation"
+implemented = ["Pinned ACE death and wielded treasure", "Original table constants and mutation scripts", "Material, color, workmanship, gem, spell, cantrip, mana and value mutations", "Cloak, pet and aetheria families", "Immutable complete property snapshots and isolated replayable draws"]
+source = ["Source/ACE.Server/Factories/LootGenerationFactory*.cs", "Source/ACE.Server/Factories/Tables", "Source/ACE.Server/WorldObjects/WorldObject_Equipment.cs"]
+evidence = ["crates/gameplay/bace-loot/tests/ace_tables.rs", "crates/gameplay/bace-loot/oracle/selection", "crates/gameplay/bace-loot/oracle/mutations", "crates/gameplay/bace-loot/oracle/spells", "crates/application/bace-runtime/tests/generator_treasure.rs"]
+remaining = ["Uncertain retail rare probabilities require an owner-configured evidence-labelled profile", "Proprietary content and stock-client qualification"]
 dependencies = ["Complete treasure table import", "Controlled random input", "Inventory"]
 acceptance = ["Seeded official treasure outcomes", "Bounded generation", "Content reference validation"]
 
@@ -94,11 +116,21 @@ acceptance = ["Seeded official treasure outcomes", "Bounded generation", "Conten
 id = "combat"
 owner = "bace-combat"
 phase = 4
-status = "scaffolded"
-remaining = ["Melee/missile attacks", "Damage/defenses", "PvP", "Death/corpses/vitae/rewards"]
+status = "foundation"
+remaining = ["Complete melee/missile and damage/defense coverage", "PvP", "Full death/corpse/vitae/reward delivery; see player-death-and-corpse feature"]
 dependencies = ["Authoritative AC physics/motion", "Inventory", "Character stats", "Loot"]
 acceptance = ["Seeded official combat formulas", "No damage through invalid geometry", "Stock-client PvE/PvP/death/recovery"]
 reported_divergences = [5, 6, 7, 8, 9, 10, 37]
+
+[[features]]
+id = "player-death-and-corpse"
+owner = "bace-simulation"
+phase = 4
+status = "foundation"
+implemented = ["Accepted death action and ordered private/public Started output", "Retained DeathDelivery until confirmed completion or expiry", "Corpse V5 rights, permits, active viewer Close and deferred expiry", "Olthoi held nested-container loot selection", "Separate Bool29 NoCorpse player checkpoint and source-selected world-root transaction", "Zero-drop NoCorpse replay, world event and delayed respawn", "Direct selected pack-root NoCorpse completion after exact V5/world checks, with WorldDrops CreateObject visibility", "One eligible equipped NoCorpse root with exact V5 origin/pose/revision gate, preflighted source dequip projection and later WorldDrops CreateObject", "Selected NoCorpse container root with exact retained nested Contain tree, revision-fenced source cache and committed Completed check", "Exact same-lane NoCorpse slot-shift receipts and corrective private burden publication", "Ordinary outdoor corpse LastOutsideDeath 0x02DB private position before conditional location chat, exact V5/V6 pose gate and retained capacity", "Default destroyed-pyreal Completed output after exact V5 whole/partial coin source check with source loss and location messages", "Corpse Open rechecks committed root and nested sources before ViewContents, refreshing DAT work without duplicate permit consumption", "Corpse spill placement and CreateObject presentation qualified with approved actual DAT geometry, Pyreal shape and ACE table set"]
+source = ["Source/ACE.Server/WorldObjects/Player_Death.cs", "Source/ACE.Server/WorldObjects/Creature_Death.cs", "Source/ACE.Server/Network/GameMessages/Messages/GameMessagePrivateUpdatePosition.cs", "Source/ACE.Server/Physics/Common/PositionExtensions.cs"]
+evidence = ["crates/simulation/bace-simulation/src/kernel/player_death/no_corpse.rs", "crates/application/bace-runtime/src/player_death_saves.rs", "crates/application/bace-runtime/tests/publication/death.rs", "crates/application/bace-runtime/src/game_runtime/deaths/output/completed.rs", "crates/application/bace-runtime/src/game_runtime/deaths/access.rs", "crates/application/bace-runtime/src/game_runtime/deaths/output/corpse_location.rs", "crates/network/bace-wire/tests/movement.rs", "crates/network/bace-replication/tests/inventory_physical.rs", "crates/simulation/bace-world/tests/player_no_corpse.rs", "crates/application/bace-runtime/src/game_runtime/deaths/expiry/spill.rs"]
+remaining = ["Other equipped NoCorpse cases and ordinary world-container Open", "Equipped, bonded and other corpse completion branches", "Optional corpse access configuration variants", "Stock-client qualification deliberately deferred"]
 
 [[features]]
 id = "magic"
@@ -114,7 +146,7 @@ reported_divergences = [11, 12, 13]
 id = "ai"
 owner = "bace-ai"
 phase = 4
-status = "scaffolded"
+status = "foundation"
 remaining = ["Awareness", "Navigation intent", "Combat decisions", "Pets"]
 dependencies = ["Authoritative world/physics", "Combat/magic typed effects", "Deterministic bounded timers"]
 acceptance = ["No per-entity tasks", "Obstacle and target-loss regressions", "Seeded behavior replay"]
@@ -135,7 +167,7 @@ acceptance = ["Official quest state/timer scenarios", "Restart-safe reward dedup
 id = "emotes"
 owner = "bace-emotes"
 phase = 5
-status = "scaffolded"
+status = "foundation"
 remaining = ["Content action interpreter", "Conditions/branching", "Delayed sequences and cancellation"]
 dependencies = ["Typed subsystem effects", "Bounded simulation scheduler", "Validated emote content"]
 acceptance = ["Bounded recursive/sequential execution", "Official NPC scripts with deterministic time/randomness"]
@@ -144,8 +176,10 @@ acceptance = ["Bounded recursive/sequential execution", "Official NPC scripts wi
 id = "social"
 owner = "bace-social"
 phase = 5
-status = "scaffolded"
-remaining = ["Friends", "Local/direct/global chat", "Channels", "Squelch/consent"]
+status = "foundation"
+implemented = ["Direct simulation social-presence handoff clears fellowship membership, invitations, panels and allegiance listeners", "General, Trade and Audit feed services and connected chat owners"]
+evidence = ["crates/simulation/bace-simulation/tests/social_chat.rs", "crates/application/bace-runtime/src/game_runtime/social.rs"]
+remaining = ["Complete friends and offline operations", "All local/direct/global chat recipient policies", "Full channel, squelch and consent lifecycle", "External feed consumer lifecycle qualification"]
 dependencies = ["Visibility read projections", "Online/offline character identity", "Persistence"]
 acceptance = ["Recipient/squelch correctness", "Reconnect and offline notifications", "Bounded message fanout"]
 reported_divergences = [24, 25, 29, 55, 58]
@@ -154,8 +188,10 @@ reported_divergences = [24, 25, 29, 55, 58]
 id = "fellowship"
 owner = "bace-fellowship"
 phase = 5
-status = "scaffolded"
-remaining = ["Membership/leadership", "Shared rewards", "Fellow updates"]
+status = "foundation"
+implemented = ["Direct disconnect fellowship departure and invitation cleanup under simulation owner"]
+evidence = ["crates/simulation/bace-simulation/tests/social_chat.rs"]
+remaining = ["Complete membership/leadership outputs", "All shared reward origins", "Fellow updates and offline operations"]
 acceptance = ["Official membership/reward scenarios", "Duplicate/disconnect cleanup", "Ordered snapshots"]
 reported_divergences = [20]
 
@@ -163,8 +199,10 @@ reported_divergences = [20]
 id = "allegiance"
 owner = "bace-allegiance"
 phase = 5
-status = "scaffolded"
-remaining = ["Hierarchy/ranks", "Officers/permissions", "XP passup and offline rewards", "Hometown/chat"]
+status = "foundation"
+implemented = ["Entered-generation login XP redemption control with exact durable completion", "Direct disconnect listener cleanup"]
+evidence = ["crates/application/bace-runtime/src/game_runtime/allegiance/login/tests.rs", "crates/simulation/bace-simulation/tests/social_chat.rs"]
+remaining = ["Complete hierarchy/ranks and officer permissions", "All XP passup and offline reward origins", "Hometown/chat and stock-client transcript"]
 dependencies = ["Durable multi-character ownership", "Offline XP receipts", "Social/character typed effects"]
 acceptance = ["Acyclic hierarchy constraints", "Exactly-once offline awards", "Official rank/passup formulas"]
 
@@ -214,3 +252,52 @@ id = "full-gameplay-acceptance"
 owners = ["bace-simulation", "bace-runtime", "bace-compat"]
 status = "unsupported"
 required = ["All implemented official behaviors assigned/evidenced", "Full stock-client scenarios", "Database failure and save fairness tests", "Packet loss/reorder/malformed-input tests", "Ten-minute measured mixed-load benchmark", "Windows/Linux/macOS validation"]
+
+
+[[integration_gates]]
+id = "gdle-door-monster-authority"
+owners = ["bace-interactions", "bace-ai", "bace-motion", "bace-physics", "bace-simulation"]
+status = "foundation"
+required = ["Pinned GDLE door/monster authority source review", "Server-owned poses and attack eligibility", "Collision-gated door state changes", "Explicit-time bounded AI with no tick I/O", "Exact client wire structures preserved", "Independent fixtures and documented differences from ACE", "Authentic world/client qualification before playable claims"]
+reported_divergences = [2, 3, 5, 6, 7, 8, 9, 10, 17, 28, 37, 50]
+
+
+[[features]]
+id = "skill-transitions-and-specialization"
+owner = "bace-character"
+phase = 3
+status = "foundation"
+implemented = ["Train/spec/unspec/untrain/reset", "70-credit cap and locked heritage/augmentation skills", "Five skill augmentations", "Independent before/after proposals and exact receipts", "All four wield requirements at confirmation", "Generic activation requirements on skill-device quote and confirmation", "Authored skill-device cooldown exact registry receipt, durable save/reload and private completion output", "Pinned Use plus Talk skill-device ActivationTalk system chat ordered before UseDone", "Authenticated accepted-revision Active=0 skill-device UseDone with no cooldown or effects", "Base/current skill bonus order", "Prepared accepted combat/magic specialization consumers"]
+source = ["Source/ACE.Server/WorldObjects/Player_Skills.cs", "Source/ACE.Server/WorldObjects/SkillAlterationDevice.cs", "Source/ACE.Server/WorldObjects/AugmentationDevice.cs", "Source/ACE.Server/WorldObjects/Entity/CreatureSkill.cs"]
+evidence = ["crates/gameplay/bace-character/tests/skills.rs", "crates/gameplay/bace-character/tests/extended.rs", "crates/gameplay/bace-combat/tests/specialization.rs", "crates/simulation/bace-simulation/tests/skill_devices.rs", "crates/simulation/bace-simulation/tests/skill_combat.rs", "crates/application/bace-runtime/tests/skill_saves.rs", "crates/application/bace-runtime/tests/skill_device_output.rs", "crates/simulation/bace-simulation/tests/skill_registry_refresh.rs"]
+remaining = ["Full healer item consumption and missile-weapon action pipeline", "Device activation targets, emotes and other response flags", "Complete live rank-effect qualification", "Stock-client qualification"]
+
+[[features]]
+id = "compatible-staff-and-account-ban"
+owner = "bace-runtime"
+phase = 3
+status = "foundation"
+implemented = ["Authenticated Sentinel @boot with source selector/result and final AccountBoot", "Revision-fenced Ban/Unban/Expire with exact durable replay and active-ban pages", "Password-proved ban verdict and post-cookie AccountBanned without account admission", "Sentinel ban/unban/banlist parser and retained in-game Audit outcome before private/boot completion", "External Audit feed admission retains exact event and sequence under queue pressure", "Authenticated Developer @whoami with source GUID formatting and private reliable output", "Authenticated Developer @listplayers with access-filtered entered-session roster and private reliable output", "Authenticated Developer @gps from accepted world pose with pinned private source line"]
+source = ["Source/ACE.Server/Command/Handlers/SentinelCommands.cs", "Source/ACE.Server/Command/Handlers/DeveloperCommands.cs", "Source/ACE.Server/Network/Handlers/AuthenticationHandler.cs"]
+evidence = ["crates/storage/bace-db-postgres/tests/postgres/account_bans.rs", "crates/application/bace-runtime/tests/authentication.rs", "crates/application/bace-runtime/tests/network.rs", "crates/application/bace-runtime/src/game_runtime/staff/ban/tests.rs", "crates/application/bace-runtime/src/game_runtime/staff/listplayers/tests.rs", "crates/simulation/bace-simulation/src/kernel/staff_inspection.rs", "crates/simulation/bace-simulation/src/kernel/staff_audit.rs", "crates/simulation/bace-simulation/src/kernel/staff_inspection.rs", "crates/application/bace-admin/tests/commands.rs"]
+remaining = ["Issuer detach after committed ban can retain unresolved in-game Audit", "Other compatible admin/sentinel/envoy handlers and full host-console integration", "Stock-client command/login transcript qualification deferred"]
+
+[[features]]
+id = "character-ui-and-enchantment-persistence"
+owner = "bace-storage-codec"
+phase = 3
+status = "foundation"
+implemented = ["Frozen V3 player/item/corpse/house supplements", "Explicit bounded migrations", "Complete UI masks/eight bars/shortcuts/components/layout blob", "Registry metadata/time losslessness", "Reserved timer debt and offline suspension", "Same-revision rejection and aggregate dirty revisions", "Database schema downgrade protection", "Source-derived equipped-spell cleanup on restore"]
+source = ["Source/ACE.Database/Models/Shard/BiotaPropertiesEnchantmentRegistry.cs", "Source/ACE.Server/Network/GameAction/Actions/GameActionSetCharacterOptions.cs"]
+evidence = ["crates/storage/bace-storage-codec/tests/saves_v3.rs", "crates/storage/bace-db-postgres/tests/postgres/enchantments.rs", "crates/application/bace-runtime/tests/ui_saves.rs", "crates/application/bace-runtime/tests/enchantment_saves.rs", "crates/application/bace-runtime/tests/progression_saves.rs", "crates/simulation/bace-simulation/tests/enchantment_lifecycle.rs", "crates/gameplay/bace-magic/tests/enchantment_audit.rs"]
+remaining = ["Production lifecycle/save worker service orchestration", "Stock-client reconnect qualification"]
+
+[[features]]
+id = "creation-name-policy"
+owner = "bace-character"
+phase = 2
+status = "foundation"
+implemented = ["Bounded verified TabooTable preparation", "Case-insensitive taboo matching from pinned source", "Prepared creature-name exclusions", "Uppercase initial requirement", "All-uppercase single-word normalization", "Opaque exact-input approval before factory execution"]
+source = ["Source/ACE.DatLoader/FileTypes/TabooTable.cs", "Source/ACE.Server/Factories/PlayerFactory.cs"]
+evidence = ["crates/gameplay/bace-character/tests/names.rs", "crates/assets/bace-dat/tests/taboo_table.rs", "crates/gameplay/bace-character/tests/factory.rs"]
+remaining = ["Stock-client creation transcript qualification"]

@@ -1,0 +1,405 @@
+# ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b WorldObject_Use.cs sha256 e3a48eeafef9427302dca2e13d3b94fe5f5d9b1a50194797b0c9ef47e88e0157
+requirement|0|-1|0|ok
+requirement|0|-1|1|ok
+requirement|0|-1|2|ok
+requirement|0|-1|3|ok
+requirement|0|0|0|ok
+requirement|0|0|1|ok
+requirement|0|0|2|ok
+requirement|0|0|3|ok
+requirement|0|99|0|ok
+requirement|0|99|1|ok
+requirement|0|99|2|ok
+requirement|0|99|3|ok
+requirement|0|100|0|ok
+requirement|0|100|1|ok
+requirement|0|100|2|ok
+requirement|0|100|3|ok
+requirement|0|101|0|error:1225:14
+requirement|0|101|1|error:1225:14
+requirement|0|101|2|error:1225:14
+requirement|0|101|3|error:1225:14
+requirement|1|-1|0|ok
+requirement|1|-1|1|ok
+requirement|1|-1|2|ok
+requirement|1|-1|3|ok
+requirement|1|0|0|ok
+requirement|1|0|1|ok
+requirement|1|0|2|ok
+requirement|1|0|3|ok
+requirement|1|99|0|ok
+requirement|1|99|1|ok
+requirement|1|99|2|ok
+requirement|1|99|3|ok
+requirement|1|100|0|ok
+requirement|1|100|1|ok
+requirement|1|100|2|ok
+requirement|1|100|3|ok
+requirement|1|101|0|error:1225:54
+requirement|1|101|1|error:1225:54
+requirement|1|101|2|error:1225:54
+requirement|1|101|3|error:1225:54
+requirement|2|-1|0|transient:You must have 54 trained to use that item's magic
+requirement|2|-1|1|transient:You must have 54 trained to use that item's magic
+requirement|2|-1|2|ok
+requirement|2|-1|3|ok
+requirement|2|0|0|transient:You must have 54 trained to use that item's magic
+requirement|2|0|1|transient:You must have 54 trained to use that item's magic
+requirement|2|0|2|ok
+requirement|2|0|3|ok
+requirement|2|99|0|transient:You must have 54 trained to use that item's magic
+requirement|2|99|1|transient:You must have 54 trained to use that item's magic
+requirement|2|99|2|ok
+requirement|2|99|3|ok
+requirement|2|100|0|transient:You must have 54 trained to use that item's magic
+requirement|2|100|1|transient:You must have 54 trained to use that item's magic
+requirement|2|100|2|ok
+requirement|2|100|3|ok
+requirement|2|101|0|transient:You must have 54 trained to use that item's magic
+requirement|2|101|1|transient:You must have 54 trained to use that item's magic
+requirement|2|101|2|error:1225:54
+requirement|2|101|3|error:1225:54
+requirement|3|-1|0|error:1227:54
+requirement|3|-1|1|error:1227:54
+requirement|3|-1|2|error:1227:54
+requirement|3|-1|3|ok
+requirement|3|0|0|error:1227:54
+requirement|3|0|1|error:1227:54
+requirement|3|0|2|error:1227:54
+requirement|3|0|3|ok
+requirement|3|99|0|error:1227:54
+requirement|3|99|1|error:1227:54
+requirement|3|99|2|error:1227:54
+requirement|3|99|3|ok
+requirement|3|100|0|error:1227:54
+requirement|3|100|1|error:1227:54
+requirement|3|100|2|error:1227:54
+requirement|3|100|3|ok
+requirement|3|101|0|error:1227:54
+requirement|3|101|1|error:1227:54
+requirement|3|101|2|error:1227:54
+requirement|3|101|3|error:1225:54
+requirement|4|-1|0|error:1227:54
+requirement|4|-1|1|error:1227:54
+requirement|4|-1|2|error:1227:54
+requirement|4|-1|3|ok
+requirement|4|0|0|error:1227:54
+requirement|4|0|1|error:1227:54
+requirement|4|0|2|error:1227:54
+requirement|4|0|3|ok
+requirement|4|99|0|error:1227:54
+requirement|4|99|1|error:1227:54
+requirement|4|99|2|error:1227:54
+requirement|4|99|3|ok
+requirement|4|100|0|error:1227:54
+requirement|4|100|1|error:1227:54
+requirement|4|100|2|error:1227:54
+requirement|4|100|3|ok
+requirement|4|101|0|error:1227:54
+requirement|4|101|1|error:1227:54
+requirement|4|101|2|error:1227:54
+requirement|4|101|3|error:1225:54
+requirement|5|-1|0|ok
+requirement|5|-1|1|ok
+requirement|5|-1|2|ok
+requirement|5|-1|3|ok
+requirement|5|0|0|ok
+requirement|5|0|1|ok
+requirement|5|0|2|ok
+requirement|5|0|3|ok
+requirement|5|99|0|transient:You are not high enough level to use that!
+requirement|5|99|1|transient:You are not high enough level to use that!
+requirement|5|99|2|transient:You are not high enough level to use that!
+requirement|5|99|3|transient:You are not high enough level to use that!
+requirement|5|100|0|transient:You are not high enough level to use that!
+requirement|5|100|1|transient:You are not high enough level to use that!
+requirement|5|100|2|transient:You are not high enough level to use that!
+requirement|5|100|3|transient:You are not high enough level to use that!
+requirement|5|101|0|transient:You are not high enough level to use that!
+requirement|5|101|1|transient:You are not high enough level to use that!
+requirement|5|101|2|transient:You are not high enough level to use that!
+requirement|5|101|3|transient:You are not high enough level to use that!
+requirement|6|-1|0|ok
+requirement|6|-1|1|ok
+requirement|6|-1|2|ok
+requirement|6|-1|3|ok
+requirement|6|0|0|ok
+requirement|6|0|1|ok
+requirement|6|0|2|ok
+requirement|6|0|3|ok
+requirement|6|99|0|ok
+requirement|6|99|1|ok
+requirement|6|99|2|ok
+requirement|6|99|3|ok
+requirement|6|100|0|ok
+requirement|6|100|1|ok
+requirement|6|100|2|ok
+requirement|6|100|3|ok
+requirement|6|101|0|error:1225:1
+requirement|6|101|1|error:1225:1
+requirement|6|101|2|error:1225:1
+requirement|6|101|3|error:1225:1
+requirement|7|-1|0|ok
+requirement|7|-1|1|ok
+requirement|7|-1|2|ok
+requirement|7|-1|3|ok
+requirement|7|0|0|ok
+requirement|7|0|1|ok
+requirement|7|0|2|ok
+requirement|7|0|3|ok
+requirement|7|99|0|ok
+requirement|7|99|1|ok
+requirement|7|99|2|ok
+requirement|7|99|3|ok
+requirement|7|100|0|ok
+requirement|7|100|1|ok
+requirement|7|100|2|ok
+requirement|7|100|3|ok
+requirement|7|101|0|error:1225:1
+requirement|7|101|1|error:1225:1
+requirement|7|101|2|error:1225:1
+requirement|7|101|3|error:1225:1
+requirement|8|-1|0|transient:You must have 54 trained to use that item's magic
+requirement|8|-1|1|transient:You must have 54 trained to use that item's magic
+requirement|8|-1|2|ok
+requirement|8|-1|3|ok
+requirement|8|0|0|transient:You must have 54 trained to use that item's magic
+requirement|8|0|1|transient:You must have 54 trained to use that item's magic
+requirement|8|0|2|ok
+requirement|8|0|3|ok
+requirement|8|99|0|transient:You must have 54 trained to use that item's magic
+requirement|8|99|1|transient:You must have 54 trained to use that item's magic
+requirement|8|99|2|ok
+requirement|8|99|3|ok
+requirement|8|100|0|transient:You must have 54 trained to use that item's magic
+requirement|8|100|1|transient:You must have 54 trained to use that item's magic
+requirement|8|100|2|ok
+requirement|8|100|3|ok
+requirement|8|101|0|transient:You must have 54 trained to use that item's magic
+requirement|8|101|1|transient:You must have 54 trained to use that item's magic
+requirement|8|101|2|ok
+requirement|8|101|3|ok
+requirement|9|-1|0|ok
+requirement|9|-1|1|ok
+requirement|9|-1|2|ok
+requirement|9|-1|3|ok
+requirement|9|0|0|ok
+requirement|9|0|1|ok
+requirement|9|0|2|ok
+requirement|9|0|3|ok
+requirement|9|99|0|ok
+requirement|9|99|1|ok
+requirement|9|99|2|ok
+requirement|9|99|3|ok
+requirement|9|100|0|ok
+requirement|9|100|1|ok
+requirement|9|100|2|ok
+requirement|9|100|3|ok
+requirement|9|101|0|ok
+requirement|9|101|1|ok
+requirement|9|101|2|ok
+requirement|9|101|3|ok
+requirement|10|-1|0|ok
+requirement|10|-1|1|ok
+requirement|10|-1|2|ok
+requirement|10|-1|3|ok
+requirement|10|0|0|ok
+requirement|10|0|1|ok
+requirement|10|0|2|ok
+requirement|10|0|3|ok
+requirement|10|99|0|ok
+requirement|10|99|1|ok
+requirement|10|99|2|ok
+requirement|10|99|3|ok
+requirement|10|100|0|ok
+requirement|10|100|1|ok
+requirement|10|100|2|ok
+requirement|10|100|3|ok
+requirement|10|101|0|ok
+requirement|10|101|1|ok
+requirement|10|101|2|ok
+requirement|10|101|3|ok
+requirement|11|-1|0|ok
+requirement|11|-1|1|ok
+requirement|11|-1|2|ok
+requirement|11|-1|3|ok
+requirement|11|0|0|ok
+requirement|11|0|1|ok
+requirement|11|0|2|ok
+requirement|11|0|3|ok
+requirement|11|99|0|ok
+requirement|11|99|1|ok
+requirement|11|99|2|ok
+requirement|11|99|3|ok
+requirement|11|100|0|ok
+requirement|11|100|1|ok
+requirement|11|100|2|ok
+requirement|11|100|3|ok
+requirement|11|101|0|ok
+requirement|11|101|1|ok
+requirement|11|101|2|ok
+requirement|11|101|3|ok
+requirement|12|-1|0|error:1225:14
+requirement|12|-1|1|error:1225:14
+requirement|12|-1|2|error:1225:14
+requirement|12|-1|3|error:1225:14
+requirement|12|0|0|error:1225:14
+requirement|12|0|1|error:1225:14
+requirement|12|0|2|error:1225:14
+requirement|12|0|3|error:1225:14
+requirement|12|99|0|error:1225:14
+requirement|12|99|1|error:1225:14
+requirement|12|99|2|error:1225:14
+requirement|12|99|3|error:1225:14
+requirement|12|100|0|error:1225:14
+requirement|12|100|1|error:1225:14
+requirement|12|100|2|error:1225:14
+requirement|12|100|3|error:1225:14
+requirement|12|101|0|error:1225:14
+requirement|12|101|1|error:1225:14
+requirement|12|101|2|error:1225:14
+requirement|12|101|3|error:1225:14
+object|3|0|0|0|transient:You have used this item too recently
+object|3|0|0|1|ok
+object|3|0|3|0|transient:You have used this item too recently
+object|3|0|3|1|ok
+object|3|0|12|0|error:1222:12
+object|3|0|12|1|error:1222:12
+object|3|1|0|0|transient:You have used this item too recently
+object|3|1|0|1|ok
+object|3|1|3|0|transient:You have used this item too recently
+object|3|1|3|1|ok
+object|3|1|12|0|transient:You have used this item too recently
+object|3|1|12|1|ok
+object|3|2|0|0|transient:You have used this item too recently
+object|3|2|0|1|ok
+object|3|2|3|0|transient:You have used this item too recently
+object|3|2|3|1|ok
+object|3|2|12|0|transient:You have used this item too recently
+object|3|2|12|1|ok
+object|3|3|0|0|transient:You have used this item too recently
+object|3|3|0|1|ok
+object|3|3|3|0|transient:You have used this item too recently
+object|3|3|3|1|ok
+object|3|3|12|0|transient:You have used this item too recently
+object|3|3|12|1|ok
+object|3|4|0|0|transient:You have used this item too recently
+object|3|4|0|1|ok
+object|3|4|3|0|transient:You have used this item too recently
+object|3|4|3|1|ok
+object|3|4|12|0|transient:You have used this item too recently
+object|3|4|12|1|ok
+object|3|5|0|0|transient:You have used this item too recently
+object|3|5|0|1|ok
+object|3|5|3|0|transient:You have used this item too recently
+object|3|5|3|1|ok
+object|3|5|12|0|error:1222:12
+object|3|5|12|1|error:1222:12
+object|3|6|0|0|transient:You have used this item too recently
+object|3|6|0|1|ok
+object|3|6|3|0|transient:You have used this item too recently
+object|3|6|3|1|ok
+object|3|6|12|0|error:1222:12
+object|3|6|12|1|error:1222:12
+object|3|7|0|0|transient:You have used this item too recently
+object|3|7|0|1|ok
+object|3|7|3|0|transient:You have used this item too recently
+object|3|7|3|1|ok
+object|3|7|12|0|error:1222:12
+object|3|7|12|1|error:1222:12
+object|12|0|0|0|transient:You have used this item too recently
+object|12|0|0|1|ok
+object|12|0|3|0|error:1222:3
+object|12|0|3|1|error:1222:3
+object|12|0|12|0|transient:You have used this item too recently
+object|12|0|12|1|ok
+object|12|1|0|0|transient:You have used this item too recently
+object|12|1|0|1|ok
+object|12|1|3|0|transient:You have used this item too recently
+object|12|1|3|1|ok
+object|12|1|12|0|transient:You have used this item too recently
+object|12|1|12|1|ok
+object|12|2|0|0|transient:You have used this item too recently
+object|12|2|0|1|error:1417
+object|12|2|3|0|transient:You have used this item too recently
+object|12|2|3|1|error:1417
+object|12|2|12|0|transient:You have used this item too recently
+object|12|2|12|1|error:1417
+object|12|3|0|0|transient:You have used this item too recently
+object|12|3|0|1|error:1415
+object|12|3|3|0|transient:You have used this item too recently
+object|12|3|3|1|error:1415
+object|12|3|12|0|transient:You have used this item too recently
+object|12|3|12|1|error:1415
+object|12|4|0|0|transient:You have used this item too recently
+object|12|4|0|1|error:1418:target
+object|12|4|3|0|transient:You have used this item too recently
+object|12|4|3|1|error:1418:target
+object|12|4|12|0|transient:You have used this item too recently
+object|12|4|12|1|error:1418:target
+object|12|5|0|0|transient:You have used this item too recently
+object|12|5|0|1|error:1416
+object|12|5|3|0|error:1222:3
+object|12|5|3|1|error:1222:3
+object|12|5|12|0|transient:You have used this item too recently
+object|12|5|12|1|error:1416
+object|12|6|0|0|transient:You have used this item too recently
+object|12|6|0|1|error:1415
+object|12|6|3|0|error:1222:3
+object|12|6|3|1|error:1222:3
+object|12|6|12|0|transient:You have used this item too recently
+object|12|6|12|1|error:1415
+object|12|7|0|0|transient:You have used this item too recently
+object|12|7|0|1|ok
+object|12|7|3|0|error:1222:3
+object|12|7|3|1|error:1222:3
+object|12|7|12|0|transient:You have used this item too recently
+object|12|7|12|1|ok
+object|13|0|0|0|transient:You have used this item too recently
+object|13|0|0|1|ok
+object|13|0|3|0|error:1222:3
+object|13|0|3|1|error:1222:3
+object|13|0|12|0|error:1222:12
+object|13|0|12|1|error:1222:12
+object|13|1|0|0|transient:You have used this item too recently
+object|13|1|0|1|ok
+object|13|1|3|0|transient:You have used this item too recently
+object|13|1|3|1|ok
+object|13|1|12|0|transient:You have used this item too recently
+object|13|1|12|1|ok
+object|13|2|0|0|transient:You have used this item too recently
+object|13|2|0|1|error:1417
+object|13|2|3|0|transient:You have used this item too recently
+object|13|2|3|1|error:1417
+object|13|2|12|0|transient:You have used this item too recently
+object|13|2|12|1|error:1417
+object|13|3|0|0|transient:You have used this item too recently
+object|13|3|0|1|error:1415
+object|13|3|3|0|transient:You have used this item too recently
+object|13|3|3|1|error:1415
+object|13|3|12|0|transient:You have used this item too recently
+object|13|3|12|1|error:1415
+object|13|4|0|0|transient:You have used this item too recently
+object|13|4|0|1|error:1418:target
+object|13|4|3|0|transient:You have used this item too recently
+object|13|4|3|1|error:1418:target
+object|13|4|12|0|transient:You have used this item too recently
+object|13|4|12|1|error:1418:target
+object|13|5|0|0|transient:You have used this item too recently
+object|13|5|0|1|error:1416
+object|13|5|3|0|error:1222:3
+object|13|5|3|1|error:1222:3
+object|13|5|12|0|error:1222:12
+object|13|5|12|1|error:1222:12
+object|13|6|0|0|transient:You have used this item too recently
+object|13|6|0|1|error:1415
+object|13|6|3|0|error:1222:3
+object|13|6|3|1|error:1222:3
+object|13|6|12|0|error:1222:12
+object|13|6|12|1|error:1222:12
+object|13|7|0|0|transient:You have used this item too recently
+object|13|7|0|1|ok
+object|13|7|3|0|error:1222:3
+object|13|7|3|1|error:1222:3
+object|13|7|12|0|error:1222:12
+object|13|7|12|1|error:1222:12

@@ -14,6 +14,8 @@ use std::{
 };
 
 const RECORD_BYTES: usize = 8192;
+// Exact accepted game output can expand when JSON escaped; preserve it whole.
+const EXACT_RECORD_BYTES: usize = 32768;
 const RING_BYTES: usize = 4 * 1024 * 1024;
 const RING_RECORDS: usize = 2000;
 const FILE_BYTES: u64 = 8 * 1024 * 1024;
@@ -26,6 +28,17 @@ pub struct LogRecord {
     pub level: String,
     pub event: String,
     pub message: String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ExactLogErrorKind {
+    Oversized,
+    Full,
+    Closed,
+}
+#[derive(Debug)]
+pub struct ExactLogError {
+    pub kind: ExactLogErrorKind,
+    pub record: LogRecord,
 }
 #[derive(Serialize)]
 pub struct LogBatch {
@@ -54,6 +67,38 @@ pub struct LogStore {
     thread: Option<thread::JoinHandle<()>>,
 }
 impl LogStore {
+    /// Exact bounded diagnostic handoff. A successful result acknowledges this
+    /// worker queue, not disk durability; disk health remains visible in `recent`.
+    /// Unlike `record`, pressure and oversize return caller ownership unchanged.
+    pub fn try_record_exact(&self, record: LogRecord) -> Result<(), ExactLogError> {
+        if record.level.len() > 16
+            || record.event.len() > 128
+            || record.message.len() > EXACT_RECORD_BYTES
+            || serde_json::to_vec(&record)
+                .map_or(true, |bytes| bytes.len() + 20 > EXACT_RECORD_BYTES)
+        {
+            return Err(ExactLogError {
+                kind: ExactLogErrorKind::Oversized,
+                record,
+            });
+        }
+        let Some(sender) = &self.send else {
+            return Err(ExactLogError {
+                kind: ExactLogErrorKind::Closed,
+                record,
+            });
+        };
+        sender.try_send(record).map_err(|error| match error {
+            mpsc::TrySendError::Full(record) => ExactLogError {
+                kind: ExactLogErrorKind::Full,
+                record,
+            },
+            mpsc::TrySendError::Disconnected(record) => ExactLogError {
+                kind: ExactLogErrorKind::Closed,
+                record,
+            },
+        })
+    }
     pub fn open(directory: &Path) -> io::Result<Self> {
         fs::create_dir_all(directory)?;
         let sink = Sink::open(directory)?;

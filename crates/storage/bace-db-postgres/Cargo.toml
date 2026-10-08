@@ -11,6 +11,7 @@ description = "SQL, migrations, transactions and publication journal"
 workspace = true
 
 [dependencies]
+bace-storage-codec.workspace = true
 bace-persistence.workspace = true
 bace-auth.workspace = true
 bace-types.workspace = true
@@ -19,5 +20,6 @@ thiserror.workspace = true
 sha2.workspace = true
 
 [dev-dependencies]
+bace-content.workspace = true
 tokio.workspace = true
 tempfile.workspace = true

@@ -17,6 +17,8 @@ pub enum StoreError {
     Invalid(&'static str),
     #[error("publication does not exist, has already been decided, or is out of order")]
     PublicationOrder,
+    #[error("publication {0} exceeds bounded mapped worker capacity")]
+    PublicationTooLarge(i64),
     #[error("operation ID was reused with a different request")]
     OperationMismatch,
 }

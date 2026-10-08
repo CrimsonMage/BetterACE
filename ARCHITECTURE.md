@@ -6,7 +6,7 @@ BetterACE uses **AGPL-3.0-only** across the Rust workspace. The full license is 
 
 ## Reference and scope
 
-**BASE-01:** The protocol and gameplay reference MUST be official `https://github.com/ACEmulator/ACE` at `47edade3bd3f6044b676d4eb877c4965c7eda62b`. Local forks are not the baseline. Baseline updates MUST be explicit changes with regenerated fixtures and reviewed behavior differences. Pins are in `docs/baselines.toml`. The pinned GDLE repository is a secondary explanatory reference only; it does not override official ACE. `docs/network-coverage.toml` records source coverage, and `docs/divergences.toml` preserves user-supplied observations from other revisions with their uncertainty.
+**BASE-01:** The protocol and gameplay reference MUST be official `https://github.com/ACEmulator/ACE` at `47edade3bd3f6044b676d4eb877c4965c7eda62b`. Local forks are not the baseline. Baseline updates MUST be explicit changes with regenerated fixtures and reviewed behavior differences. Pins are in `docs/baselines.toml`. By explicit project-owner direction (2026-10-07), pinned GDLE is the primary behavioral reference for server-side door and monster authority: state, collision-sensitive transitions, AI/movement ownership and attack eligibility. Official ACE remains the wire-layout baseline and default reference for other gameplay. Player casting movement/release also follows pinned GDLE. By subsequent owner direction, physical and spell combat follow verified retail evidence first, pinned GDLE next, with explicit reviewed ACE gap-fills; defects are documented rather than copied as requirements. Allegiance XP follows pinned GDLE, including discrete online-time accrual and source-defined propagation quirks, by explicit owner direction (2026-10-07). Other allegiance behavior remains pinned ACE. NPC emote behavior remains pinned ACE, including authored timing and source-defined durable stages. Rare structure follows the project owner's supplied Turbine evidence; uncertain probabilities, tier weights and timer policies require an explicit configured profile (docs/rare-evidence.toml). Compare both sources, document disagreements and retain authority hardening; this exception does not silently replace XP, treasure or unrelated formulas. `docs/network-coverage.toml` records source coverage, and `docs/divergences.toml` preserves user-supplied observations from other revisions with their uncertainty.
 
 The initial deployment targets Windows, Linux and macOS with a lightweight host-console supervisor, one game child, and PostgreSQL for community shards. Initial playable acceptance means two stock clients can create fresh characters, enter the world, traverse outdoor and dungeon geometry, cross portals, observe each other, save/reconnect, and observe a newly published weenie without restarting. Existing player migration, complete combat/magic/AI and distributed simulation are later milestones.
 
@@ -20,15 +20,17 @@ Every row names separate packages, not modules of a monolithic server. The compl
 
 | Group | Crate | Sole responsibility |
 |---|---|---|
+| Foundation | `bace-random` | Versioned keyed event randomness and isolated character rare streams |
 | Foundation | `bace-types` | IDs, property IDs and shared numeric primitives |
 | Foundation | `bace-geometry` | Geometric primitives, frames, bounds and shapes |
 | Foundation | `bace-config` | TOML configuration and validation |
 | Foundation | `bace-observability` | Logging, metrics and diagnostic interfaces |
 | Assets | `bace-dat` | DAT decoding, asset validation and immutable access |
 | Assets | `bace-dat-service` | Legacy DAT distribution service |
+| Assets | `bace-asset-overlay` | Pure, checked application of native patches to decoded DAT assets |
 | Content | `bace-content` | Definitions, validation, catalogs and revisions |
 | Content | `bace-content-tools` | Native TOML authoring, binary compilation and export |
-| Content | `bace-import` | Legacy SQL/JSON and official-world conversion |
+| Content | `bace-import` | Legacy SQL/JSON, EmoteScript and official-world conversion |
 | Network | `bace-wire` | Explicit legacy wire codecs, checksums and identifiers |
 | Network | `bace-transport` | UDP, reliability, fragmentation, bounded peer state |
 | Network | `bace-auth` | Authentication and access policy |
@@ -63,7 +65,7 @@ Every row names separate packages, not modules of a monolithic server. The compl
 | Storage | `bace-db-postgres` | Production SQL, migrations, pools and transactions |
 | Application | `bace-admin` | Administrative command policy and handling |
 | Application | `bace-tooling` | Maintenance workflow orchestration |
-| Application | `bace-content-studio` | Desktop content conversion UI and bounded offline jobs |
+| Application | `bace-content-studio` | Desktop content authoring, offline candidate packs, DAT and landblock inspection |
 | Application | `bace-runtime` | Composition, workers, startup and shutdown |
 | Executables | `bace-server`, `bace-cli`, `bace-content-gui` | Minimal executable adapters only |
 | Verification | `bace-compat`, `xtask` | Official oracle/replay; architecture and size checks |
@@ -110,9 +112,18 @@ AC-specific collision/motion is ported with upstream formulas and precision unti
 
 ## Content and storage
 
-Native flow is `TOML -> typed validation -> versioned binary -> PostgreSQL publication journal -> immutable .bace generation`. Legacy SQL and JSON enter only through conversion tools. Native runtime content and saves MUST NOT use JSON/JSONB. Runtime content MUST use checked mapped views and bounded prepared assets; startup MUST NOT decode or retain the whole world. Current in-memory catalog tooling is a foundation harness pending mapped-generation composition.
+Native flow is `TOML -> typed validation -> versioned binary -> PostgreSQL publication journal -> immutable .bace generation`. Legacy SQL and JSON enter only through conversion tools. Native runtime content and saves MUST NOT use JSON/JSONB. Runtime content MUST use checked mapped views and bounded prepared assets; startup MUST NOT decode or retain the whole world. Complete world compilation and bounded mapped-region preparation exist; gameplay adoption and authentic geometry admission remain separate integration gates.
 
-**PACK-01:** Compiled world/content MUST use immutable `.bace` base files and small delta segments. PostgreSQL owns the accepted manifest pointer. Files and manifest MUST be durable before acceptance; restart opens that exact generation. Old mapped generations remain alive while readers retain them. Never rewrite or truncate a mapped backing file.
+Pinned ACE treasure lookup rows, enum/spell indexes and mutation scripts use
+native TOML owned by `bace-loot` and a frozen DTO owned by `bace-content`.
+`bace-content-tools` compiles that source into namespace 52 of the aggregate `.bace` generation,
+and prepared by `bace-loot` at cold startup. `bace-runtime` selects the accepted
+set and fails closed if it is missing. Table-set replacement requires a graceful
+game-child restart; native nested loot graphs and rare profiles retain their
+separate namespaces 46–47 and publication path. Retail PCAP comparison limits
+are documented in `docs/retail-loot-gap-analysis.md`.
+
+**PACK-01:** Compiled world/content MUST use one immutable aggregate `.bace` base and at most two active delta packs (one to three active `.bace` files total), never a file per object or landblock. Temporary replacement and retired reader-pinned files may coexist during safe publication/compaction. PostgreSQL owns the accepted manifest pointer. Files and manifest MUST be durable before acceptance; restart opens that exact generation. Old mapped generations remain alive while readers retain them. Never rewrite or truncate a mapped backing file.
 
 **PACK-02:** One dedicated blocking pack-I/O OS thread MUST own writes, flushes, compaction and reclamation. Asset reads/preparation MUST have separate bounded capacity; simulation and persistence MUST NOT await pack I/O. Maintenance MUST yield to save pressure. Codec/compiler APIs alone do not establish this runtime composition.
 
@@ -131,6 +142,14 @@ Native flow is `TOML -> typed validation -> versioned binary -> PostgreSQL publi
 **HOT-03:** Rejected batches MUST be quarantined with diagnostics and MUST NOT block independent future batches. Corrections are new revisions. Journal order MUST be commit-safe; a sequence/bigserial allocation alone is not commit ordering. LISTEN/NOTIFY is a wakeup only; polling, restart and disconnect recovery use durable state.
 
 **HOT-04:** Valid committed templates MUST become available for spawning within two seconds under healthy normal load. Observe commit-to-activation latency. Invalid or incomplete batches never become visible.
+
+Operator inbox review belongs to `bace-admin` (authenticated UI and explicit
+confirmation), `bace-runtime` (bounded scan, typed validation, pack publication),
+`bace-content-tools` (native TOML and frozen codecs), and `bace-db-postgres`
+(commit-ordered mixed candidate journal and accepted manifest CAS). Source files
+are never scanned automatically. A preview is fenced to the accepted manifest
+and exact file bytes; additions, replacements and tombstones preserve unrelated
+accepted records. Derived world indexes publish in the same immutable delta.
 
 ## Save coordination and failure behavior
 
@@ -166,3 +185,34 @@ Milestones:
 Initial benchmark target is 100 moving synthetic players and 1,000 non-player physics bodies for ten minutes, p99 tick computation <=25 ms with no sustained missed 30 Hz deadlines. Injecting 500 ms database latency MUST NOT stall ticking. Synthetic-load results MUST NOT be described as full stock-client capacity. Record hardware/build/dataset.
 
 Compare database size, aggregate query count, loading, CPU, save latency and memory against equivalent ACE data and durability. A smaller table count alone is not evidence of lower total cost. Never claim full parity, playability or performance without the corresponding evidence.
+
+Character feature ownership: `bace-character` owns skill transitions, derived skill
+values, taboo/name policy and per-character UI validation. `bace-crafting` owns
+immutable tinker/salvage decisions; per owner direction, salvage yield follows the
+pinned GDLE formula and imbue caps are exactly 0.33/0.38 while retaining skill
+scaling. `bace-simulation` reserves the authoritative character, inventory and
+registry owners; `bace-runtime` freezes one complete revision and correlates durable
+receipts. Frozen schema3 supplements belong to `bace-storage-codec`; relational
+identity, schema downgrade protection and atomic receipts belong to PostgreSQL.
+Prepared combat/magic projections consume specialization values without holding
+another mutable character aggregate. No successful valuable-operation packet may
+be projected from a proposed or uncertain result.
+
+Generator feature ownership: `bace-spawning` owns source profile selection,
+timers, registries and lifecycle transitions; its typed contracts live in
+`bace-gameplay-api`. `bace-loot` owns source treasure and equipment decisions,
+and `bace-economy` owns retained shop stock. `bace-runtime` prepares bounded
+immutable content/DAT closures; `bace-simulation` admits them into the existing
+world, inventory, combat and magic owners. No generator owns duplicate physical
+state or performs tick-time I/O. Transient populations rebuild on restart.
+Acquisition and durable retirement use `bace-persistence::WorldPlacementOperation`
+with the world epoch included in PostgreSQL's atomic idempotency fingerprint;
+only an exact durable receipt releases the simulation reservation.
+
+Character-start content belongs to `bace-content`: a frozen versioned profile
+preserves authored starter-gear/spell order and starting-area spell references.
+`bace-content-tools` compiles native TOML to integrity-checked immutable `.bace`
+bytes. The pinned built-in profile is an immutable bootstrap default, not a live
+catalog mutation. `bace-runtime` joins it to the accepted pack and verified DAT
+assets off-thread; `bace-character` alone interprets creation and starter rules.
+Missing referenced templates or geometry reject creation before persistence.

@@ -1,9 +1,9 @@
 use crate::ConfigError;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{net::SocketAddr, path::PathBuf};
 
 /// Local host management is independent of game sockets and account storage.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct HostConfig {
     pub bind_address: SocketAddr,

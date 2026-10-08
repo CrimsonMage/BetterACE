@@ -1,0 +1,10 @@
+# official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b; source methods unchanged, explicit synthetic owner queue
+# sha256 8db344e63a9b0ba3fc2c61685c000d56be0042a3b5952bc2360bcebdab3c8b9d Source/ACE.Server/WorldObjects/Player_Xp.cs
+# sha256 7ab6c2f7ee1ea43f17dd199fa1f951755b15a62803ac91e640c898d840986eee Source/ACE.Server/WorldObjects/Managers/EmoteManager.cs
+plain,query,1,0,100
+plain,recipient,2,150,250
+intervening,query,1,80,100
+intervening,recipient,2,230,250
+scaled,16777217,1,16777216
+scaled,13,0.5,6
+scaled,15,0.5,8

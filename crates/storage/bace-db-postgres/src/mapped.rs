@@ -58,7 +58,15 @@ impl PgStore {
             {
                 return Err(StoreError::PublicationOrder);
             }
-            sqlx::query("INSERT INTO content_heads(wcid,revision,class_name) SELECT wcid,revision,class_name FROM content_candidates WHERE revision=$1 ON CONFLICT(wcid) DO UPDATE SET revision=EXCLUDED.revision,class_name=EXCLUDED.class_name").bind(revision).execute(&mut *tx).await?;
+            // Remove only this batch's prior heads inside the same transaction,
+            // so valid class-name swaps do not conflict with their own old rows.
+            sqlx::query("DELETE FROM content_heads WHERE wcid IN (SELECT wcid FROM content_candidates WHERE revision=$1)").bind(revision).execute(&mut *tx).await?;
+            sqlx::query("INSERT INTO content_heads(wcid,revision,class_name) SELECT wcid,revision,class_name FROM content_candidates WHERE revision=$1").bind(revision).execute(&mut *tx).await?;
+            sqlx::query("INSERT INTO native_content_heads(namespace,content_id,revision) SELECT namespace,content_id,revision FROM native_content_candidates WHERE revision=$1 ON CONFLICT(namespace,content_id) DO UPDATE SET revision=EXCLUDED.revision").bind(revision).execute(&mut *tx).await?;
+            sqlx::query("DELETE FROM content_heads WHERE wcid IN (SELECT content_id FROM mapped_content_candidates WHERE revision=$1 AND namespace=1 AND payload IS NULL)").bind(revision).execute(&mut *tx).await?;
+            sqlx::query("DELETE FROM native_content_heads WHERE (namespace,content_id) IN (SELECT namespace,content_id FROM mapped_content_candidates WHERE revision=$1 AND namespace IN (46,47) AND payload IS NULL)").bind(revision).execute(&mut *tx).await?;
+            sqlx::query("DELETE FROM mapped_content_heads WHERE (namespace,content_id) IN (SELECT namespace,content_id FROM mapped_content_candidates WHERE revision=$1)").bind(revision).execute(&mut *tx).await?;
+            sqlx::query("INSERT INTO mapped_content_heads(namespace,content_id,revision) SELECT namespace,content_id,revision FROM mapped_content_candidates WHERE revision=$1 AND payload IS NOT NULL").bind(revision).execute(&mut *tx).await?;
             sqlx::query("UPDATE content_publications SET status='accepted' WHERE revision=$1")
                 .bind(revision)
                 .execute(&mut *tx)
@@ -92,6 +100,38 @@ impl PgStore {
                     .map_err(|_| StoreError::Invalid("base hash"))?,
                 accepted_revision: r.get("accepted_revision"),
                 manifest_bytes: r.get("manifest_bytes"),
+            })
+        })
+        .transpose()
+    }
+    /// Durable continuations retain their exact immutable accepted generation,
+    /// even after a newer head is published. The caller still verifies pack files.
+    pub async fn generation_by_hash(
+        &self,
+        hash: [u8; 32],
+    ) -> Result<Option<MappedGeneration>, StoreError> {
+        let row = sqlx::query("SELECT parent_hash,base_hash,accepted_revision,manifest_bytes FROM content_generations WHERE manifest_hash=$1")
+            .bind(hash.as_slice()).fetch_optional(&self.pool).await?;
+        row.map(|row| {
+            let bytes: Vec<u8> = row.get("manifest_bytes");
+            if bytes.len() > 1024 * 1024 || Sha256::digest(&bytes).as_slice() != hash {
+                return Err(StoreError::Invalid("historical manifest integrity"));
+            }
+            Ok(MappedGeneration {
+                manifest_hash: hash,
+                parent_hash: row
+                    .get::<Option<Vec<u8>>, _>("parent_hash")
+                    .map(|h| {
+                        h.try_into()
+                            .map_err(|_| StoreError::Invalid("historical parent hash"))
+                    })
+                    .transpose()?,
+                base_hash: row
+                    .get::<Vec<u8>, _>("base_hash")
+                    .try_into()
+                    .map_err(|_| StoreError::Invalid("historical base hash"))?,
+                accepted_revision: row.get("accepted_revision"),
+                manifest_bytes: bytes,
             })
         })
         .transpose()

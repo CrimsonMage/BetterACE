@@ -1,0 +1,20 @@
+# Original ACE 47edade3 BroadcastTinkering/NameWithMaterial/FloatExtensions.Round
+# sha256 efc2dae3f7f26f323d5284e8e391a33514f89b124594d589419bc2b696cda6d8 ACE.Server/Managers/RecipeManager.cs
+# sha256 1e3d0750310f942064bf67df77e0c650773e9bc3ced49419f8d5c8546d00da06 ACE.Server/WorldObjects/WorldObject_Properties.cs
+# sha256 39b63812d74da3d5ddbaf3d077ecafdc61a3cca5732efe7e359dccdaae60f90e ACE.Common/Extensions/FloatExtensions.cs
+C	0	0
+C	0.005	1
+C	0.325	33
+C	0.33	33
+C	0.375	38
+C	0.38	38
+C	0.995	100
+C	1	100
+T	0	Alice successfully applies the Steel Salvage (workmanship 1.00) to the Gold  Sword inscribed by Bob.
+T	1	Alice successfully applies the Steel  Salvaged (workmanship 2.68) to the Sword.
+T	2	Alice successfully applies the Steel Salvage (workmanship 5.00) to the Gold  Sword.
+T	3	Alice successfully applies the Steel  Salvaged (workmanship 9.99) to the Sword inscribed by Bob.
+T	4	Alice fails to apply the Steel Salvage (workmanship 1.00) to the Gold  Sword. The target is destroyed.
+T	5	Alice fails to apply the Steel  Salvaged (workmanship 2.68) to the Sword. The target is destroyed.
+T	6	Alice fails to apply the Steel Salvage (workmanship 5.00) to the Gold  Sword inscribed by Bob. The target is destroyed.
+T	7	Alice fails to apply the Steel  Salvaged (workmanship 9.99) to the Sword. The target is destroyed.

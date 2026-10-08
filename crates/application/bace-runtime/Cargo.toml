@@ -11,6 +11,24 @@ description = "Service composition, workers, startup and shutdown"
 workspace = true
 
 [dependencies]
+bace-world.workspace = true
+bace-social.workspace = true
+bace-allegiance.workspace = true
+bace-spawning.workspace = true
+bace-combat.workspace = true
+bace-interactions.workspace = true
+bace-entity.workspace = true
+bace-quests.workspace = true
+bace-emotes.workspace = true
+bace-physics.workspace = true
+bace-motion.workspace = true
+bace-geometry.workspace = true
+bace-crafting.workspace = true
+bace-magic.workspace = true
+bace-loot.workspace = true
+bace-inventory.workspace = true
+bace-housing.workspace = true
+bace-random.workspace = true
 bace-auth.workspace = true
 bace-types.workspace = true
 bace-gameplay-api.workspace = true
@@ -27,6 +45,7 @@ bace-storage-codec.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 serde.workspace = true
+toml.workspace = true
 hmac = "0.12"
 rand_core = { version = "0.6", features = ["getrandom"] }
 bace-config.workspace = true
@@ -40,10 +59,5 @@ thiserror.workspace = true
 clap.workspace = true
 
 [dev-dependencies]
-bace-entity.workspace = true
-bace-world.workspace = true
-bace-physics.workspace = true
-bace-motion.workspace = true
-bace-geometry.workspace = true
 tempfile.workspace = true
 sqlx.workspace = true

@@ -35,3 +35,60 @@ with harness adapters and record method hashes. The 504-byte upstream tail case 
 a documented 484-byte-bounded deviation. Replication counters compare full C#
 advancement through wrap boundaries. Every harness records what it isolates;
 these are not full live ACE/server transcript or stock-client tests.
+
+Combat fixtures compile four original action handlers and twelve output serializers,
+including float-to-double damage percentages and 64-bit conditions. Player login
+fixtures compile the original description/title serializers and use verbatim
+character-handler reader prefixes. Login-order fixtures run verbatim SendSelf and
+SendInventoryAndWieldedItems methods with synthetic inputs. No enchantment registry,
+contract tracker or login-property visibility policy is claimed by these fixtures;
+metadata records the harness boundaries. `message_combat`,
+`message_player_description` and `login_projection` test these independently.
+
+Visual DAT/vital fixtures: `oracle/dat_visual_generate.py` verifies source bytes
+against the official pinned archive (optional `--archive`) or immutable raw GitHub
+URLs, then compiles unmodified ACE decoders. Inputs are synthetic; outputs and
+source hashes are in `fixtures/dat_visual.json`. `tests/dat_visual_vectors.rs`
+compares the Rust readers and rejects truncated records. Inert stubs cover only
+unused constructor/logging dependencies. These C# oracles are development test
+references; all shipped Studio decoding/rendering runs in Rust.
+
+Magic evidence: `oracle/magic_generate.py` compiles original ACE magic event
+wrappers/SkillCheck and verbatim enchantment/registry/layer serializers,
+GetManaCost and component burning. `fixtures/magic.json` includes 4 enchantment
+layouts, 16 category masks, 9 events, 288 mana cases, 16 cast chances and 27 burn
+cases. `magic_vectors.rs` checks exact bytes/numbers and the PlayerDescription
+registry insertion composed from independently generated upstream vectors.
+`oracle/dat_magic_generate.py` compiles unmodified DAT spell/component/set parsers
+and formula/hash methods; `dat_magic_vectors.rs` checks fields, account formulas,
+sparse lookup, limits and exhaustive synthetic truncation. These synthetic tests
+contain no proprietary DAT or real account/player material.
+
+Movement evidence: `movement_rules.json` compiles original ACE Run/burden/jump,
+MotionInterp and upright Sequence methods. The root harness uses
+`FirstCyclic = Last`, matching `append_animation`: preceding clips are one-time
+warmup, including the multi-clip regression. GDLE `gdle_sequence.json` independently
+compiles original CSequence cursor/hook methods, get_link, action/substate selection
+and zero-link completion at commit353cbab52ef7da2b7063bc3e3f008461d8531693. It covers
+2,400 cursor/hook steps, 27 chain-selection cases, zero-rate cyclic posture and
+zero-link manager completion. Its synthetic node adapters do not qualify GDLE root
+quaternion math or wall-clock lag scheduling. The separate queue harness compiles
+original append/remove/cyclic-rate/manager callback methods for nine rate changes,
+eight active-stop traces and repeated-substate compaction with FIFO callbacks. All step
+quanta pass through f32 before widening to the source double cursor; 0.2f32 is
+included. No proprietary DAT bytes are embedded.
+
+The queue oracle also compiles the original `TryBeginCast` interpreted-action
+check from pinned `SpellcastingManager.cpp`. A cancelled substate retains positive
+link counts while Ready and a new action append in order; cursor bits and all
+three callbacks are checked. The harness supplies an opaque rejection sentinel,
+so this case qualifies admission behavior, not the numeric wire error code.
+
+`gdle_projectile_generate.py` verifies pinned GDLE source bytes and compiles the
+scalar Vector branch, airborne `UpdatePhysicsInternal`, velocity-assignment prefix,
+and original `LandDefs`/`Position` offsets. `gdle_projectile.json` covers 54 flight
+cases/3,240 steps and 48 coordinate offsets. Ground friction, orientation, lifetime
+policy, wire output and x87/SIMD equivalence are outside this oracle. The retail
+client source is used only as read-only structural corroboration and is not copied.
+The sequence queue harness additionally enables the source server `OnMotionDone`
+callback and checks reentrantly appended zero-count motions in the same update.

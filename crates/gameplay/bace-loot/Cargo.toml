@@ -11,3 +11,10 @@ description = "Treasure tables and generated items"
 workspace = true
 
 [dependencies]
+bace-content.workspace = true
+bace-gameplay-api.workspace = true
+bace-random.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+toml.workspace = true

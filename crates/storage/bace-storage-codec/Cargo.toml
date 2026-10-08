@@ -16,6 +16,7 @@ todo = "deny"
 unimplemented = "deny"
 
 [dependencies]
+bace-content.workspace = true
 serde.workspace = true
 postcard.workspace = true
 sha2.workspace = true

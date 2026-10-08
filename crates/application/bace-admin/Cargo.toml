@@ -11,6 +11,8 @@ description = "Administrative command handling"
 workspace = true
 
 [dependencies]
+bace-gameplay-api.workspace = true
+bace-types.workspace = true
 bace-auth.workspace = true
 bace-config.workspace = true
 bace-observability.workspace = true

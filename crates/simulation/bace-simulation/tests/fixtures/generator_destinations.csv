@@ -1,0 +1,14 @@
+# ACE.Server/Entity/GeneratorProfile.cs 52b6eefed38d24ac107fed7bf44bf42a9557af52a6319ae8ccb7e6302abece23
+# owner(object/container/vendor)|child(object/creature)|accept|contain|shop
+0|0|0|0|0
+0|0|1|0|0
+0|1|0|0|0
+0|1|1|0|0
+1|0|0|0|0
+1|0|1|1|0
+1|1|0|0|0
+1|1|1|1|0
+2|0|0|0|1
+2|0|1|1|1
+2|1|0|0|1
+2|1|1|1|1

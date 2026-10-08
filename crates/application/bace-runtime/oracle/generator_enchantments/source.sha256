@@ -1,0 +1,4 @@
+8ec4198051c1eaef14826ccbe8f1805f13e7f7c3fc66608d649f0126d0f96cb1  Source/ACE.Server/WorldObjects/Creature_Magic.cs
+1d98fac204ef6e04982db488da5eaed720c25e71ebb0cebcaace3848f7d91fbf  Source/ACE.Server/Entity/Spell.cs
+e1503cd4ed3e1c689dac7cf2eeb38c0a630cf2459392a4dd9e0a426fbb8e7f5e  Source/ACE.Entity/Enum/SpellCategory.cs
+82fb2f63ee5ff4c352f4d7b742b24ca13da4bbc42975fa47a94836f70c57cc18  Source/ACE.Entity/Enum/MagicSchool.cs

@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/ACEmulator/ACE",
+  "commit": "47edade3bd3f6044b676d4eb877c4965c7eda62b",
+  "source": "Source/ACE.Server/WorldObjects/House.cs",
+  "source_sha256": "c1ba61f8377c79ea74b61743c6a4516c393050eefb67a235567bafb387485292",
+  "extracted_methods_sha256": "b8f6451c3fd20da7f5e3c42d90e6f1e874d8029e0fe1bac4d12890a1838925aa",
+  "scope": "unchanged GetRentTimestamp/GetRentDue; explicit synthetic clock and 30-day rent interval"
+}

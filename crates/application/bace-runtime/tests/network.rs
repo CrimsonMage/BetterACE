@@ -52,6 +52,126 @@ fn event(worker: &NetworkThread) -> NetworkEvent {
         .unwrap()
 }
 #[test]
+fn banned_login_sends_control_after_cookie_without_account_admission() {
+    let worker = start();
+    let client = socket();
+    let companion = socket();
+    client
+        .send_to(&login_packet(), worker.client_address)
+        .unwrap();
+    let key = match event(&worker) {
+        NetworkEvent::Login { key, .. } => key,
+        other => panic!("{other:?}"),
+    };
+    let bytes = AccountControl::Banned {
+        seconds_remaining: 120,
+        reason: Some("source reason"),
+    }
+    .encode()
+    .unwrap();
+    worker
+        .try_send(NetworkCommand::RejectBanned {
+            key,
+            bytes: bytes.clone(),
+        })
+        .unwrap();
+    let mut buffer = [0; 1025];
+    let (size, _) = client.recv_from(&mut buffer).unwrap();
+    let packet = Datagram::decode(&buffer[..size]).unwrap();
+    assert_eq!(packet.header.flags, flags::CONNECT_REQUEST);
+    let challenge = ConnectRequest::decode(packet.body).unwrap();
+    let connect = encode_server_packet(
+        PacketHeader {
+            flags: flags::CONNECT_RESPONSE,
+            ..PacketHeader::default()
+        },
+        &challenge.cookie.to_le_bytes(),
+        &[],
+        0,
+    )
+    .unwrap();
+    companion.send_to(&connect, worker.server_address).unwrap();
+    assert!(matches!(
+        event(&worker),
+        NetworkEvent::Terminated {
+            key: terminated,
+            reason: NetworkStopReason::Requested
+        } if terminated == key
+    ));
+    let deadline = Instant::now() + Duration::from_secs(3);
+    loop {
+        let (size, _) = companion.recv_from(&mut buffer).unwrap();
+        let packet = Datagram::decode(&buffer[..size]).unwrap();
+        if packet
+            .body
+            .windows(bytes.len())
+            .any(|window| window == bytes)
+        {
+            break;
+        }
+        assert!(Instant::now() < deadline);
+    }
+    worker.shutdown().unwrap();
+}
+
+#[test]
+fn banned_login_retains_a_fragmented_reason_after_cookie() {
+    let worker = start();
+    let client = socket();
+    let companion = socket();
+    client
+        .send_to(&login_packet(), worker.client_address)
+        .unwrap();
+    let key = match event(&worker) {
+        NetworkEvent::Login { key, .. } => key,
+        other => panic!("{other:?}"),
+    };
+    let reason = "source reason ".repeat(120);
+    let bytes = AccountControl::Banned {
+        seconds_remaining: 120,
+        reason: Some(&reason),
+    }
+    .encode()
+    .unwrap();
+    assert!(bytes.len() > CLIENT_DATAGRAM_LIMIT);
+    worker
+        .try_send(NetworkCommand::RejectBanned { key, bytes })
+        .unwrap();
+    let mut buffer = [0; 1025];
+    let (size, _) = client.recv_from(&mut buffer).unwrap();
+    let challenge =
+        ConnectRequest::decode(Datagram::decode(&buffer[..size]).unwrap().body).unwrap();
+    let connect = encode_server_packet(
+        PacketHeader {
+            flags: flags::CONNECT_RESPONSE,
+            ..PacketHeader::default()
+        },
+        &challenge.cookie.to_le_bytes(),
+        &[],
+        0,
+    )
+    .unwrap();
+    companion.send_to(&connect, worker.server_address).unwrap();
+    assert!(matches!(
+        event(&worker),
+        NetworkEvent::Terminated {
+            key: terminated,
+            reason: NetworkStopReason::Requested
+        } if terminated == key
+    ));
+    let mut fragments = 0;
+    while let Ok((size, _)) = companion.recv_from(&mut buffer) {
+        if Datagram::decode(&buffer[..size]).unwrap().header.flags & flags::BLOB_FRAGMENTS != 0 {
+            fragments += 1;
+        }
+        if fragments >= 2 {
+            break;
+        }
+    }
+    assert!(fragments >= 2);
+    worker.shutdown().unwrap();
+}
+#[test]
 fn real_udp_handshake_reliable_delivery_and_explicit_drain() {
     let worker = start();
     let client = socket();
@@ -129,10 +249,33 @@ fn real_udp_handshake_reliable_delivery_and_explicit_drain() {
         }
         assert!(Instant::now() < deadline);
     }
-    worker.terminate(key).unwrap();
+    let final_bytes = CharacterReply::Error(opcode::CharacterError::LogonServerFull)
+        .encode()
+        .unwrap();
+    worker
+        .try_send(NetworkCommand::TerminateAfterFlush {
+            key,
+            queue: 9,
+            bytes: final_bytes.clone(),
+        })
+        .unwrap();
     assert!(
         matches!(event(&worker),NetworkEvent::Terminated { key:k,reason:NetworkStopReason::Requested } if k==key)
     );
+    // Terminated is emitted only after the final bytes reach the UDP socket.
+    // This synthetic loopback peer is not stock-client qualification.
+    loop {
+        let (size, _) = companion.recv_from(&mut buffer).unwrap();
+        let packet = Datagram::decode(&buffer[..size]).unwrap();
+        if packet
+            .body
+            .windows(final_bytes.len())
+            .any(|v| v == final_bytes)
+        {
+            break;
+        }
+        assert!(Instant::now() < deadline);
+    }
     worker
         .try_send(NetworkCommand::DrainCompleted { key })
         .unwrap();
@@ -297,5 +440,145 @@ fn portal_origin_is_explicit_and_header_time_wraps_without_admitting_client_cloc
         datagram.header.time,
         PortalClock::header_time(challenge.server_time)
     );
+    worker.shutdown().unwrap();
+}
+
+fn connect(worker: &NetworkThread) -> (bace_session::SessionKey, UdpSocket, ConnectRequest) {
+    let client = socket();
+    let receiver = socket();
+    client
+        .send_to(&login_packet(), worker.client_address)
+        .unwrap();
+    let key = match event(worker) {
+        NetworkEvent::Login { key, .. } => key,
+        other => panic!("{other:?}"),
+    };
+    worker
+        .try_send(NetworkCommand::Authenticated {
+            key,
+            account_id: bace_types::AccountId(1),
+        })
+        .unwrap();
+    let mut buffer = [0; 1025];
+    let (size, _) = client.recv_from(&mut buffer).unwrap();
+    let challenge =
+        ConnectRequest::decode(Datagram::decode(&buffer[..size]).unwrap().body).unwrap();
+    let response = encode_server_packet(
+        PacketHeader {
+            flags: flags::CONNECT_RESPONSE,
+            ..Default::default()
+        },
+        &challenge.cookie.to_le_bytes(),
+        &[],
+        0,
+    )
+    .unwrap();
+    receiver.send_to(&response, worker.server_address).unwrap();
+    assert!(matches!(event(worker),NetworkEvent::Connected{key:k} if k==key));
+    (key, receiver, challenge)
+}
+#[test]
+fn mixed_batch_preserves_queues_and_intra_queue_order() {
+    let worker = start();
+    let (key, receiver, challenge) = connect(&worker);
+    let expected = vec![
+        (9, vec![0x10, 0, 0, 0]),
+        (10, vec![0x20, 0, 0, 0]),
+        (9, vec![0x30, 0, 0, 0]),
+    ];
+    worker
+        .try_send(NetworkCommand::SendReliableBatch {
+            key,
+            correlation: 17,
+            messages: expected.clone(),
+        })
+        .unwrap();
+    assert!(
+        matches!(event(&worker), NetworkEvent::ReliableBatchAdmission { key: k, correlation: 17, accepted: true } if k == key)
+    );
+    let mut incoming = ClientKeys::new(challenge.server_seed);
+    let mut received = Vec::new();
+    let mut buffer = [0; 1025];
+    while received.len() < 3 {
+        let (size, _) = receiver.recv_from(&mut buffer).unwrap();
+        let packet =
+            bace_transport::decode_transport_packet(&buffer[..size], &mut incoming).unwrap();
+        received.extend(
+            packet
+                .fragments
+                .into_iter()
+                .map(|f| (f.header.sequence, f.header.queue, f.data)),
+        );
+    }
+    received.sort_by_key(|m| m.0);
+    assert_eq!(
+        received
+            .into_iter()
+            .map(|(_, q, b)| (q, b))
+            .collect::<Vec<_>>(),
+        vec![
+            expected[0].clone(),
+            expected[2].clone(),
+            expected[1].clone()
+        ]
+    );
+    worker.shutdown().unwrap();
+}
+#[test]
+fn reliable_batch_rejection_is_correlated_and_does_not_admit_stale_generation() {
+    let worker = start();
+    let (key, _receiver, _challenge) = connect(&worker);
+    let stale = bace_session::SessionKey {
+        generation: key.generation + 1,
+        ..key
+    };
+    worker
+        .try_send(NetworkCommand::SendReliableBatch {
+            key: stale,
+            correlation: 91,
+            messages: vec![(9, vec![1, 0, 0, 0])],
+        })
+        .unwrap();
+    assert!(
+        matches!(event(&worker), NetworkEvent::ReliableBatchAdmission { key: k, correlation: 91, accepted: false } if k == stale)
+    );
+    worker
+        .try_send(NetworkCommand::SendReliableBatch {
+            key,
+            correlation: 92,
+            messages: vec![(9, vec![2, 0, 0, 0])],
+        })
+        .unwrap();
+    assert!(
+        matches!(event(&worker), NetworkEvent::ReliableBatchAdmission { key: k, correlation: 92, accepted: true } if k == key)
+    );
+    worker.shutdown().unwrap();
+}
+#[test]
+fn ordered_batch_admission_failure_closes_before_emitting_its_prefix() {
+    let worker = start();
+    let (key, receiver, challenge) = connect(&worker);
+    worker
+        .try_send(NetworkCommand::SendOrderedBatch {
+            key,
+            messages: vec![(9, vec![1, 0, 0, 0]), (12, vec![2, 0, 0, 0])],
+        })
+        .unwrap();
+    assert!(
+        matches!(event(&worker),NetworkEvent::Terminated{key:k,reason:NetworkStopReason::Overloaded} if k==key)
+    );
+    receiver
+        .set_read_timeout(Some(Duration::from_millis(100)))
+        .unwrap();
+    let mut buffer = [0; 1025];
+    let mut incoming = ClientKeys::new(challenge.server_seed);
+    while let Ok((size, _)) = receiver.recv_from(&mut buffer) {
+        let packet =
+            bace_transport::decode_transport_packet(&buffer[..size], &mut incoming).unwrap();
+        assert!(
+            packet.fragments.is_empty(),
+            "failed batch prefix must not leave peer"
+        );
+    }
     worker.shutdown().unwrap();
 }

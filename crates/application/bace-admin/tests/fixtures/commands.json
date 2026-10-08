@@ -1,0 +1,3001 @@
+{
+  "declarations": [
+    {
+      "name": "accountcreate",
+      "access": 5,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Creates a new account.",
+      "usage": "username password (accesslevel)\naccesslevel can be a number or enum name\n0 = Player | 1 = Advocate | 2 = Sentinel | 3 = Envoy | 4 = Developer | 5 = Admin"
+    },
+    {
+      "name": "accountget",
+      "access": 5,
+      "flags": 1,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Gets an account.",
+      "usage": "username"
+    },
+    {
+      "name": "set-accountaccess",
+      "access": 5,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Change the access level of an account.",
+      "usage": "accountname (accesslevel)\naccesslevel can be a number or enum name\n0 = Player | 1 = Advocate | 2 = Sentinel | 3 = Envoy | 4 = Developer | 5 = Admin"
+    },
+    {
+      "name": "set-accountpassword",
+      "access": 5,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Set the account password.",
+      "usage": "accountname newpassword\n"
+    },
+    {
+      "name": "passwd",
+      "access": 0,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Change your account password.",
+      "usage": "oldpassword newpassword\n"
+    },
+    {
+      "name": "adminvision",
+      "access": 2,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Allows the admin to see admin-only visible items.",
+      "usage": "{ on | off | toggle | check }\nControls whether or not the admin can see admin-only visible items. Note that if you turn this feature off, you will need to log out and back in before the visible items become invisible."
+    },
+    {
+      "name": "adminui",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "delete",
+      "access": 3,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Deletes the selected object.",
+      "usage": "Players may not be deleted this way."
+    },
+    {
+      "name": "draw",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "finger",
+      "access": 2,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Show the given character's account name or vice-versa.",
+      "usage": "[ [-a] character] [-m account]\nGiven a character name, this command displays the name of the owning account.\nIf the -m option is specified, the argument is considered an account name and the characters owned by that account are displayed.\nIf the -a option is specified, then the character name is fingered but their account is implicitly fingered as well."
+    },
+    {
+      "name": "freeze",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "unfreeze",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "gag",
+      "access": 2,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Prevents a character from talking.",
+      "usage": "< char name >\nThe character will not be able to @tell or use chat normally."
+    },
+    {
+      "name": "ungag",
+      "access": 2,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Allows a gagged character to talk again.",
+      "usage": "< char name >\nThe character will again be able to @tell and use chat normally."
+    },
+    {
+      "name": "home",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Teleports you to your sanctuary position.",
+      "usage": "< recall number > - Recalls to a saved position, valid values are 1 - 9.\nNOTE: Calling @home without a number recalls your sanctuary position; calling it with a number will teleport you to the corresponding saved position."
+    },
+    {
+      "name": "mrt",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Toggles the ability to bypass housing boundaries",
+      "usage": ""
+    },
+    {
+      "name": "limbo",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "myiid",
+      "access": 3,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays your Instance ID (IID)",
+      "usage": ""
+    },
+    {
+      "name": "myserver",
+      "access": 3,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "pk",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "sets your own PK state.",
+      "usage": "< npk / pk / pkl / free >\nThis command sets your current player killer state\nThis command also expects to be used '@cloak player' to properly reflect to other players\n< npk > You can only attack monsters.\n< pk > You can attack player killers and monsters.\n< pkl > You can attack player killer lites and monsters\n< free > You can attack players, player killers, player killer lites, monsters, and npcs"
+    },
+    {
+      "name": "querypluginlist",
+      "access": 3,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "queryplugin",
+      "access": 3,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "repeat",
+      "access": 2,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "regen",
+      "access": 3,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Sends the selected generator a regeneration message.",
+      "usage": ""
+    },
+    {
+      "name": "save",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Sets your sanctuary position or a named recall point.",
+      "usage": "< recall number > - Saves your position into the numbered recall, valid values are 1 - 9.\nNOTE: Calling @save without a number saves your sanctuary (Lifestone Recall) position."
+    },
+    {
+      "name": "serverlist",
+      "access": 3,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "snoop",
+      "access": 3,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "smite",
+      "access": 3,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Kills the selected target or all monsters in radar range if \"all\" is specified.",
+      "usage": "[all, Player's Name]"
+    },
+    {
+      "name": "teleto",
+      "access": 2,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Teleport yourself to a player",
+      "usage": "[Player's Name]\n"
+    },
+    {
+      "name": "teletome",
+      "access": 2,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Teleports a player to your current location.",
+      "usage": "PlayerName"
+    },
+    {
+      "name": "telereturn",
+      "access": 2,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Return a player to their previous location.",
+      "usage": "PlayerName"
+    },
+    {
+      "name": "teleallto",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Teleports all players to a player. If no target is specified, all players will be teleported to you.",
+      "usage": "[Player's Name]\n"
+    },
+    {
+      "name": "telepoi",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Teleport yourself to a named Point of Interest",
+      "usage": "[POI|list]\n@telepoi Arwic\nGet the list of POIs\n@telepoi list"
+    },
+    {
+      "name": "teleloc",
+      "access": 4,
+      "flags": 2,
+      "min_args": 4,
+      "include_raw": false,
+      "description": "Teleport yourself to the specified location.",
+      "usage": "cell [x y z] (qw qx qy qz)\n@teleloc follows the same number order as displayed from @loc output\nExample: @teleloc 0x7F0401AD [12.319900 -28.482000 0.005000] -0.338946 0.000000 0.000000 -0.940806\nExample: @teleloc 0x7F0401AD 12.319900 -28.482000 0.005000 -0.338946 0.000000 0.000000 -0.940806\nExample: @teleloc 7F0401AD 12.319900 -28.482000 0.005000"
+    },
+    {
+      "name": "time",
+      "access": 3,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays the server's current game time.",
+      "usage": ""
+    },
+    {
+      "name": "trophies",
+      "access": 3,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows a list of the trophies dropped by the target creature, and the percentage chance of dropping.",
+      "usage": ""
+    },
+    {
+      "name": "unlock",
+      "access": 3,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "gamecast",
+      "access": 3,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sends a world-wide broadcast.",
+      "usage": "<message>\nThis command sends a world-wide broadcast to everyone in the game. Text is prefixed with 'Broadcast from (admin-name)> '.\nSee Also: @gamecast, @gamecastemote, @gamecastlocal, @gamecastlocalemote."
+    },
+    {
+      "name": "addspell",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Adds the specified spell to your own spellbook.",
+      "usage": "<spellid>"
+    },
+    {
+      "name": "removespell",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Removes the specified spell to your own spellbook.",
+      "usage": "<spellid>"
+    },
+    {
+      "name": "adminhouse",
+      "access": 5,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "House management tools for admins.",
+      "usage": ""
+    },
+    {
+      "name": "bornagain",
+      "access": 5,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Restores a deleted character to an account.",
+      "usage": "deletedCharID(, newCharName)(, accountName)\nGiven the ID of a deleted character, this command restores that character to its owner.  (You can find the ID of a deleted character using the @finger command.)\nIf the deleted character's name has since been taken by a new character, you can specify a new name for the restored character as the second parameter.  (You can find if the name has been taken by also using the @finger command.)  Use a comma to separate the arguments.\nIf needed, you can specify an account name as a third parameter if the character should be restored to an account other than its original owner.  Again, use a comma between the arguments."
+    },
+    {
+      "name": "copychar",
+      "access": 4,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Copies an existing character into your character list.",
+      "usage": "< Existing Character Name >, < New Character Name >\nGiven the name of an existing character \"character name\", this command makes a copy of that character with the name \"copy name\" and places it into your character list."
+    },
+    {
+      "name": "create",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Creates an object or objects in the world.",
+      "usage": "<wcid or classname> (amount) (palette) (shade)\nThis will attempt to spawn the weenie you specify. If you include an amount to spawn, it will attempt to create that many of the object.\nStackable items will spawn in stacks of their max stack size. All spawns will be limited by the physics engine placement, which may prevent the number you specify from actually spawning.Be careful with large numbers, especially with ethereal weenies."
+    },
+    {
+      "name": "createliveops",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Creates an object or objects with lifespans in the world for live events.",
+      "usage": "<wcid or classname> (amount) (lifespan) (palette) (shade)\nThis will attempt to spawn the weenie you specify. If you include an amount to spawn, it will attempt to spawn that many of the object.\nStackable items will spawn in stacks of their max stack size. All spawns will be limited by the physics engine placement, which may prevent the number you specify from actually spawning.\nBe careful with large numbers, especially with ethereal weenies.\nIf you include a lifespan, this value is in seconds, and defaults to 3600 (1 hour) if not specified."
+    },
+    {
+      "name": "createnamed",
+      "access": 4,
+      "flags": 2,
+      "min_args": 3,
+      "include_raw": false,
+      "description": "Creates a named object in the world.",
+      "usage": "<wcid or classname> <count> <name>"
+    },
+    {
+      "name": "ci",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Creates an object in your inventory.",
+      "usage": "wclassid (string or number), Amount to Spawn (optional [default:1]), Palette (optional), Shade (optional)\n"
+    },
+    {
+      "name": "crack",
+      "access": 3,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Cracks the most recently appraised locked target.",
+      "usage": "[. open it too]"
+    },
+    {
+      "name": "deathxp",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays how much experience the last appraised creature is worth when killed.",
+      "usage": ""
+    },
+    {
+      "name": "de_n",
+      "access": 4,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Sends text to named player, formatted exactly as entered.",
+      "usage": "<name>, <text>"
+    },
+    {
+      "name": "direct_emote_name",
+      "access": 4,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Sends text to named player, formatted exactly as entered.",
+      "usage": "<name>, <text>"
+    },
+    {
+      "name": "de_s",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sends text to selected player, formatted exactly as entered, with no prefix of any kind.",
+      "usage": "<text>"
+    },
+    {
+      "name": "direct_emote_select",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sends text to selected player, formatted exactly as entered, with no prefix of any kind.",
+      "usage": "<text>"
+    },
+    {
+      "name": "dispel",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Removes all enchantments from the player",
+      "usage": "/dispel"
+    },
+    {
+      "name": "event",
+      "access": 4,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Maniuplates the state of an event",
+      "usage": "[ start | stop | disable | enable | clear | status ] (name)\n@event clear < name > - clears event with name <name> or all events if you put in 'all' (All clears registered generators, <name> does not)\n@event status <eventSubstring> - get the status of all registered events or get all of the registered events that have <eventSubstring> in the name."
+    },
+    {
+      "name": "fumble",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "god",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Turns current character into a god!",
+      "usage": "Sets attributes and skills to higher than max levels.\nTo return to a mortal state, use the /ungod command.\nUse the /god command with caution. While unlikely, there is a possibility that the character that runs the command will not be able to return to normal or will end up in a state that is unrecoverable."
+    },
+    {
+      "name": "ungod",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Returns character to a mortal state.",
+      "usage": "Sets attributes and skills back to the values they were when you became a god.\nIf the command fails to revert your state it will default to godmode.\nIn the event of failure, contact a server administrator to sort it out."
+    },
+    {
+      "name": "magic god",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "modifyvital",
+      "access": 5,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Adjusts the maximum vital attribute for the last appraised mob/player and restores full vitals",
+      "usage": "<Health|Stamina|Mana> <delta>"
+    },
+    {
+      "name": "modifyskill",
+      "access": 5,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Adjusts the skill for the last appraised mob/player",
+      "usage": "<skillName> <delta>"
+    },
+    {
+      "name": "modifyattr",
+      "access": 5,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Adjusts an attribute for the last appraised mob/NPC/player",
+      "usage": "<attribute> <delta>"
+    },
+    {
+      "name": "heal",
+      "access": 3,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Heals yourself (or the selected creature)",
+      "usage": "\nThis command fully restores your(or the selected creature's) health, mana, and stamina"
+    },
+    {
+      "name": "housekeep",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "idlist",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows the next ID that will be allocated from GuidManager.",
+      "usage": ""
+    },
+    {
+      "name": "gamecastlocalemote",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sends text to all players within chat range, formatted exactly as entered.",
+      "usage": "<message>\nSends text to all players within chat range, formatted exactly as entered, with no prefix of any kind.\nSee Also: @gamecast, @gamecastemote, @gamecastlocal, @gamecastlocalemote."
+    },
+    {
+      "name": "location",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "morph",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Morphs your bodily form into that of the specified creature. Be careful with this one!",
+      "usage": "<wcid or weenie class name> [character name]"
+    },
+    {
+      "name": "qst",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Query, stamp, and erase quests on the targeted player",
+      "usage": "(fellow) [list | bestow | erase]\nqst list - List the quest flags for the targeted player\nqst bestow - Stamps the specific quest flag on the targeted player. If this fails, it's probably because you spelled the quest flag wrong.\nqst stamp - Stamps the specific quest flag on the targeted player the specified number of times. If this fails, it's probably because you spelled the quest flag wrong.\nqst erase - Erase the specific quest flag from the targeted player. If no quest flag is given, it erases the entire quest table for the targeted player.\n"
+    },
+    {
+      "name": "raise",
+      "access": 4,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "rename",
+      "access": 3,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Rename a character. (Do NOT include +'s for admin names)",
+      "usage": "< Current Name >, < New Name >"
+    },
+    {
+      "name": "setadvclass",
+      "access": 4,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "spendxp",
+      "access": 4,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "trainskill",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "reloadsysmsg",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "gamecastlocal",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sends a server-wide broadcast.",
+      "usage": "<message>\nThis command sends the specified text to every player on the current server.\nSee Also: @gamecast, @gamecastemote, @gamecastlocal, @gamecastlocalemote."
+    },
+    {
+      "name": "sticky",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Sets whether you lose items should you die.",
+      "usage": "<off/on>"
+    },
+    {
+      "name": "userlimit",
+      "access": 5,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "watchmen",
+      "access": 5,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays a list of accounts with the specified level of admin access.",
+      "usage": "(accesslevel)"
+    },
+    {
+      "name": "gamecastemote",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sends text to all players, formatted exactly as entered.",
+      "usage": "<message>\nSee Also: @gamecast, @gamecastemote, @gamecastlocal, @gamecastlocalemote."
+    },
+    {
+      "name": "we",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sends text to all players, formatted exactly as entered.",
+      "usage": "<message>\nSee Also: @gamecast, @gamecastemote, @gamecastlocal, @gamecastlocalemote."
+    },
+    {
+      "name": "dumpattackers",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "knownobjs",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "lbinterval",
+      "access": 5,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "lbthresh",
+      "access": 5,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "radar",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "rares dump",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "stormnumstormed",
+      "access": 5,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "stormthresh",
+      "access": 5,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "showprops",
+      "access": 5,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays the name of all properties configurable via the modify commands",
+      "usage": ""
+    },
+    {
+      "name": "modifybool",
+      "access": 5,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Modifies a server property that is a bool",
+      "usage": "modifybool (string) (bool)"
+    },
+    {
+      "name": "fetchbool",
+      "access": 5,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Fetches a server property that is a bool",
+      "usage": "fetchbool (string)"
+    },
+    {
+      "name": "modifylong",
+      "access": 5,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Modifies a server property that is a long",
+      "usage": "modifylong (string) (long)"
+    },
+    {
+      "name": "fetchlong",
+      "access": 5,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Fetches a server property that is a long",
+      "usage": "fetchlong (string)"
+    },
+    {
+      "name": "modifydouble",
+      "access": 5,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Modifies a server property that is a double",
+      "usage": "modifyfloat (string) (double)"
+    },
+    {
+      "name": "fetchdouble",
+      "access": 5,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Fetches a server property that is a double",
+      "usage": "fetchdouble (string)"
+    },
+    {
+      "name": "modifystring",
+      "access": 5,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Modifies a server property that is a string",
+      "usage": "modifystring (string) (string)"
+    },
+    {
+      "name": "fetchstring",
+      "access": 5,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Fetches a server property that is a string",
+      "usage": "fetchstring (string)"
+    },
+    {
+      "name": "modifypropertydesc",
+      "access": 5,
+      "flags": 0,
+      "min_args": 3,
+      "include_raw": false,
+      "description": "Modifies a server property's description",
+      "usage": "modifypropertydesc <STRING|BOOL|DOUBLE|LONG> (string) (string)"
+    },
+    {
+      "name": "resyncproperties",
+      "access": 5,
+      "flags": 0,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Resync the properties database",
+      "usage": ""
+    },
+    {
+      "name": "fix-allegiances",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Fixes the monarch data for allegiances",
+      "usage": ""
+    },
+    {
+      "name": "show-allegiances",
+      "access": 5,
+      "flags": 0,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows all of the allegiance chains on the server.",
+      "usage": ""
+    },
+    {
+      "name": "getenchantments",
+      "access": 5,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows the enchantments for the last appraised item",
+      "usage": ""
+    },
+    {
+      "name": "cm",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Create a salvage bag in your inventory",
+      "usage": "<material_type>, optional: <structure> <workmanship> <num_items>"
+    },
+    {
+      "name": "cisalvage",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Create a salvage bag in your inventory",
+      "usage": "<material_type>, optional: <structure> <workmanship> <num_items>"
+    },
+    {
+      "name": "setlbenviron",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Sets or clears your current landblock's environment option",
+      "usage": "(name or id of EnvironChangeType)\nleave blank to reset to default.\nlist to get a complete list of options."
+    },
+    {
+      "name": "setglobalenviron",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Sets or clears server's global environment option",
+      "usage": "(name or id of EnvironChangeType)\nleave blank to reset to default.\nlist to get a complete list of options."
+    },
+    {
+      "name": "movetome",
+      "access": 5,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Moves the last appraised object to the current player location.",
+      "usage": ""
+    },
+    {
+      "name": "reload-loot-tables",
+      "access": 5,
+      "flags": 0,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "reloads the latest data from the loot tables",
+      "usage": "optional profile folder"
+    },
+    {
+      "name": "cancel-shutdown",
+      "access": 5,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Stops an active server shutdown.",
+      "usage": ""
+    },
+    {
+      "name": "set-shutdown-interval",
+      "access": 5,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Changes the delay, in seconds, before the server will shutdown.",
+      "usage": "< 0-99999 > in seconds"
+    },
+    {
+      "name": "stop-now",
+      "access": 5,
+      "flags": 0,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shuts the server down, immediately!",
+      "usage": "\nThis command will attempt to safely logoff all players, before shutting down the server."
+    },
+    {
+      "name": "shutdown",
+      "access": 5,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Begins the server shutdown process. Optionally displays a shutdown message, if a string is passed.",
+      "usage": "< Optional Shutdown Message >\n\tUse @cancel-shutdown to abort an active shutdown!\n\tSet the shutdown delay in seconds with @set-shutdown-interval < 0-99999 >"
+    },
+    {
+      "name": "world",
+      "access": 5,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Open or Close world to player access.",
+      "usage": "[open | close] <boot>\nIf closing world, using @world close boot will force players to logoff immediately"
+    },
+    {
+      "name": "allstats",
+      "access": 1,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays a summary of all server statistics and usage",
+      "usage": ""
+    },
+    {
+      "name": "serverstatus",
+      "access": 1,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays a summary of server statistics and usage",
+      "usage": ""
+    },
+    {
+      "name": "serverperformance",
+      "access": 1,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays a summary of server performance statistics",
+      "usage": ""
+    },
+    {
+      "name": "landblockperformance",
+      "access": 1,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays a summary of landblock performance statistics",
+      "usage": ""
+    },
+    {
+      "name": "landblockstats",
+      "access": 1,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays a summary of landblock performance statistics",
+      "usage": ""
+    },
+    {
+      "name": "lbgroupstats",
+      "access": 1,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays a summary of landblock group stats",
+      "usage": ""
+    },
+    {
+      "name": "gcstatus",
+      "access": 1,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays a summary of server GC Information",
+      "usage": ""
+    },
+    {
+      "name": "attackable",
+      "access": 1,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sets whether monsters will attack you or not.",
+      "usage": "[ on | off ]\nThis command sets whether monsters will attack you unprovoked.\n When turned on, monsters will attack you as if you are a normal player.\n When turned off, monsters will ignore you."
+    },
+    {
+      "name": "bestow",
+      "access": 1,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Sets a character's Advocate Level.",
+      "usage": "<name> <level>\nAdvocates can bestow any level less than their own."
+    },
+    {
+      "name": "remove",
+      "access": 1,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Removes the specified character from the Advocate ranks.",
+      "usage": "<character name>\nAdvocates can remove Advocate status for any Advocate of lower level than their own."
+    },
+    {
+      "name": "tele",
+      "access": 1,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Teleports you(or a player) to some location.",
+      "usage": "[name] <longitude> <latitude>\nExample: /tele 0n0w\nExample: /tele plats4days 37s,67w\nThis command teleports yourself (or the specified character) to the given longitude and latitude."
+    },
+    {
+      "name": "set-characteraccess",
+      "access": 5,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sets the access level for the character",
+      "usage": "charactername (accesslevel)\naccesslevel can be a number or enum name\n0 = Player | 1 = Advocate | 2 = Sentinel | 3 = Envoy | 4 = Developer | 5 = Admin"
+    },
+    {
+      "name": "deletecharacter",
+      "access": 5,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Deletes a character and removes it from players restore list",
+      "usage": "[character name]\nGiven the name of a character, this command deletes that character, booting it if in game, and removes it from character's restore list.  (You can find the name for a character using the @finger command.)\n"
+    },
+    {
+      "name": "version",
+      "access": 5,
+      "flags": 1,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Show server version information.",
+      "usage": ""
+    },
+    {
+      "name": "exit",
+      "access": 5,
+      "flags": 1,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shut down server immediately.",
+      "usage": ""
+    },
+    {
+      "name": "cell-export",
+      "access": 5,
+      "flags": 1,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Export contents of CELL DAT file.",
+      "usage": "<export-directory-without-spaces>"
+    },
+    {
+      "name": "portal-export",
+      "access": 5,
+      "flags": 1,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Export contents of PORTAL DAT file.",
+      "usage": "<export-directory-without-spaces>"
+    },
+    {
+      "name": "highres-export",
+      "access": 5,
+      "flags": 1,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Export contents of client_highres.dat file.",
+      "usage": "<export-directory-without-spaces>"
+    },
+    {
+      "name": "language-export",
+      "access": 5,
+      "flags": 1,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Export contents of client_local_English.dat file.",
+      "usage": "<export-directory-without-spaces>"
+    },
+    {
+      "name": "wave-export",
+      "access": 5,
+      "flags": 1,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Export Wave Files",
+      "usage": ""
+    },
+    {
+      "name": "image-export",
+      "access": 5,
+      "flags": 1,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Export Texture/Image Files",
+      "usage": ""
+    },
+    {
+      "name": "nudge",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Correct player position cell ID after teleporting into black space.",
+      "usage": ""
+    },
+    {
+      "name": "fixbusy",
+      "access": 0,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Attempts to remove the hourglass / fix the busy state for the player",
+      "usage": ""
+    },
+    {
+      "name": "equiptest",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Simulates equipping a new item to your character, replacing all other items.",
+      "usage": ""
+    },
+    {
+      "name": "netstats",
+      "access": 4,
+      "flags": 0,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "View network statistics",
+      "usage": ""
+    },
+    {
+      "name": "listcb",
+      "access": 4,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "List Clothing Tables available",
+      "usage": ""
+    },
+    {
+      "name": "echo",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Send text back to yourself.",
+      "usage": "\"text to send back to yourself\" [ChatMessageType]\nChatMessageType can be a uint or enum name"
+    },
+    {
+      "name": "playsound",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Plays a sound.",
+      "usage": "sound (volume) (guid)\nSound can be uint or enum name\nVolume and source guid are optional"
+    },
+    {
+      "name": "effect",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Plays an effect.",
+      "usage": "effect (float)\nEffect can be uint or enum namefloat is scale level"
+    },
+    {
+      "name": "chatdump",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Spews 1000 lines of text to you.",
+      "usage": ""
+    },
+    {
+      "name": "animation",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Plays an animation on the current player, or optionally another object",
+      "usage": "MotionCommand (optional target guid)\n"
+    },
+    {
+      "name": "movement",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Movement testing command, to be removed soon",
+      "usage": ""
+    },
+    {
+      "name": "MoveTo",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Used to test the MoveToObject message.   It will spawn a training wand in front of you and then move to that object.",
+      "usage": "moveto\noptional parameter distance if omitted 10f"
+    },
+    {
+      "name": "barbershop",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Displays the barber ui",
+      "usage": ""
+    },
+    {
+      "name": "listplayers",
+      "access": 4,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays all of the active players connected too the server.",
+      "usage": ""
+    },
+    {
+      "name": "save-now",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Saves your session.",
+      "usage": ""
+    },
+    {
+      "name": "loadalllandblocks",
+      "access": 4,
+      "flags": 0,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Loads all Landblocks. This is VERY crude. Do NOT use it on a live server!!! It will likely crash the server.  Landblock resources will be loaded async and will continue to do work even after all landblocks have been loaded.",
+      "usage": ""
+    },
+    {
+      "name": "propertydump",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Lists all properties for the last world object you examined.",
+      "usage": ""
+    },
+    {
+      "name": "whoami",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows you your GUIDs.",
+      "usage": ""
+    },
+    {
+      "name": "echoflags",
+      "access": 4,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Echo flags back to you",
+      "usage": "[type to test] [int]\n"
+    },
+    {
+      "name": "setcoin",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Set Coin display debug only usage",
+      "usage": ""
+    },
+    {
+      "name": "telexyz",
+      "access": 4,
+      "flags": 2,
+      "min_args": 8,
+      "include_raw": false,
+      "description": "Teleport to a location.",
+      "usage": "cell x y z qx qy qz qw\nall parameters must be specified and cell must be in decimal form"
+    },
+    {
+      "name": "teletype",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Teleport to a saved character position.",
+      "usage": "uint 0-22\n@teletype 1"
+    },
+    {
+      "name": "listpositions",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays all available saved character positions from the database.",
+      "usage": ""
+    },
+    {
+      "name": "setposition",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Saves the supplied character position type to the database.",
+      "usage": "uint 1-27\n@setposition 1"
+    },
+    {
+      "name": "gps",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Display location.",
+      "usage": ""
+    },
+    {
+      "name": "addtitle",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Add title to yourself",
+      "usage": "[titleid]"
+    },
+    {
+      "name": "addalltitles",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Add all titles to yourself",
+      "usage": ""
+    },
+    {
+      "name": "grantxp",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Give XP to yourself (or the specified character).",
+      "usage": "ulong\n@grantxp [name] 191226310247 is max level 275"
+    },
+    {
+      "name": "grantluminance",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Give luminance to yourself (or the specified character).",
+      "usage": "ulong\n@grantluminance [name] 1500000 is max luminance"
+    },
+    {
+      "name": "grantitemxp",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Give item XP to the last appraised item.",
+      "usage": ""
+    },
+    {
+      "name": "spendallxp",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Spend all available XP on Attributes, Vitals and Skills.",
+      "usage": ""
+    },
+    {
+      "name": "setvital",
+      "access": 4,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Sets the specified vital to a specified value",
+      "usage": "Usage: @setvital <vital> <value>\n<vital> is one of the following strings:\n    health, hp\n    stamina, stam, sp\n    mana, mp\n<value> is an integral value [0-9]+, or a relative value [-+][0-9]+"
+    },
+    {
+      "name": "sethealth",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "sets your current health to a specific value.",
+      "usage": "ushort"
+    },
+    {
+      "name": "harmself",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Sets all player vitals to 1",
+      "usage": ""
+    },
+    {
+      "name": "weapons",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Creates testing items in your inventory.",
+      "usage": ""
+    },
+    {
+      "name": "inv",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Creates sample items, foci and containers in your inventory.",
+      "usage": ""
+    },
+    {
+      "name": "splits",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Creates some stackable items in your inventory for testing.",
+      "usage": ""
+    },
+    {
+      "name": "comps",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Creates spell component items in your inventory for testing.",
+      "usage": ""
+    },
+    {
+      "name": "food",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Creates some food items in your inventory for testing.",
+      "usage": ""
+    },
+    {
+      "name": "currency",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Creates some currency items in your inventory for testing.",
+      "usage": ""
+    },
+    {
+      "name": "cirand",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Creates random objects in your inventory.",
+      "usage": "type (string or number) <num to create> defaults to 10 if omitted, max 50"
+    },
+    {
+      "name": "addallspells",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Adds all known spells to your own spellbook.",
+      "usage": ""
+    },
+    {
+      "name": "getspellformula",
+      "access": 4,
+      "flags": 1,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Tests spell formula calculation",
+      "usage": ""
+    },
+    {
+      "name": "getallspellformula",
+      "access": 4,
+      "flags": 1,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Tests spell formula calculation",
+      "usage": ""
+    },
+    {
+      "name": "readdat",
+      "access": 4,
+      "flags": 1,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Tests reading the client_portal.dat",
+      "usage": ""
+    },
+    {
+      "name": "contract",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Query, stamp, and erase contracts on the targeted player",
+      "usage": "[list | bestow | erase]\ncontract list - List the contracts for the targeted player\ncontract bestow - Stamps the specific contract on the targeted player. If this fails, it's probably because the contract is invalid.\ncontract erase - Erase the specific contract from the targeted player. If no quest flag is given, it erases the entire contract table for the targeted player.\n"
+    },
+    {
+      "name": "turnto",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Turns the last appraised object to the player",
+      "usage": "turnto"
+    },
+    {
+      "name": "debugmove",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Toggles movement debugging for the last appraised monster",
+      "usage": "<on/off>"
+    },
+    {
+      "name": "lostest",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Tests for direct visibilty with latest appraised object",
+      "usage": ""
+    },
+    {
+      "name": "showstats",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows a list of a creature's current attribute/skill levels",
+      "usage": "showstats"
+    },
+    {
+      "name": "givemana",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Gives mana to the last appraised object",
+      "usage": "<amount>"
+    },
+    {
+      "name": "dist",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Returns the distance to the last appraised object",
+      "usage": ""
+    },
+    {
+      "name": "teledist",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Teleports a some distance ahead of the last object spawned",
+      "usage": "<distance>"
+    },
+    {
+      "name": "knownobjs",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows the list of objects currently known to an object",
+      "usage": "<optional guid, or optional 'target' for last appraisal target>"
+    },
+    {
+      "name": "visibleobjs",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows the list of objects currently visible to an object",
+      "usage": "<optional guid, or optional 'target' for last appraisal target>"
+    },
+    {
+      "name": "knownplayers",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows the list of players known to an object",
+      "usage": "<optional guid, or optional 'target' for last appraisal target>"
+    },
+    {
+      "name": "visibleplayers",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows the list of players visible to a player",
+      "usage": "<optional guid, or optional 'target' for last appraisal target>"
+    },
+    {
+      "name": "visibletargets",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows the list of targets currently visible to a monster",
+      "usage": "<optional guid, or optional 'target' for last appraisal target>"
+    },
+    {
+      "name": "retaliatetargets",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows the list of retaliate targets for a monster",
+      "usage": "<optional guid, or optional 'target' for last appraisal target>"
+    },
+    {
+      "name": "destructionqueue",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows the list of previously visible objects queued for destruction for a player",
+      "usage": "<optional guid, or optional 'target' for last appraisal target>"
+    },
+    {
+      "name": "debugemote",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Enables emote debugging for the last appraised object",
+      "usage": ""
+    },
+    {
+      "name": "myloc",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shows the current player location, from the server perspective",
+      "usage": ""
+    },
+    {
+      "name": "getproperty",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Gets a property for the last appraised object",
+      "usage": "<property>"
+    },
+    {
+      "name": "setproperty",
+      "access": 4,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Sets a property for the last appraised object",
+      "usage": "<property> <value>"
+    },
+    {
+      "name": "setpurchasetime",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Sets the house purchase time for this player",
+      "usage": ""
+    },
+    {
+      "name": "debugdamage",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Toggles the display for player damage info",
+      "usage": "<attack|defense|all|on|off>"
+    },
+    {
+      "name": "enable-aetheria",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Enables the aetheria slots for the player",
+      "usage": ""
+    },
+    {
+      "name": "debugchess",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows the chess move history for a player",
+      "usage": ""
+    },
+    {
+      "name": "debugboard",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows the current chess board state",
+      "usage": ""
+    },
+    {
+      "name": "teledungeon",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Teleport to a dungeon",
+      "usage": "<dungeon name or landblock>"
+    },
+    {
+      "name": "dungeonname",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows the dungeon name for the current landblock",
+      "usage": ""
+    },
+    {
+      "name": "clearphysicscaches",
+      "access": 4,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Clears Physics Object Caches",
+      "usage": ""
+    },
+    {
+      "name": "forcegc",
+      "access": 4,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Forces .NET Garbage Collection",
+      "usage": ""
+    },
+    {
+      "name": "forcegc2",
+      "access": 4,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Forces .NET Garbage Collection with LOH Compact",
+      "usage": ""
+    },
+    {
+      "name": "auditobjectmaint",
+      "access": 4,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Iterates over physics objects to find leaks",
+      "usage": ""
+    },
+    {
+      "name": "lootgen",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Generate a piece of loot from the LootGenerationFactory.",
+      "usage": "<wcid or classname> <tier>"
+    },
+    {
+      "name": "ciloot",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Generates randomized loot in player's inventory",
+      "usage": "<tier> optional: <# items>"
+    },
+    {
+      "name": "makeiou",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Make an IOU and put it in your inventory",
+      "usage": "<wcid>"
+    },
+    {
+      "name": "testdeathitems",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Test death item selection",
+      "usage": ""
+    },
+    {
+      "name": "forcelogout",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Force log off of specified character or last appraised character",
+      "usage": ""
+    },
+    {
+      "name": "forcelogoff",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Force log off of specified character or last appraised character",
+      "usage": ""
+    },
+    {
+      "name": "showsession",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Show IP and ID for network session of last appraised character",
+      "usage": ""
+    },
+    {
+      "name": "requirecomps",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sets whether spell components are required to cast spells.",
+      "usage": "[ on | off ]\nThis command sets whether spell components are required to cast spells..\n When turned on, spell components are required.\n When turned off, spell components are ignored."
+    },
+    {
+      "name": "safecomps",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Enables / disables spell component burning",
+      "usage": "<on/off>"
+    },
+    {
+      "name": "additemspell",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Adds a spell to the last appraised item's spellbook.",
+      "usage": "<spell id>"
+    },
+    {
+      "name": "removeitemspell",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Removes a spell to the last appraised item's spellbook.",
+      "usage": "<spell id>"
+    },
+    {
+      "name": "pktimer",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Sets your PK timer to the current time",
+      "usage": ""
+    },
+    {
+      "name": "fellow-info",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows debug info for fellowships.",
+      "usage": ""
+    },
+    {
+      "name": "fellow-dist",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows distance to each fellowship member",
+      "usage": ""
+    },
+    {
+      "name": "generatordump",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Lists all properties for the last generator you examined.",
+      "usage": ""
+    },
+    {
+      "name": "purchase-house",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Instantly purchase the house for the last appraised covenant crystal.",
+      "usage": ""
+    },
+    {
+      "name": "barrier-test",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows debug information for house barriers",
+      "usage": ""
+    },
+    {
+      "name": "targetloc",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows the location of the last appraised object",
+      "usage": ""
+    },
+    {
+      "name": "damagehistory",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "remove-vitae",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Removes vitae from last appraised player",
+      "usage": ""
+    },
+    {
+      "name": "fast",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "slow",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "rip",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "resist-info",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows the resistance info for the last appraised creature.",
+      "usage": ""
+    },
+    {
+      "name": "debugspell",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Toggles spell projectile debugging info",
+      "usage": ""
+    },
+    {
+      "name": "recordcast",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Records spell casting keypresses to server for debugging",
+      "usage": ""
+    },
+    {
+      "name": "pscript",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "getinfo",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows basic info for the last appraised object.",
+      "usage": ""
+    },
+    {
+      "name": "testaim",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Tests the aim high/low motions, and projectile spawn position",
+      "usage": ""
+    },
+    {
+      "name": "reload-landblock",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Reloads the current landblock.",
+      "usage": ""
+    },
+    {
+      "name": "showvelocity",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows the velocity of the last appraised object.",
+      "usage": ""
+    },
+    {
+      "name": "bumpvelocity",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Bumps the velocity of the last appraised object.",
+      "usage": ""
+    },
+    {
+      "name": "check-collision",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Checks if the player is currently colliding with any other objects.",
+      "usage": ""
+    },
+    {
+      "name": "faction",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "sets your own faction state.",
+      "usage": "< none / ch / ew / rb > (rank)\nThis command sets your current faction state\n< none > No Faction\n< ch > Celestial Hand\n< ew > Eldrytch Web\n< rb > Radiant Blood\n(rank) 1 = Initiate | 2 = Adept | 3 = Knight | 4 = Lord | 5 = Master"
+    },
+    {
+      "name": "showtier",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows the DeathTreasure tier for the last appraised monster",
+      "usage": ""
+    },
+    {
+      "name": "tiermobs",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Shows a list of monsters for a particular tier #",
+      "usage": "tier"
+    },
+    {
+      "name": "delevel",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Attempts to delevel the current player. Requires enough unassigned xp and unspent skill credits.",
+      "usage": "new level"
+    },
+    {
+      "name": "monsterspell",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "The last appraised creature casts a spell. For targeted spells, defaults to the current player.",
+      "usage": "optional target guid"
+    },
+    {
+      "name": "debugspellbook",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows the spellbook for the last appraised object",
+      "usage": ""
+    },
+    {
+      "name": "trywield",
+      "access": 4,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "show-wielded-treasure",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Shows the WieldedTreasure table for a Creature",
+      "usage": "wcid"
+    },
+    {
+      "name": "ciaetheria",
+      "access": 4,
+      "flags": 2,
+      "min_args": 4,
+      "include_raw": false,
+      "description": "Spawns an Aetheria in the player's inventory",
+      "usage": "[color] [set] [surge] [level]\nColor: Blue, Yellow, Red\nSet: Defense, Destruction, Fury, Growth, Vigor\nSurge: Destruction, Protection, Regeneration, Affliction, Festering\nLevel: 1 - 5"
+    },
+    {
+      "name": "vendordump",
+      "access": 4,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Lists all properties for the last vendor you examined.",
+      "usage": ""
+    },
+    {
+      "name": "castspell",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Casts a spell on the last appraised object",
+      "usage": "spell id"
+    },
+    {
+      "name": "usewith",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Uses specified object on last appraised object",
+      "usage": "guid"
+    },
+    {
+      "name": "portalstorm",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Tests starting a portal storm on yourself",
+      "usage": "storm_level [0=Brewing, 1=Imminent, 2=Stormed, 3=Subsided]"
+    },
+    {
+      "name": "import-json",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Imports json data from the Content folder",
+      "usage": "<type> <wcid>\n<type> - landblock, quest, recipe, spell, weenie (default if not specified)\n<wcid> - filename prefix to search for. can be 'all' to import all files for this content type"
+    },
+    {
+      "name": "import-sql-folders",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Imports all weenie sql data from the Content folder and all sub-folders",
+      "usage": "<wcid>\n<wcid> - wcid prefix to search for. can be 'all' to import everything"
+    },
+    {
+      "name": "import-sql",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Imports sql data from the Content folder",
+      "usage": "<type> <wcid>\n<type> - landblock, encounter, quest, recipe, spell, weenie (default if not specified)\n<wcid> - filename prefix to search for. can be 'all' to import all files for this content type"
+    },
+    {
+      "name": "createinst",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Spawns a new wcid or classname as a landblock instance",
+      "usage": "<wcid or classname>\n\nTo create a parent/child relationship: /createinst -p <parent guid> -c <wcid or classname>\nTo automatically get the parent guid from the last appraised object: /createinst -p -c <wcid or classname>\n\nTo manually specify a start guid: /createinst <wcid or classname> <start guid>\nStart guids can be in the range 0x000-0xFFF, or they can be prefixed with 0x7<landblock id>"
+    },
+    {
+      "name": "removeinst",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Removes the last appraised object from the current landblock instances",
+      "usage": ""
+    },
+    {
+      "name": "addenc",
+      "access": 4,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Spawns a new wcid or classname in the current outdoor cell as an encounter",
+      "usage": "<wcid or classname>"
+    },
+    {
+      "name": "removeenc",
+      "access": 4,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Removes the last appraised object from the encounters table",
+      "usage": ""
+    },
+    {
+      "name": "export-json-folders",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Exports content from database to JSON file in a WeenieType/ItemType folder structure",
+      "usage": "<wcid>"
+    },
+    {
+      "name": "export-json",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Exports content from database to JSON file",
+      "usage": "<optional type> <id>\n<optional type> - landblock, quest, recipe, spell, weenie (default if not specified)\n<id> - wcid or content id to export"
+    },
+    {
+      "name": "export-sql-folders",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Exports weenie content from database to an SQL file in a WeenieType/ItemType folder structure",
+      "usage": "<wcid>"
+    },
+    {
+      "name": "export-sql",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Exports content from database to SQL file",
+      "usage": "<optional type> <id>\n<optional type> - landblock, encounter, event, quest, recipe, spell, weenie (default if not specified)\n<id> - wcid or content id to export"
+    },
+    {
+      "name": "clearcache",
+      "access": 4,
+      "flags": 0,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Clears the various database caches. This enables live editing of the database information",
+      "usage": ""
+    },
+    {
+      "name": "nudge",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Adjusts the spawn position of a landblock instance",
+      "usage": "<dir> <amount>\nDirections: x, y, z, north, south, west, east, northwest, northeast, southwest, southeast, n, s, w, e, nw, ne, sw, se, up, down, here"
+    },
+    {
+      "name": "rotate",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Adjusts the rotation of a landblock instance",
+      "usage": "<dir>\nDirections: north, south, west, east, northwest, northeast, southwest, southeast, n, s, w, e, nw, ne, sw, se, -or-\n0-360, with 0 being north, and 90 being west"
+    },
+    {
+      "name": "rotate-x",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Adjusts the rotation of a landblock instance along the x-axis",
+      "usage": "<degrees>"
+    },
+    {
+      "name": "rotate-y",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Adjusts the rotation of a landblock instance along the y-axis",
+      "usage": "<degrees>"
+    },
+    {
+      "name": "rotate-z",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Adjusts the rotation of a landblock instance along the z-axis",
+      "usage": "<degrees>"
+    },
+    {
+      "name": "generate-classnames",
+      "access": 4,
+      "flags": 0,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Generates WeenieClassName.cs from current world database",
+      "usage": ""
+    },
+    {
+      "name": "vloc2loc",
+      "access": 4,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Output a set of LOCs for a given landblock found in the VLOCS dataset",
+      "usage": "<LandblockID>\nExample: @vloc2loc 0x0007\n         @vloc2loc 0xCE95"
+    },
+    {
+      "name": "databasequeueinfo",
+      "access": 4,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Show database queue information.",
+      "usage": ""
+    },
+    {
+      "name": "databaseperftest",
+      "access": 4,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Test server/database performance.",
+      "usage": "biotasPerTest\noptional parameter biotasPerTest if omitted 1000"
+    },
+    {
+      "name": "fix-shortcut-bars",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Fixes the players with duplicate items on their shortcut bars.",
+      "usage": "<execute>"
+    },
+    {
+      "name": "database-shard-cache-pbrt",
+      "access": 4,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shard Database, Player Biota Cache - Retention Time (in minutes)",
+      "usage": ""
+    },
+    {
+      "name": "database-shard-cache-npbrt",
+      "access": 4,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Shard Database, Non-Player Biota Cache - Retention Time (in minutes)",
+      "usage": ""
+    },
+    {
+      "name": "fix-spell-bars",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Fixes the players spell bars.",
+      "usage": "<execute>"
+    },
+    {
+      "name": "fix-gear-plating",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Corrects the name on Gear Plating.",
+      "usage": "<execute>"
+    },
+    {
+      "name": "verify-player-data",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any bugs with player data. Runs all of the verify* commands.",
+      "usage": ""
+    },
+    {
+      "name": "verify-attributes",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any bugs with player attribute data",
+      "usage": ""
+    },
+    {
+      "name": "verify-vitals",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any bugs with player vitals data",
+      "usage": ""
+    },
+    {
+      "name": "verify-skills",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any bugs with player skill data",
+      "usage": ""
+    },
+    {
+      "name": "verify-skill-credits",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any bugs with player skill credits",
+      "usage": ""
+    },
+    {
+      "name": "verify-heritage-augs",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies all players have their heritage augs.",
+      "usage": ""
+    },
+    {
+      "name": "verify-max-augs",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any bugs with the # of augs each player has",
+      "usage": ""
+    },
+    {
+      "name": "verify-xp",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any bugs with player xp",
+      "usage": ""
+    },
+    {
+      "name": "fix-biota-emote-delay",
+      "access": 5,
+      "flags": 1,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Fixes biota emotes with incorrect default delays",
+      "usage": ""
+    },
+    {
+      "name": "verify-armor-levels",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any existing armor levels above AL cap",
+      "usage": ""
+    },
+    {
+      "name": "verify-clothing-wield-level",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any t7/t8 clothing that is missing a wield level requirement",
+      "usage": ""
+    },
+    {
+      "name": "verify-legendary-wield-level",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any items with legendary cantrips that have less than 180 wield level requirement",
+      "usage": ""
+    },
+    {
+      "name": "verify-shield-rating",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any lootgen shields with incorrectly assigned CD/CDR",
+      "usage": ""
+    },
+    {
+      "name": "verify-melee-rares",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies and optionally fixes any melee rares to EoR wcids",
+      "usage": ""
+    },
+    {
+      "name": "verify-beneficial-enchantments",
+      "access": 5,
+      "flags": 1,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Verifies enchantment registry has correct StatModType for Beneficial spells and optionally fixes",
+      "usage": ""
+    },
+    {
+      "name": "testlootgen",
+      "access": 5,
+      "flags": 1,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Generates Loot for testing LootFactories.  Do testlootgen -info for examples.",
+      "usage": "<number of items> <loot tier> <melee, missile, caster, armor, pet, aetheria (optional)>"
+    },
+    {
+      "name": "testlootgencorpse",
+      "access": 5,
+      "flags": 1,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Generates Corpses for testing LootFactories",
+      "usage": "<DID> <number corpses> <display table - melee, missile, caster, armor, pet, aetheria>"
+    },
+    {
+      "name": "acehelp",
+      "access": 0,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Displays help.",
+      "usage": "(command)"
+    },
+    {
+      "name": "acecommands",
+      "access": 0,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Lists all commands.",
+      "usage": "<access level or search>"
+    },
+    {
+      "name": "pop",
+      "access": 0,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Show current world population",
+      "usage": ""
+    },
+    {
+      "name": "myquests",
+      "access": 0,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows your quest log",
+      "usage": ""
+    },
+    {
+      "name": "house-select",
+      "access": 0,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "For characters/accounts who currently own multiple houses, used to select which house they want to keep",
+      "usage": ""
+    },
+    {
+      "name": "debugcast",
+      "access": 0,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows debug information about the current magic casting state",
+      "usage": ""
+    },
+    {
+      "name": "fixcast",
+      "access": 0,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Fixes magic casting if locked up for an extended time",
+      "usage": ""
+    },
+    {
+      "name": "castmeter",
+      "access": 0,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows the fast casting efficiency meter",
+      "usage": ""
+    },
+    {
+      "name": "config",
+      "access": 0,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Manually sets a character option on the server.\nUse /config list to see a list of settings.",
+      "usage": "<setting> <on/off>"
+    },
+    {
+      "name": "objsend",
+      "access": 0,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Force resend of all visible objects known to this player. Can fix rare cases of invisible object bugs. Can only be used once every 5 mins max.",
+      "usage": ""
+    },
+    {
+      "name": "aceversion",
+      "access": 0,
+      "flags": 2,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Shows this server's version data",
+      "usage": ""
+    },
+    {
+      "name": "reportbug",
+      "access": 0,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Generate a Bug Report",
+      "usage": "<category> <description>\nThis command generates a URL for you to copy and paste into your web browser to submit for review by server operators and developers.\nCategory can be the following:\nCreature\nNPC\nItem\nQuest\nRecipe\nLandblock\nMechanic\nCode\nOther\nFor the first three options, the bug report will include identifiers for what you currently have selected/targeted.\nAfter category, please include a brief description of the issue, which you can further detail in the report on the website.\nExamples:\n/reportbug creature Drudge Prowler is over powered\n/reportbug npc Ulgrim doesn't know what to do with Sake\n/reportbug quest I can't enter the portal to the Lost City of Frore\n/reportbug recipe I cannot combine Bundle of Arrowheads with Bundle of Arrowshafts\n/reportbug code I was killed by a Non-Player Killer\n"
+    },
+    {
+      "name": "cloak",
+      "access": 2,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Sets your cloaking state.",
+      "usage": "< on / off / player / creature >\nThis command sets your current cloaking state\n< on > You will be completely invisible to players.\n< off > You will show up as a normal.\n< player > You will appear as a player. (No + and a white radar dot.)\n< creature > You will appear as a creature. (No + and an orange radar dot.)"
+    },
+    {
+      "name": "neversaydie",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Turn immortality on or off.",
+      "usage": "[ on | off ]\nDefaults to on."
+    },
+    {
+      "name": "portal_bypass",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Toggles the ability to bypass portal restrictions.",
+      "usage": ""
+    },
+    {
+      "name": "fellowbuff",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Buffs your fellowship (or a player's fellowship) with all beneficial spells.",
+      "usage": "[name]\nThis command buffs your fellowship (or the fellowship of the specified character)."
+    },
+    {
+      "name": "buff",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Buffs you (or a player) with all beneficial spells.",
+      "usage": "[name] [maxLevel]\nThis command buffs yourself (or the specified character)."
+    },
+    {
+      "name": "run",
+      "access": 2,
+      "flags": 2,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Temporarily boosts your run skill.",
+      "usage": "( on | off | toggle | check )\nBoosts the run skill of the PSR so they can pursue the \"bad folks\". The enchantment will wear off after a while. This command defaults to toggle."
+    },
+    {
+      "name": "boot",
+      "access": 2,
+      "flags": 0,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "Boots the character out of the game.",
+      "usage": "[account | char | iid] who (, reason) \nThis command boots the specified character out of the game. You can specify who to boot by account, character name, or player instance id. 'who' is the account / character / instance id to actually boot. You can optionally include a reason for the boot.\nExample: @boot char Character Name\n         @boot account AccountName\n         @boot iid 0x51234567\n         @boot char Character Name, Reason for being booted\n"
+    },
+    {
+      "name": "ban",
+      "access": 2,
+      "flags": 0,
+      "min_args": 4,
+      "include_raw": false,
+      "description": "Bans the specified player account.",
+      "usage": "[accountname] [days] [hours] [minutes] (reason)\nThis command bans the specified player account for the specified time. This player will not be able to enter the game with any character until the time expires.\nExample: @ban AccountName 0 0 5\nExample: @ban AccountName 1 0 0 banned 1 day because reasons\n"
+    },
+    {
+      "name": "unban",
+      "access": 2,
+      "flags": 0,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "Unbans the specified player account.",
+      "usage": "[accountname]\nThis command removes the ban from the specified account. The player will then be able to log into the game."
+    },
+    {
+      "name": "banlist",
+      "access": 2,
+      "flags": 0,
+      "min_args": 0,
+      "include_raw": false,
+      "description": "Lists all banned accounts on this world.",
+      "usage": ""
+    },
+    {
+      "name": "deaf",
+      "access": 2,
+      "flags": 2,
+      "min_args": 1,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "deaf",
+      "access": 2,
+      "flags": 2,
+      "min_args": 2,
+      "include_raw": false,
+      "description": "",
+      "usage": ""
+    },
+    {
+      "name": "mod",
+      "access": 4,
+      "flags": 0,
+      "min_args": -1,
+      "include_raw": false,
+      "description": "Lazy mod control",
+      "usage": ""
+    }
+  ],
+  "parses": [
+    {
+      "input": "@rename \"Some Person\" \"New Name\"",
+      "name": "rename",
+      "arguments": [
+        "Some Person",
+        "New Name"
+      ]
+    },
+    {
+      "input": "/heal",
+      "name": "heal",
+      "arguments": []
+    },
+    {
+      "input": "  @teleto    \"A B\"  ",
+      "name": "teleto",
+      "arguments": [
+        "A B"
+      ]
+    },
+    {
+      "input": "@set-accountpassword a \"quoted password\"",
+      "name": "set-accountpassword",
+      "arguments": [
+        "a",
+        "quoted password"
+      ]
+    },
+    {
+      "input": "@gamecast \"hello, world\"",
+      "name": "gamecast",
+      "arguments": [
+        "hello, world"
+      ]
+    },
+    {
+      "input": "heal",
+      "name": "heal",
+      "arguments": []
+    },
+    {
+      "input": "@teleloc 0x12340001 1 2 3",
+      "name": "teleloc",
+      "arguments": [
+        "0x12340001",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "input": "@x \"one\" two",
+      "name": "x",
+      "arguments": [
+        "one",
+        "two"
+      ]
+    },
+    {
+      "input": "@x abc\"def",
+      "name": "x",
+      "arguments": [
+        "abcdef"
+      ]
+    },
+    {
+      "input": "@x \"\"",
+      "name": "x",
+      "arguments": [
+        ""
+      ]
+    },
+    {
+      "input": "@x \"two  spaces\"",
+      "name": "x",
+      "arguments": [
+        "two spaces"
+      ]
+    }
+  ]
+}

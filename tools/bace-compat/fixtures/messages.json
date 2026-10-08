@@ -205,6 +205,43 @@
     "Source/ACE.Entity/Enum/TradeSide.cs": "bc62d662fe23eb1b456d693bfa99cee5eec1cced2f6d203c2a64472be451d1a7",
     "Source/ACE.Entity/Enum/EndTradeReason.cs": "e938459969052b636ccc5454e2938ef45f9f5b1295bfd038f5000d9a1d98ec2a",
     "Source/ACE.Entity/Enum/WeenieType.cs": "43a345d192b790749e5821e880ad58419c8c731f0133472a88670b9cbe33df36",
+    "Source/ACE.Server/Network/GameAction/Actions/GameActionTargetedMeleeAttack.cs": "bfb3a87981207247e7dbb31df2de65f74e59e7d553562d9719ace19f73683b6c",
+    "Source/ACE.Server/Network/GameAction/Actions/GameActionChangeCombatMode.cs": "30bfea4df2a8693321e9cc755dcbf4b2ffae00c82fbd6ba2d6291163dce74387",
+    "Source/ACE.Server/Network/GameAction/Actions/GameActionCancelAttack.cs": "29485832e22b70c300f238560a5b2737cd56d55c9bb7b3148b706405e09ad162",
+    "Source/ACE.Server/Network/GameAction/Actions/GameActionQueryHealth.cs": "199810e44f2ebba1491e82e4dfb263a6b38c547a2ddf43543e60f467ccfe4845",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventAttackDone.cs": "36ecb32505ba852342f98bc00926c17a891d2c4096fcd934e21b116d23a1b121",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventAttackerNotification.cs": "4a78d02b86e6c7137ea81264d8188d1050ed304109a8425c3b110672af4b9cf4",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventDefenderNotification.cs": "f74c1700106dbf59f071b509c79b577d379ae2cb8c6aa3bda472f5fa9b91d06a",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventEvasionAttackerNotification.cs": "f8acfb509ea0c78c0f97abb278e43c23523e899879cd46b30d80af1777a63c9e",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventEvasionDefenderNotification.cs": "594fa464049132abd0e09c969848a24b2d86961d00b32b0526cbe5ff87a03c00",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventCombatCommenceAttack.cs": "dd3653c6c54748984ef8eb31fe06280ebddc2ed3e752835f6badee0d5255b6ef",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventUpdateHealth.cs": "d0ba412ad798046f8db90d9105a0f313c2989eef82efbad4a404a40d16e5bb18",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventKillerNotification.cs": "db6e55f9e816ac8e36d53ac248bcaaedd704a23ad502145d62a9e20922b11808",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventVictimNotification.cs": "b077081df5268884e695423f82878b1a54117c838b755a0c15ee6ae1a9c9b51d",
+    "Source/ACE.Server/Network/GameMessages/Messages/GameMessageSound.cs": "bfedde9615938116c65e6252e06f7713d48288cb996b770eeccd8498caee0116",
+    "Source/ACE.Server/Network/GameMessages/Messages/GameMessageScript.cs": "59dfc5b6294a799f9eb964c3782b485afc403baf218c9678f668c2ccd8b0346a",
+    "Source/ACE.Server/Network/GameMessages/Messages/GameMessagePlayerKilled.cs": "3aa121ef18ea52b7cd57c71772e0110b84ac0c33aebdc57a841c7a9952ba68dd",
+    "Source/ACE.Entity/Enum/CombatMode.cs": "e1746411808955537d3cae1bb5691a9498fc0287166b4cdbabd0d67955b62c01",
+    "Source/ACE.Entity/Enum/DamageType.cs": "3d6416332d5078fc43553518d675271fff27a305075f94a2cf02a0a79ba23e36",
+    "Source/ACE.Entity/Enum/AttackConditions.cs": "72b773377a900a516a8737a824269b7c6e7f283f4b6cb498396a1f95aa587953",
+    "Source/ACE.Entity/Enum/Sound.cs": "d4d18d077a7e0d79372d4cf2174e6962ec6232afcb592a81a3fd33f598ce697a",
+    "Source/ACE.Entity/Enum/PlayScript.cs": "420195bf6d20c2a16213f5305eba0cd14ab5c689abba7f441ca8416b4cdf0b8e",
+    "Source/ACE.Server/Network/GameAction/Actions/GameActionLoginComplete.cs": "91f6559b2676eca76d7f46a185af251e39365fb8a1fdb8365a3b1b52c10b9b2e",
+    "Source/ACE.Server/Network/Handlers/ControlHandler.cs": "6cb03ac99465120379fc72ad8e7031e772c20125b0e3516ced3074b8390ddeb2",
+    "Source/ACE.Server/Network/Enum/DamageLocation.cs": "11f5af5d53a1801762271b1acb016570fe8aefd635da26647ab7d40e56f7e00d",
+    "Source/ACE.Common/ThreadSafeRandom.cs": "4653d0480f4c1d9c595a83d00e99af03d8b49abe9813491f549c7c980abbd405",
+    "Source/ACE.Common/Extensions/EnumHelper.cs": "3f7dd537ed8cf16c4f34a7318f44b353d21c59e770710399e4cc2aec1dd5c10d",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventCharacterTitle.cs": "819bb51150aba77d32f5d396fb96d2549947cd8619733ae49fdc3655b3486bb5",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventPlayerDescription.cs": "ae0686896af918de4d9b6ae736a9f00b4b98a3af40f56bb2bac16c609e1922ec",
+    "Source/ACE.Server/Network/Structure/Shortcut.cs": "9b955d01bf801c64be19866362f000e6ea39b9477789ce7e2425a2d5fd5c097d",
+    "Source/ACE.Server/Network/Structure/LayeredSpell.cs": "4ba9edfbc17eb26ebc64e02f9fa99f1c63c4e3a7205f037763bb892dfc463d29",
+    "Source/ACE.Entity/Enum/AttributeCache.cs": "6ebb265e172c54ee2cb007fc94b154ab59eba4ec2c32b3916a484f29dedc0a5a",
+    "Source/ACE.Entity/Enum/CharacterOptionDataFlag.cs": "09ede9a0a95d7de1ea4cc792cf05d16ef03f2fac84aa8c07b296f8013a30677a",
+    "Source/ACE.Database/Models/Shard/CharacterPropertiesSpellBar.cs": "48923560e8bb658291d173597ff361874f88575370c1753e70a17462dc02ff34",
+    "Source/ACE.Database/Models/Shard/CharacterPropertiesTitleBook.cs": "6d0ff3dbe548060e67a47ec3c6bc09bca65a2713ea463ec5297d2ee7f22b581e",
+    "Source/ACE.Server/WorldObjects/Player_Networking.cs": "c43804e88e01854153c18360119bf7727a0c9d1f34e148ab4b226603e96aadfd",
+    "Source/ACE.Entity/Enum/Properties/SendOnLoginProperties.cs": "bdbfef2d0b557ce9bcf84646f48ddef463345c60f28053d2d36f0b3af0ed9813",
+    "Source/ACE.Entity/Enum/Properties/PositionType.cs": "998359ebee149d088288fe2d4a9da86dcd2e0ced4ceb8e78b1489fb9e96755f7",
     "Source/ACE.Server/WorldObjects/Vendor.cs": "3b4f97f9180c21026efee888ae7853f15778341444210fbb33bd0a1e56149c00",
     "Source/ACE.Server/WorldObjects/WorldObject_Networking.cs": "bba99e9db332c501f24add7b9554fdacc7bb51b006fdabdeb58759caf7c9cdcb",
     "Source/ACE.Server/WorldObjects/WorldObject_Properties.cs": "1e3d0750310f942064bf67df77e0c650773e9bc3ced49419f8d5c8546d00da06",
@@ -429,7 +466,41 @@
     "Source/ACE.Entity/Enum/ContainerType.cs",
     "Source/ACE.Entity/Enum/TradeSide.cs",
     "Source/ACE.Entity/Enum/EndTradeReason.cs",
-    "Source/ACE.Entity/Enum/WeenieType.cs"
+    "Source/ACE.Entity/Enum/WeenieType.cs",
+    "Source/ACE.Server/Network/GameAction/Actions/GameActionTargetedMeleeAttack.cs",
+    "Source/ACE.Server/Network/GameAction/Actions/GameActionChangeCombatMode.cs",
+    "Source/ACE.Server/Network/GameAction/Actions/GameActionCancelAttack.cs",
+    "Source/ACE.Server/Network/GameAction/Actions/GameActionQueryHealth.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventAttackDone.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventAttackerNotification.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventDefenderNotification.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventEvasionAttackerNotification.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventEvasionDefenderNotification.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventCombatCommenceAttack.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventUpdateHealth.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventKillerNotification.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventVictimNotification.cs",
+    "Source/ACE.Server/Network/GameMessages/Messages/GameMessageSound.cs",
+    "Source/ACE.Server/Network/GameMessages/Messages/GameMessageScript.cs",
+    "Source/ACE.Server/Network/GameMessages/Messages/GameMessagePlayerKilled.cs",
+    "Source/ACE.Entity/Enum/CombatMode.cs",
+    "Source/ACE.Entity/Enum/DamageType.cs",
+    "Source/ACE.Entity/Enum/AttackConditions.cs",
+    "Source/ACE.Entity/Enum/Sound.cs",
+    "Source/ACE.Entity/Enum/PlayScript.cs",
+    "Source/ACE.Server/Network/GameAction/Actions/GameActionLoginComplete.cs",
+    "Source/ACE.Server/Network/Handlers/ControlHandler.cs",
+    "Source/ACE.Server/Network/Enum/DamageLocation.cs",
+    "Source/ACE.Common/ThreadSafeRandom.cs",
+    "Source/ACE.Common/Extensions/EnumHelper.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventCharacterTitle.cs",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventPlayerDescription.cs",
+    "Source/ACE.Server/Network/Structure/Shortcut.cs",
+    "Source/ACE.Server/Network/Structure/LayeredSpell.cs",
+    "Source/ACE.Entity/Enum/AttributeCache.cs",
+    "Source/ACE.Entity/Enum/CharacterOptionDataFlag.cs",
+    "Source/ACE.Database/Models/Shard/CharacterPropertiesSpellBar.cs",
+    "Source/ACE.Database/Models/Shard/CharacterPropertiesTitleBook.cs"
   ],
   "extracted_methods": {
     "Source/ACE.Server/Network/Structure/AllegianceHierarchy.cs": [
@@ -449,6 +520,9 @@
     ]
   },
   "evidence_only_sources": [
+    "Source/ACE.Server/WorldObjects/Player_Networking.cs",
+    "Source/ACE.Entity/Enum/Properties/SendOnLoginProperties.cs",
+    "Source/ACE.Entity/Enum/Properties/PositionType.cs",
     "Source/ACE.Server/WorldObjects/Vendor.cs",
     "Source/ACE.Server/WorldObjects/WorldObject_Networking.cs",
     "Source/ACE.Server/WorldObjects/WorldObject_Properties.cs",
@@ -485,6 +559,16 @@
   "inventory_parsing_prefixes": [
     "GameActionAcceptTrade.Handle before HandleActionAcceptTrade"
   ],
+  "login_projection_methods": [
+    "Player_Networking.SendSelf",
+    "Player_Networking.SendInventoryAndWieldedItems"
+  ],
+  "character_lifecycle_parsing_prefixes": [
+    "CharacterEnterWorld",
+    "CharacterDelete",
+    "CharacterRestore"
+  ],
+  "player_description_scope": "Full original serializer; synthetic preselected login properties; no enchantment registry. Property visibility policy and registry serializer are not exercised.",
   "vectors": {
     "catalogs": {
       "messages": {
@@ -9513,6 +9597,215 @@
           }
         }
       ]
-    }
+    },
+    "combat": {
+      "actions": [
+        {
+          "bytes": "B1F700002A0000000800000001000080020000003333B33EA55A",
+          "captured": {
+            "target_id": 2147483649,
+            "height": 2,
+            "power_bits": 1051931443
+          },
+          "consumed": 24,
+          "trailing_bytes": 2
+        },
+        {
+          "bytes": "B1F700002A0000005300000002000000A55A",
+          "captured": {
+            "mode": 2
+          },
+          "consumed": 16,
+          "trailing_bytes": 2
+        },
+        {
+          "bytes": "B1F700002A000000B7010000A55A",
+          "captured": {
+            "empty": true
+          },
+          "consumed": 12,
+          "trailing_bytes": 2
+        },
+        {
+          "bytes": "B1F700002A000000BF01000001000080A55A",
+          "captured": {
+            "target_id": 2147483649
+          },
+          "consumed": 16,
+          "trailing_bytes": 2
+        }
+      ],
+      "events": {
+        "done": {
+          "bytes": "B0F70000010000502A000000A701000036000000",
+          "group": 9
+        },
+        "commence": {
+          "bytes": "B0F70000010000502A000000B8010000",
+          "group": 9
+        },
+        "attacker": {
+          "bytes": "B0F70000010000502A000000B10100000B0044727564676520636166E900000004000000000000606666D63F250000000100000021436587FFFFFFFF",
+          "group": 9
+        },
+        "defender": {
+          "bytes": "B0F70000010000502A000000B20100000B0044727564676520636166E900000004000000000000606666D63F25000000060000000100000021436587FFFFFFFF",
+          "group": 9
+        },
+        "evaded_by": {
+          "bytes": "B0F70000010000502A000000B30100000B0044727564676520636166E9000000",
+          "group": 9
+        },
+        "evaded_from": {
+          "bytes": "B0F70000010000502A000000B40100000B0044727564676520636166E9000000",
+          "group": 9
+        },
+        "health": {
+          "bytes": "B0F70000010000502A000000C0010000010000803333B33E",
+          "group": 9
+        },
+        "killer": {
+          "bytes": "B0F70000010000502A000000AD0100000B0044727564676520636166E9000000",
+          "group": 9
+        },
+        "victim": {
+          "bytes": "B0F70000010000502A000000AC0100000B0044727564676520636166E9000000",
+          "group": 9
+        },
+        "sound": {
+          "bytes": "50F7000001000080070000003333B33E",
+          "group": 10
+        },
+        "script": {
+          "bytes": "55F7000001000080070000003333B33E",
+          "group": 10
+        },
+        "killed": {
+          "bytes": "9E0100000B0044727564676520636166E90000000100008001000050",
+          "group": 9
+        }
+      }
+    },
+    "world_control": {
+      "login_complete": {
+        "bytes": "B1F700002A000000A1000000A55A",
+        "trailing_bytes": 2,
+        "completed": true
+      },
+      "force_description": {
+        "bytes": "EAF6000001000080A55A",
+        "trailing_bytes": 2,
+        "object_id": 2147483649
+      }
+    },
+    "player_description": {
+      "fresh": {
+        "bytes": "B0F70000010000502A00000013000000000000000A0000000300000001000000FF010000030000000A00000005000000030000001400000005000000030000001E00000005000000030000002800000005000000030000003200000005000000030000003C0000000500000003000000040000000500000046000000030000000400000005000000500000000300000004000000050000005A000000000020006004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "group": 9
+      },
+      "properties": {
+        "bytes": "B0F70000010000502A00000013000000DF0000000A000000030040004000000000000000010000002A00000041000000F9FFFFFF010040000100000035FB048EE0FEFFFF02002000010000000000000021000000010000000100200002000000666666666666D63F01002000010000000600C96C6F6469650100200001000000010000020100200002000000020000500300000001000000FF010000030000000A00000005000000030000001400000005000000030000001E00000005000000030000002800000005000000030000003200000005000000030000003C0000000500000003000000040000000500000046000000030000000400000005000000500000000300000004000000050000005A000000000020006004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "group": 9
+      },
+      "position": {
+        "bytes": "B0F70000010000502A00000013000000200000000A000000010010000E000000010034120000A03F000020C000007040CDCCCC3DCDCC4C3E9A99993ECDCCCC3E0300000001000000FF010000030000000A00000005000000030000001400000005000000030000001E00000005000000030000002800000005000000030000003200000005000000030000003C0000000500000003000000040000000500000046000000030000000400000005000000500000000300000004000000050000005A000000000020006004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "group": 9
+      },
+      "skills_spells": {
+        "bytes": "B0F70000010000502A00000013000000000000000A0000000301000001000000FF010000030000000A00000005000000030000001400000005000000030000001E00000005000000030000002800000005000000030000003200000005000000030000003C0000000500000003000000040000000500000046000000030000000400000005000000500000000300000004000000050000005A00000003002000200000002100010002000000840300000500000000000000000000000000000001000000020001000200000084030000050000000000000000000000000000002100000022000100020000008403000005000000000000000000000000000000030040004000000000000040010000000000004041000000000000406004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "group": 9
+      },
+      "options": {
+        "bytes": "B0F70000010000502A00000013000000000000000A0000000300000001000000FF010000030000000A00000005000000030000001400000005000000030000001E00000005000000030000002800000005000000030000003200000005000000030000003C0000000500000003000000040000000500000046000000030000000400000005000000500000000300000004000000050000005A000000000020006906000078563412010000000200000001000080070003000100000009000000000000000000000000000000000000000000000000000000010000000A00000003000001000100000101000001010000020100000100000002000000443322112143658701020304050607080000000000000000",
+        "group": 9
+      },
+      "inventory": {
+        "bytes": "B0F70000010000502A00000013000000000000000A0000000300000001000000FF010000030000000A00000005000000030000001400000005000000030000001E00000005000000030000002800000005000000030000003200000005000000030000003C0000000500000003000000040000000500000046000000030000000400000005000000500000000300000004000000050000005A0000000000200060040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000020000800000000001000080000000000400008002000000030000800100000001000000050000800400000008000000",
+        "group": 9
+      },
+      "all": {
+        "bytes": "B0F70000010000502A00000013000000FF0000000A000000030040004000000000000000010000002A00000041000000F9FFFFFF010040000100000035FB048EE0FEFFFF02002000010000000000000021000000010000000100200002000000666666666666D63F01002000010000000600C96C6F646965010020000100000001000002010020000200000002000050010010000E000000010034120000A03F000020C000007040CDCCCC3DCDCC4C3E9A99993ECDCCCC3E0301000001000000FF010000030000000A00000005000000030000001400000005000000030000001E00000005000000030000002800000005000000030000003200000005000000030000003C0000000500000003000000040000000500000046000000030000000400000005000000500000000300000004000000050000005A00000003002000200000002100010002000000840300000500000000000000000000000000000001000000020001000200000084030000050000000000000000000000000000002100000022000100020000008403000005000000000000000000000000000000030040004000000000000040010000000000004041000000000000406906000078563412010000000200000001000080070003000100000009000000000000000000000000000000000000000000000000000000010000000A000000030000010001000001010000010100000201000001000000020000004433221121436587010203040506070804000000020000800000000001000080000000000400008002000000030000800100000001000000050000800400000008000000",
+        "group": 9
+      },
+      "plussed": {
+        "bytes": "B0F70000010000502A00000013000000DF0000000A000000030040004000000000000000010000002A00000041000000F9FFFFFF010040000100000035FB048EE0FEFFFF02002000010000000000000021000000010000000100200002000000666666666666D63F010020000100000007002BC96C6F6469650000000100200001000000010000020100200002000000020000500300000001000000FF010000030000000A00000005000000030000001400000005000000030000001E00000005000000030000002800000005000000030000003200000005000000030000003C0000000500000003000000040000000500000046000000030000000400000005000000500000000300000004000000050000005A000000000020006004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "group": 9
+      },
+      "cloaked": {
+        "bytes": "B0F70000010000502A00000013000000DF0000000A000000030040004000000000000000010000002A00000041000000F9FFFFFF010040000100000035FB048EE0FEFFFF02002000010000000000000021000000010000000100200002000000666666666666D63F01002000010000000600C96C6F6469650100200001000000010000020100200002000000020000500300000001000000FF010000030000000A00000005000000030000001400000005000000030000001E00000005000000030000002800000005000000030000003200000005000000030000003C0000000500000003000000040000000500000046000000030000000400000005000000500000000300000004000000050000005A000000000020006004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "group": 9
+      },
+      "titles": {
+        "bytes": "B0F70000010000502A000000290000000100000007000000020000000700000009000000",
+        "group": 9
+      }
+    },
+    "character_lifecycle": [
+      {
+        "bytes": "57F60000010000500800C3896C6F646965F09F98800000A55A",
+        "captured": {
+          "character_id": 1342177281,
+          "account": "\u00c9lodie\ud83d\ude00"
+        },
+        "trailing_bytes": 2
+      },
+      {
+        "bytes": "55F600000800C3896C6F646965F09F9880000003000000A55A",
+        "captured": {
+          "account": "\u00c9lodie\ud83d\ude00",
+          "slot": 3
+        },
+        "trailing_bytes": 2
+      },
+      {
+        "bytes": "D9F7000001000050A55A",
+        "captured": {
+          "character_id": 1342177281
+        },
+        "trailing_bytes": 2
+      }
+    ],
+    "login_order": [
+      {
+        "opcode": 63408,
+        "group": 9,
+        "event_sequence": 42
+      },
+      {
+        "opcode": 63408,
+        "group": 9,
+        "event_sequence": 43
+      },
+      {
+        "opcode": 63408,
+        "group": 9,
+        "event_sequence": 44
+      },
+      {
+        "opcode": 63302,
+        "group": 10,
+        "event_sequence": null
+      },
+      {
+        "opcode": 63301,
+        "group": 10,
+        "event_sequence": null
+      },
+      {
+        "opcode": 63301,
+        "group": 10,
+        "event_sequence": null
+      },
+      {
+        "opcode": 63408,
+        "group": 9,
+        "event_sequence": 45
+      },
+      {
+        "opcode": 63301,
+        "group": 10,
+        "event_sequence": null
+      }
+    ]
   }
 }

@@ -11,3 +11,4 @@ description = "Doors, locks, switches, portals, lifestones and books"
 workspace = true
 
 [dependencies]
+bace-types.workspace = true

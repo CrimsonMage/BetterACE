@@ -12,3 +12,4 @@ workspace = true
 
 [dependencies]
 bace-gameplay-api.workspace = true
+bace-content.workspace = true

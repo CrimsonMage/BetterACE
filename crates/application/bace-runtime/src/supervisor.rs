@@ -1,7 +1,7 @@
 //! Host dashboard owns process lifecycle; the game child owns world/save state.
 use crate::control::{self, ChildMetadata, ChildReply, ChildRequest};
-use bace_admin::{ControlAction, ControlRequest, HostConsole, HostStatus};
-use bace_config::HostConfig;
+use bace_admin::{ContentRequest, ControlAction, ControlRequest, HostConsole, HostStatus};
+use bace_config::{HostConfig, ServerConfig};
 use bace_observability::LogStore;
 use std::{io, path::Path, process::Stdio, sync::Arc, time::Duration};
 use tokio::{
@@ -9,8 +9,13 @@ use tokio::{
     process::{Child, Command},
     sync::{mpsc, watch},
 };
+#[cfg(test)]
+mod tests;
 
-pub async fn run_host(config: HostConfig) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run_host(server_config: ServerConfig) -> Result<(), Box<dyn std::error::Error>> {
+    let game_config = server_config.clone();
+    server_config.validate()?;
+    let config = server_config.host.clone();
     config.validate()?;
     bace_admin::ensure_private_directory(&config.state_directory)?;
     let _lock = control::lock(&config.state_directory.join("supervisor.lock"))?;
@@ -19,13 +24,19 @@ pub async fn run_host(config: HostConfig) -> Result<(), Box<dyn std::error::Erro
     let listener = TcpListener::bind(config.bind_address).await?;
     let (status, receive_status) = watch::channel(HostStatus::default());
     let (control_send, mut requests) = mpsc::channel::<ControlRequest>(4);
-    let console = HostConsole::new(
+    let (content_send, content_requests) = mpsc::channel::<ContentRequest>(2);
+    let console = HostConsole::new_with_content(
         config.clone(),
         password,
         logs.clone(),
         receive_status,
         control_send,
+        Some(content_send),
     )?;
+    let content_task = tokio::spawn(crate::content_inbox::run(
+        server_config.clone(),
+        content_requests,
+    ));
     let (stop_web, mut web_stop) = watch::channel(false);
     let web = tokio::spawn(bace_admin::serve_console(listener, console, async move {
         let _ = web_stop.wait_for(|stop| *stop).await;
@@ -37,10 +48,10 @@ pub async fn run_host(config: HostConfig) -> Result<(), Box<dyn std::error::Erro
     logs.record(
         "info",
         "host.started",
-        "Host dashboard started. Stock-client game serving remains unsupported.",
+        "Host dashboard started. Game readiness is reported independently by the child.",
     );
     let mut child = None;
-    let mut metadata = match attach_or_start(&config, &mut child).await {
+    let mut metadata = match attach_or_start(&config, &game_config, &mut child).await {
         Ok(metadata) => {
             let active = match call(&metadata, &ChildRequest::Status, Duration::from_secs(3)).await
             {
@@ -56,7 +67,7 @@ pub async fn run_host(config: HostConfig) -> Result<(), Box<dyn std::error::Erro
                     "running"
                 },
                 active,
-                "Foundation child connected; game serving unsupported. Any existing drain must be retried.",
+                "Child control connected; game startup is reported separately. Any existing drain must be retried.",
             );
             Some(metadata)
         }
@@ -99,8 +110,8 @@ pub async fn run_host(config: HostConfig) -> Result<(), Box<dyn std::error::Erro
                 if let Some(mut previous) = child.take() { let _ = previous.wait().await; }
                 metadata = None;
                 status.send_modify(|state| { state.phase="starting".into();state.game_ready=false; });
-                match attach_or_start(&config, &mut child).await {
-                    Ok(meta) => { publish_status(&status, &meta, "running", Some(operation), "Foundation worker restarted; game serving remains unsupported."); metadata=Some(meta);logs.record("info", "child.restarted", "Foundation child restarted. No playable game is running."); }
+                match attach_or_start(&config, &game_config, &mut child).await {
+                    Ok(meta) => { publish_status(&status, &meta, "running", Some(operation), "Game child restarted; preparing verified assets and accepted content."); metadata=Some(meta);logs.record("info", "child.restarted", "Game child restarted after durable shutdown."); }
                     Err(_) => { status.send_modify(|state| {state.phase="failed".into();state.detail="Child startup failed.".into();});logs.record("error", "child.start_failed", "Child startup failed."); }
                 }
             }
@@ -114,7 +125,7 @@ pub async fn run_host(config: HostConfig) -> Result<(), Box<dyn std::error::Erro
                 if metadata.is_none() && child.is_some()
                     && let Ok(meta)=control::load_metadata(&config.state_directory.join("child.json"))
                     && let Ok(ChildReply::Status{operation_id,..})=call(&meta,&ChildRequest::Status,Duration::from_secs(3)).await {
-                            publish_status(&status,&meta,if operation_id.is_some(){"blocked"}else{"running"},operation_id,"Recovered child control; game serving unsupported.");metadata=Some(meta);
+                            publish_status(&status,&meta,if operation_id.is_some(){"blocked"}else{"running"},operation_id,"Recovered child control; game readiness is reported separately.");metadata=Some(meta);
                 }
                 let blocked = status.borrow().phase == "blocked";
                 if !blocked
@@ -133,6 +144,7 @@ pub async fn run_host(config: HostConfig) -> Result<(), Box<dyn std::error::Erro
     if let Ok(result) = tokio::time::timeout(Duration::from_secs(2), web).await {
         result??;
     }
+    content_task.abort();
     Ok(())
 }
 fn publish_status(
@@ -151,8 +163,38 @@ fn publish_status(
         operation_id: operation,
     });
 }
+fn store_child_config(directory: &Path, config: &ServerConfig) -> io::Result<std::path::PathBuf> {
+    use std::io::Write;
+    let bytes = toml::to_string(config).map_err(io::Error::other)?;
+    if bytes.len() > 1024 * 1024 {
+        return Err(io::Error::other("child configuration size bound"));
+    }
+    let path = directory.join("child-config.toml");
+    if let Ok(metadata) = std::fs::symlink_metadata(&path) {
+        if !metadata.is_file() {
+            return Err(io::Error::other(
+                "child config must be a regular private file",
+            ));
+        }
+        // No child holds its process lock here; this is the previous launch's
+        // generated snapshot. Create-new prevents following a substituted link.
+        std::fs::remove_file(&path)?;
+    }
+    let mut options = std::fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    let mut file = options.open(&path)?;
+    file.write_all(bytes.as_bytes())?;
+    file.sync_all()?;
+    Ok(path)
+}
 async fn attach_or_start(
     config: &HostConfig,
+    game_config: &ServerConfig,
     child: &mut Option<Child>,
 ) -> io::Result<ChildMetadata> {
     let path = config.state_directory.join("child.json");
@@ -168,9 +210,13 @@ async fn attach_or_start(
     drop(control::lock(&config.state_directory.join("child.lock"))?);
     let random = control::random_bytes()?;
     let generation = u64::from_le_bytes(random[..8].try_into().map_err(io::Error::other)?);
+    let launch_config = store_child_config(&config.state_directory, game_config)?;
     let mut command = Command::new(std::env::current_exe()?);
     command
         .arg("__host-child")
+        .arg("--config")
+        .arg(launch_config);
+    command
         .arg("--state-directory")
         .arg(&config.state_directory)
         .arg("--generation")

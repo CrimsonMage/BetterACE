@@ -11,3 +11,5 @@ description = "Allegiance hierarchy and rules"
 workspace = true
 
 [dependencies]
+bace-types.workspace = true
+bace-gameplay-api.workspace = true

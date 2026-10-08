@@ -11,6 +11,10 @@ description = "CLI workflows and maintenance orchestration"
 workspace = true
 
 [dependencies]
+bace-loot.workspace = true
+bace-random.workspace = true
+bace-storage-codec.workspace = true
+bace-runtime.workspace = true
 bace-admin.workspace = true
 toml.workspace = true
 bace-auth.workspace = true
@@ -22,3 +26,6 @@ bace-persistence.workspace = true
 bace-db-postgres.workspace = true
 clap.workspace = true
 tokio.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

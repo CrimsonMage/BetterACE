@@ -1,0 +1,7 @@
+# Intentionally disabled. The supplied retail evidence does not establish exact
+# standard/tier/bonus probabilities or initialization/reset policies.
+# No ACE probability or historical ratio is promoted to an active retail default.
+schema_version = 1
+id = 1
+enabled = false
+tiers = []

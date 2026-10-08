@@ -1,0 +1,2531 @@
+{
+  "repository": "https://github.com/ACEmulator/ACE",
+  "commit": "47edade3bd3f6044b676d4eb877c4965c7eda62b",
+  "source_sha256": {
+    "Source/ACE.DatLoader/IUnpackable.cs": "de0d0b462e450b7cfbbe01e57205aa3ce765c6a8eb9db659d93868da883eafd7",
+    "Source/ACE.DatLoader/BinaryReaderExtensions.cs": "c8aacc633f15f29329f963c6cc3222322291d926dd66cde9e31fbd4f4966adb1",
+    "Source/ACE.DatLoader/UnpackableExtensions.cs": "13f137cf709de76f27a27189fda48ebb7da64b1948c7a6666cd591309453c354",
+    "Source/ACE.DatLoader/DatFileType.cs": "377114eb1a7707309b85a1dd2526aff8bab9e2be371e812fff2e6b91fb73835a",
+    "Source/ACE.DatLoader/DatFileTypeAttribute.cs": "568f7432af38762d1b72d05d910d379dfb9a2b2c56acb53fd5440ed640a8488c",
+    "Source/ACE.DatLoader/DatDatabaseType.cs": "096c584d94d491b724f15b584c155102a6ca1c4a286c5f559456266dd6f25224",
+    "Source/ACE.DatLoader/DatDatabaseTypeAttribute.cs": "ef84e7062727f050d4beffceed0f55d908526cc7970226c99bbce382fe71d2e0",
+    "Source/ACE.DatLoader/DatFileTypeExtensionAttribute.cs": "4ff225e1e29fea9ee2b9308299fb56de007588805651219d7b35fbb78549b233",
+    "Source/ACE.DatLoader/DatFileTypeIdRangeAttribute.cs": "002652e46a6128fb10ec092c795ff5a6c650b4301e06771245b33be90c3324d5",
+    "Source/ACE.DatLoader/FileTypes/FileType.cs": "6f94f96626381dd574e45c778fc80aacfbf439b9b8138c2885ebdbca7c3d8665",
+    "Source/ACE.DatLoader/FileTypes/EnvCell.cs": "86ab98964dbf1e1bcb4cb3aa1ae5449a164637ffc9bb8c6c1d8bdaba6d8094d0",
+    "Source/ACE.DatLoader/Entity/Frame.cs": "57f448a605d93361f40e28246851934b25a749b193a2d581ae324d2a873474fe",
+    "Source/ACE.DatLoader/Entity/CellPortal.cs": "c3d0f284ccb837fd6d3cc55cae95a1f42e85545e1c743f3649926f050de9281b",
+    "Source/ACE.DatLoader/Entity/Stab.cs": "22be685c3f6e86fb8ff70185acc88ce6efdc9dca8ade209da54733b6ce0b45b4",
+    "Source/ACE.DatLoader/Entity/Plane.cs": "f8d7f787ff91049692d49bc042106fee37d307ba697dc6d4461b1a5c0ea773b0",
+    "Source/ACE.DatLoader/Entity/Sphere.cs": "5f265016272ebaaca42f2f551796990a80d97bb6288cc2d838d3920afa22222a",
+    "Source/ACE.DatLoader/Entity/PortalPoly.cs": "67a4e5b7af77e8d7264f762b419844a66eed4deb47e70353b87a74a035b47dde",
+    "Source/ACE.DatLoader/Entity/BSPTree.cs": "c864f47e24768b29fa0e3ba86132a6c589470e8d5748a07fd9e1288afbb735e1",
+    "Source/ACE.DatLoader/Entity/BSPNode.cs": "232b26a271c7d715f08cdf1875ed9bc4f1e2f18900f51c59c6dc97290ab1db10",
+    "Source/ACE.DatLoader/Entity/BSPLeaf.cs": "b6e11b7d8fed52e52b1359591fa5c1cfa3f0e2632a4cac6881fe66873785c8ab",
+    "Source/ACE.DatLoader/Entity/BSPPortal.cs": "95e3123a1318ebb8ceae93993c2c6d952997713f914cd71223b22becba691505",
+    "Source/ACE.Entity/Enum/EnvCellFlags.cs": "997bf1818709c5974c3a3596794a1a5d5f9cdfb3a86906c6c168eb136b47ddf8",
+    "Source/ACE.Entity/Enum/PortalFlags.cs": "d28962133ef6ce79ab4700f8abe70ff94b46a7a855c169d049eb7d952d4af66d",
+    "Source/ACE.Entity/Enum/BSPType.cs": "f624b45cd6c66386c30d81f9ce0c243016d2645907fa130d42dc5b10d8937cb0",
+    "Source/ACE.DatLoader/Entity/AnimData.cs": "80c38e9c37d23de1a550c225152827399cc47588f566411b0118f97ba7717e60",
+    "Source/ACE.DatLoader/Entity/AnimationFrame.cs": "8143eb3a44c5323ade4ad9b58ac11731e9a74cd65914296934b64f4903b16327",
+    "Source/ACE.DatLoader/Entity/AnimationHook.cs": "6661752f0107a79caff14e800fe0074b1a97023c2529e116856c94598a332308",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/AttackHook.cs": "aee684a99b4e8f0e8e28e6cd6abe17b75e9c4ed9087b6b949659eb3d5faf785a",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/CallPESHook.cs": "a2e83e260419ca7c32c04fef8217c1d2614fde63b2f8914a2e0db23d1ecda27d",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/CreateBlockingParticle.cs": "0b7abc5a3f11bb61f157784c9034bd5049e96c5bbd0f09ed9d5c70dddf97e4d1",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/CreateParticleHook.cs": "c0e5857b6c70ef42954ed40e07735107de553a8c1bfc3fd9dacfaf03749ec995",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/DefaultScriptPartHook.cs": "0b387ce5e8a4d4ad8d17ff43bdeeb7390914f25f56bcf6d0462bcdab42d69f94",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/DestroyParticleHook.cs": "29b24408dc3d43164101591f66e5309f5e5d0bca7f12309ff38e0e44a67265c7",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/DiffuseHook.cs": "31bc1ee6a2722f95badbe223380f5b1826f875c8d65d41bb6b8494d9536f97b7",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/DiffusePartHook.cs": "2cc4646a56deacad9b4ff05a81a32209260011fc02ad25050ac81fff469d6968",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/EtherealHook.cs": "4ebae99e1fc7d213b8bf24eee086c32deb1216ebc7c13f818ac6d251d7b648e9",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/LuminousHook.cs": "77f4df7904a38eb83df82f8f1a0c6cae38c49a402ec2ebebceeea502aabd7d00",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/LuminousPartHook.cs": "6d3e8d844de3a0124eb2b7e1ac0d67e131cb06d10bdc4ed0d5a88a708c701961",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/NoDrawHook.cs": "1be13aac87bbcc72c3c86e94d26c795fbb5a4e4db76da55113e2d353d5f08d0f",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/ReplaceObjectHook.cs": "8747f6206445247c01d1692f1c0bbbe84ce828b1b5faf0360b84bc30aed7b6e8",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/ScaleHook.cs": "91a92c6f25a6abd198560b512cd0f637674ebd5455a6d642371a70aee3617f5c",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/SetLightHook.cs": "6a5b63b8e8905d93f419ec57bc96352e3e456277fd90cc10c2e58449a3fdcba6",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/SetOmegaHook.cs": "a116b47d92653d5b71d12999fe06981c7ded1499810986d5287343af45938504",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/SoundHook.cs": "4a62ac9c47b94346de600784ee717862227cf8073af510176672565fc8683404",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/SoundTableHook.cs": "95ab36f47e83d56f34b4c3a3a37c0a181abac1fcfdf47a4243dfbefceb08824c",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/SoundTweakedHook.cs": "1b8655c3cd5747706afaa80bcba6921a851d569a2bde5167430ccd165bd99e83",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/StopParticleHook.cs": "fd5f2400fc7e2dc64c6f11651ba65c2072f1ff3830a021a1eff52c6677f26210",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/TextureVelocityHook.cs": "3049eb5783d00ffcc361486dba9d9be7d1b5814e023663e9225711729ff1ddaf",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/TextureVelocityPartHook.cs": "573d5d1b3faf7ba7a2a1a990239c273567a2077582bb5238f4af29f5db93d338",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/TransparentHook.cs": "f8847cdfc84584fa54de889f196d5a93a492b0fcade4fe999b6437599462ceed",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/TransparentPartHook.cs": "b33861f9123385b6e6266f0b1e860d8acf9dff0d0f17c9c9113c754fe2378c3f",
+    "Source/ACE.DatLoader/Entity/AnimationPartChange.cs": "6dd652dc96145b0f4eea5b013d1939ac428f93748b53a2c3c0b49201a0c65c17",
+    "Source/ACE.DatLoader/Entity/AttackCone.cs": "0932053a0511f21babc79d4f2be9ea1e7be8143196dde9906780637dabed46ba",
+    "Source/ACE.DatLoader/Entity/MotionData.cs": "89cc3fb329cca58437e43330ffdd40926b80c6121d2de7a88f7ba4ddbbc67d7b",
+    "Source/ACE.DatLoader/FileTypes/Animation.cs": "3bea4def59098873966baf24e2ed2fc5a6cd9b2ec064a538c747f4126f3354f9",
+    "Source/ACE.DatLoader/FileTypes/MotionTable.cs": "ef79cc76688a1714b3ef2729696e4f4446218eb910dda00708500874dbe5d793",
+    "Source/ACE.Entity/Enum/MotionDataFlags.cs": "2039c214749af4856d55b577460f8a077a36e315e6007e55767bedea97bb94c4",
+    "Source/ACE.Entity/Enum/MotionStance.cs": "3c66a69db6228c9714f94bdf5c3c6a7c1e6f2efb4cc132345b988522bc4f8bb9",
+    "Source/ACE.Entity/Enum/MotionCommand.cs": "599c0a71057a676411e6e20513de8776638b3abf9b448f66032935682dfeaf87",
+    "Source/ACE.Entity/Enum/AnimationFlags.cs": "b9e31bd99a1a72a133d885100ce13ed040d27fb32d00078352698e3a404ff9d0",
+    "Source/ACE.Entity/Enum/AnimationHookType.cs": "d39a773a4786c9c95799554ba1fe875e167768b91506e90fce25c1dfff1877ae",
+    "Source/ACE.Entity/Enum/AnimationHookDir.cs": "d13782ccca25c7ec84ceeaf94bc74e7e1b8dacd7a5b960d39e99b8ab5ea8e1e4",
+    "Source/ACE.Entity/AttackFrameParams.cs": "0e2e73bf4818583a56087b2dc1d9c08c6b2ae0d2daee0e7a21fe6d4440f68502",
+    "Source/ACE.DatLoader/FileTypes/Environment.cs": "279bff30beb1f5db169271a3b42cf38c3e318caf3a54ad7562feba2613d87bca",
+    "Source/ACE.DatLoader/Entity/CellStruct.cs": "5248444ae70d4f47feb38fd6e939a98938f20df667d70852652563cf9f705d02",
+    "Source/ACE.DatLoader/Entity/CVertexArray.cs": "204cd6aefdbb553544280871135a1abfed1f161ed581f6f0775601ea9c0ec7b2",
+    "Source/ACE.DatLoader/Entity/SWVertex.cs": "68aae90b9c9417d68b9af301d87609588bc7869fd65c2839806629b7d848b715",
+    "Source/ACE.DatLoader/Entity/Polygon.cs": "d9c69d1456d1fa3582a2ec34fb32015fc80f2ef126a5ad185beb33269b21d0d5",
+    "Source/ACE.DatLoader/Entity/Vec2Duv.cs": "821e1bc907772ba2257cecbc54df4c2bb53db88696a13339478b7af7734cfacf",
+    "Source/ACE.Entity/Enum/CullMode.cs": "5505b6eb3f656ba3fac7c4730ac270ddd0cdc79b8bb2bfcc2ad61fe78de8881d",
+    "Source/ACE.Entity/Enum/StipplingType.cs": "0bc5ecbba03c03b3b3e16fcf5e088bfee773a5821ccdccc202c145622cc0d37e",
+    "Source/ACE.DatLoader/FileTypes/SetupModel.cs": "79829df03e3c23a1479b0d03f5acb914d59f5105464bc5a4a53f012e040ea8af",
+    "Source/ACE.DatLoader/Entity/CylSphere.cs": "223f4efe2259ad679c68dd0193a40d5ea71bfd3fdd23aabda4d3688dd4c4019e",
+    "Source/ACE.DatLoader/Entity/LocationType.cs": "38f41db9cfe58a2093d2e1f9ebe7a118330e9b95f3b22cb71db1c34855ae5e2a",
+    "Source/ACE.DatLoader/Entity/PlacementType.cs": "3a9168a70092bf1ce5e91d0465b4176ff83eb06a94530d9ae0d39c6f6c6ece78",
+    "Source/ACE.DatLoader/Entity/LightInfo.cs": "7e0dcdbb9e2888756d37d04e0aaf668647831c5966e45f1cfc4a73d789116416",
+    "Source/ACE.Entity/Enum/SetupFlags.cs": "5a3d4b895542b608944f0515a5135eae49afad9b99f48213c503eba46dff43ed",
+    "Source/ACE.Entity/Enum/Placement.cs": "00d3e47195bd1c0e60603490fa8512f4aa9a7db21209e7396e77d255698a9cb9"
+  },
+  "harness_sha256": "fe34928eb093adf7a8ad099da12a896c4db3847c87de1c715fc872bac98c038c",
+  "harness": "Synthetic BinaryWriter geometry; unmodified official parsers. Unused Position/DatManager/log4net dependencies stubbed; no parser or calculation is stubbed.",
+  "vectors": {
+    "env": [
+      {
+        "bytes": "00013412000000000001769800000000080009000000A03F000000C0000040400000003F000000BF0000003F000000BF",
+        "decoded": {
+          "id": 305398016,
+          "flags": 0,
+          "surfaces": [],
+          "environment_id": 218103816,
+          "cell_structure": 9,
+          "position": {
+            "origin": [
+              1.25,
+              -2,
+              3
+            ],
+            "rotation": [
+              0.5,
+              -0.5,
+              0.5,
+              -0.5
+            ]
+          },
+          "portals": [],
+          "visible_cells": [],
+          "static_objects": [],
+          "restriction_object": null
+        }
+      },
+      {
+        "bytes": "000134120B00000000017698020102000700FFFF080009000000A03F000000C0000040400000003F000000BF0000003F000000BF0300FFFF0101FEFF0201030101000000070000020000A03F000000C0000040400000003F000000BF0000003F000000BF23010080",
+        "decoded": {
+          "id": 305398016,
+          "flags": 11,
+          "surfaces": [
+            134217735,
+            134283263
+          ],
+          "environment_id": 218103816,
+          "cell_structure": 9,
+          "position": {
+            "origin": [
+              1.25,
+              -2,
+              3
+            ],
+            "rotation": [
+              0.5,
+              -0.5,
+              0.5,
+              -0.5
+            ]
+          },
+          "portals": [
+            {
+              "flags": 3,
+              "polygon_id": 65535,
+              "other_cell_id": 257,
+              "other_portal_id": 65534
+            }
+          ],
+          "visible_cells": [
+            258,
+            259
+          ],
+          "static_objects": [
+            {
+              "id": 33554439,
+              "frame": {
+                "origin": [
+                  1.25,
+                  -2,
+                  3
+                ],
+                "rotation": [
+                  0.5,
+                  -0.5,
+                  0.5,
+                  -0.5
+                ]
+              }
+            }
+          ],
+          "restriction_object": 2147483939
+        }
+      }
+    ],
+    "bsp": [
+      {
+        "kind": 0,
+        "tag": "LEAF",
+        "bytes": "4641454CF9FFFFFF",
+        "nodes": [
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -7,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "BPnn",
+        "bytes": "6E6E50420000803F0000000000000000000000C04641454C080000000000803F0000004000004040000080400200000005000600",
+        "nodes": [
+          {
+            "tag": 1112567406,
+            "positive": 1,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              5,
+              6
+            ],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "BPIn",
+        "bytes": "6E4950420000803F0000000000000000000000C04641454C080000000000803F0000004000004040000080400200000005000600",
+        "nodes": [
+          {
+            "tag": 1112557934,
+            "positive": 1,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              5,
+              6
+            ],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "BpIN",
+        "bytes": "4E4970420000803F0000000000000000000000C04641454CF7FFFFFF0000803F0000004000004040000080400200000005000600",
+        "nodes": [
+          {
+            "tag": 1114655054,
+            "positive": null,
+            "negative": 1,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              5,
+              6
+            ],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "BpnN",
+        "bytes": "4E6E70420000803F0000000000000000000000C04641454CF7FFFFFF0000803F0000004000004040000080400200000005000600",
+        "nodes": [
+          {
+            "tag": 1114664526,
+            "positive": null,
+            "negative": 1,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              5,
+              6
+            ],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "BPIN",
+        "bytes": "4E4950420000803F0000000000000000000000C04641454C080000004641454CF7FFFFFF0000803F0000004000004040000080400200000005000600",
+        "nodes": [
+          {
+            "tag": 1112557902,
+            "positive": 1,
+            "negative": 2,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              5,
+              6
+            ],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "BPnN",
+        "bytes": "4E6E50420000803F0000000000000000000000C04641454C080000004641454CF7FFFFFF0000803F0000004000004040000080400200000005000600",
+        "nodes": [
+          {
+            "tag": 1112567374,
+            "positive": 1,
+            "negative": 2,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              5,
+              6
+            ],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "PORT",
+        "bytes": "54524F500000803F0000000000000000000000C04641454C080000004641454CF7FFFFFF0000803F00000040000040400000804001000000020000000C00FFFF07000300F8FF",
+        "nodes": [
+          {
+            "tag": 1347375700,
+            "positive": 1,
+            "negative": 2,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              12
+            ],
+            "portal_polygons": [
+              [
+                -1,
+                7
+              ],
+              [
+                3,
+                -8
+              ]
+            ],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "BpIn",
+        "bytes": "6E4970420000803F0000000000000000000000C00000803F0000004000004040000080400200000005000600",
+        "nodes": [
+          {
+            "tag": 1114655086,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              5,
+              6
+            ],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "Bpnn",
+        "bytes": "6E6E70420000803F0000000000000000000000C00000803F0000004000004040000080400200000005000600",
+        "nodes": [
+          {
+            "tag": 1114664558,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              5,
+              6
+            ],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "BPOL",
+        "bytes": "4C4F50420000803F0000000000000000000000C00000803F0000004000004040000080400200000005000600",
+        "nodes": [
+          {
+            "tag": 1112559436,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              5,
+              6
+            ],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 0,
+        "tag": "BPFL",
+        "bytes": "4C4650420000803F0000000000000000000000C00000803F0000004000004040000080400200000005000600",
+        "nodes": [
+          {
+            "tag": 1112557132,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              5,
+              6
+            ],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "LEAF",
+        "bytes": "4641454CF9FFFFFFFFFFFFFF0000803F000000400000404000008040020000000400FFFF",
+        "nodes": [
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": -7,
+            "solid": -1
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "BPnn",
+        "bytes": "6E6E50420000803F0000000000000000000000C04641454C08000000FFFFFFFF0000803F000000400000404000008040020000000400FFFF0000803F000000400000404000008040",
+        "nodes": [
+          {
+            "tag": 1112567406,
+            "positive": 1,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": -1
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "BPIn",
+        "bytes": "6E4950420000803F0000000000000000000000C04641454C08000000FFFFFFFF0000803F000000400000404000008040020000000400FFFF0000803F000000400000404000008040",
+        "nodes": [
+          {
+            "tag": 1112557934,
+            "positive": 1,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": -1
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "BpIN",
+        "bytes": "4E4970420000803F0000000000000000000000C04641454CF7FFFFFFFFFFFFFF0000803F000000400000404000008040020000000400FFFF0000803F000000400000404000008040",
+        "nodes": [
+          {
+            "tag": 1114655054,
+            "positive": null,
+            "negative": 1,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": -1
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "BpnN",
+        "bytes": "4E6E70420000803F0000000000000000000000C04641454CF7FFFFFFFFFFFFFF0000803F000000400000404000008040020000000400FFFF0000803F000000400000404000008040",
+        "nodes": [
+          {
+            "tag": 1114664526,
+            "positive": null,
+            "negative": 1,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": -1
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "BPIN",
+        "bytes": "4E4950420000803F0000000000000000000000C04641454C08000000FFFFFFFF0000803F000000400000404000008040020000000400FFFF4641454CF7FFFFFFFFFFFFFF0000803F000000400000404000008040020000000400FFFF0000803F000000400000404000008040",
+        "nodes": [
+          {
+            "tag": 1112557902,
+            "positive": 1,
+            "negative": 2,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": -1
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": -1
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "BPnN",
+        "bytes": "4E6E50420000803F0000000000000000000000C04641454C08000000FFFFFFFF0000803F000000400000404000008040020000000400FFFF4641454CF7FFFFFFFFFFFFFF0000803F000000400000404000008040020000000400FFFF0000803F000000400000404000008040",
+        "nodes": [
+          {
+            "tag": 1112567374,
+            "positive": 1,
+            "negative": 2,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": -1
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": -1
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "PORT",
+        "bytes": "54524F500000803F0000000000000000000000C04641454C08000000FFFFFFFF0000803F000000400000404000008040020000000400FFFF4641454CF7FFFFFFFFFFFFFF0000803F000000400000404000008040020000000400FFFF",
+        "nodes": [
+          {
+            "tag": 1347375700,
+            "positive": 1,
+            "negative": 2,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": -1
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [
+              4,
+              65535
+            ],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": -1
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "BpIn",
+        "bytes": "6E4970420000803F0000000000000000000000C00000803F000000400000404000008040",
+        "nodes": [
+          {
+            "tag": 1114655086,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "Bpnn",
+        "bytes": "6E6E70420000803F0000000000000000000000C00000803F000000400000404000008040",
+        "nodes": [
+          {
+            "tag": 1114664558,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "BPOL",
+        "bytes": "4C4F50420000803F0000000000000000000000C00000803F000000400000404000008040",
+        "nodes": [
+          {
+            "tag": 1112559436,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "tag": "BPFL",
+        "bytes": "4C4650420000803F0000000000000000000000C00000803F000000400000404000008040",
+        "nodes": [
+          {
+            "tag": 1112557132,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": {
+              "origin": [
+                1,
+                2,
+                3
+              ],
+              "radius": 4
+            },
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "LEAF",
+        "bytes": "4641454CF9FFFFFF",
+        "nodes": [
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -7,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "BPnn",
+        "bytes": "6E6E50420000803F0000000000000000000000C04641454C08000000",
+        "nodes": [
+          {
+            "tag": 1112567406,
+            "positive": 1,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "BPIn",
+        "bytes": "6E4950420000803F0000000000000000000000C04641454C08000000",
+        "nodes": [
+          {
+            "tag": 1112557934,
+            "positive": 1,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "BpIN",
+        "bytes": "4E4970420000803F0000000000000000000000C04641454CF7FFFFFF",
+        "nodes": [
+          {
+            "tag": 1114655054,
+            "positive": null,
+            "negative": 1,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "BpnN",
+        "bytes": "4E6E70420000803F0000000000000000000000C04641454CF7FFFFFF",
+        "nodes": [
+          {
+            "tag": 1114664526,
+            "positive": null,
+            "negative": 1,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "BPIN",
+        "bytes": "4E4950420000803F0000000000000000000000C04641454C080000004641454CF7FFFFFF",
+        "nodes": [
+          {
+            "tag": 1112557902,
+            "positive": 1,
+            "negative": 2,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "BPnN",
+        "bytes": "4E6E50420000803F0000000000000000000000C04641454C080000004641454CF7FFFFFF",
+        "nodes": [
+          {
+            "tag": 1112567374,
+            "positive": 1,
+            "negative": 2,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "PORT",
+        "bytes": "54524F500000803F0000000000000000000000C04641454C080000004641454CF7FFFFFF",
+        "nodes": [
+          {
+            "tag": 1347375700,
+            "positive": 1,
+            "negative": 2,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": 8,
+            "solid": null
+          },
+          {
+            "tag": 1279607110,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": null,
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": -9,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "BpIn",
+        "bytes": "6E4970420000803F0000000000000000000000C0",
+        "nodes": [
+          {
+            "tag": 1114655086,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "Bpnn",
+        "bytes": "6E6E70420000803F0000000000000000000000C0",
+        "nodes": [
+          {
+            "tag": 1114664558,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "BPOL",
+        "bytes": "4C4F50420000803F0000000000000000000000C0",
+        "nodes": [
+          {
+            "tag": 1112559436,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "tag": "BPFL",
+        "bytes": "4C4650420000803F0000000000000000000000C0",
+        "nodes": [
+          {
+            "tag": 1112557132,
+            "positive": null,
+            "negative": null,
+            "splitting_plane": [
+              1,
+              0,
+              0,
+              -2
+            ],
+            "sphere": null,
+            "polygons": [],
+            "portal_polygons": [],
+            "leaf_index": null,
+            "solid": null
+          }
+        ]
+      }
+    ],
+    "motion": {
+      "bytes": "010000093D000080020000003D0000800300004007000000090000000100000003003D00018103CC01000003FEFFFFFFFFFFFFFF0000F4C10000803F0000004000004040000080400000A0400000C0400100000034120000018101CC01000003FEFFFFFFFFFFFFFF0000F4C10000803F0000004000004040010000003D0000800200000004000040018102CC01000003FEFFFFFFFFFFFFFF0000F4C1000080400000A0400000C04005000040018100CC01000003FEFFFFFFFFFFFFFF0000F4C1",
+      "decoded": {
+        "id": 150994945,
+        "default_style": 2147483709,
+        "style_defaults": {
+          "2147483709": 1073741827,
+          "7": 9
+        },
+        "cycles": {
+          "3997699": {
+            "bitfield": 129,
+            "flags": 3,
+            "animations": [
+              {
+                "animation_id": 50331649,
+                "low_frame": -2,
+                "high_frame": -1,
+                "framerate": -30.5
+              }
+            ],
+            "velocity": [
+              1,
+              2,
+              3
+            ],
+            "omega": [
+              4,
+              5,
+              6
+            ]
+          }
+        },
+        "modifiers": {
+          "4660": {
+            "bitfield": 129,
+            "flags": 1,
+            "animations": [
+              {
+                "animation_id": 50331649,
+                "low_frame": -2,
+                "high_frame": -1,
+                "framerate": -30.5
+              }
+            ],
+            "velocity": [
+              1,
+              2,
+              3
+            ],
+            "omega": null
+          }
+        },
+        "links": {
+          "2147483709": {
+            "1073741828": {
+              "bitfield": 129,
+              "flags": 2,
+              "animations": [
+                {
+                  "animation_id": 50331649,
+                  "low_frame": -2,
+                  "high_frame": -1,
+                  "framerate": -30.5
+                }
+              ],
+              "velocity": null,
+              "omega": [
+                4,
+                5,
+                6
+              ]
+            },
+            "1073741829": {
+              "bitfield": 129,
+              "flags": 0,
+              "animations": [
+                {
+                  "animation_id": 50331649,
+                  "low_frame": -2,
+                  "high_frame": -1,
+                  "framerate": -30.5
+                }
+              ],
+              "velocity": null,
+              "omega": null
+            }
+          }
+        }
+      }
+    },
+    "animation": {
+      "bytes": "010000030100000001000000020000000000A03F000000C0000040400000003F000000BF0000003F000000BF0000A03F000000C0000040400000003F000000BF0000003F000000BF0000A03F000000C0000040400000003F000000BF0000003F000000BF1A00000001000000FFFFFFFF0100008002000000FFFFFFFF0100008003000000FFFFFFFF070000000000803F0000004000004040000080400000A0400000C04004000000FFFFFFFF05000000FFFFFFFF34120180452306000000FFFFFFFF0100008007000000FFFFFFFF080000000000803F000000400000404008000000FFFFFFFF0000803F000000400000404009000000FFFFFFFF080000000000803F00000040000040400A000000FFFFFFFF0000803F00000040000040400B000000FFFFFFFF080000000000803F00000040000040400C000000FFFFFFFF0000803F000000400D000000FFFFFFFF01000032090000000000A03F000000C0000040400000003F000000BF0000003F000000BF0A0000000E000000FFFFFFFF010000800F000000FFFFFFFF0100008010000000FFFFFFFF0100008011000000FFFFFFFF12000000FFFFFFFF0100008013000000FFFFFFFF010000330000204014000000FFFFFFFF0000803F000000400000404015000000FFFFFFFF010000200000803F0000003F0000403F16000000FFFFFFFF0000803F000000400000404017000000FFFFFFFF0000803F0000004018000000FFFFFFFF030000000000803F0000004019000000FFFFFFFF010000801A000000FFFFFFFF01000032090000000000A03F000000C0000040400000003F000000BF0000003F000000BF0A0000000000A03F000000C0000040400000003F000000BF0000003F000000BF0100000003000000FFFFFFFF070000000000803F0000004000004040000080400000A0400000C040",
+      "decoded": {
+        "id": 50331649,
+        "flags": 1,
+        "num_parts": 1,
+        "num_frames": 2,
+        "position_frames": [
+          {
+            "origin": [
+              1.25,
+              -2,
+              3
+            ],
+            "rotation": [
+              0.5,
+              -0.5,
+              0.5,
+              -0.5
+            ]
+          },
+          {
+            "origin": [
+              1.25,
+              -2,
+              3
+            ],
+            "rotation": [
+              0.5,
+              -0.5,
+              0.5,
+              -0.5
+            ]
+          }
+        ],
+        "frames": [
+          {
+            "parts": [
+              {
+                "origin": [
+                  1.25,
+                  -2,
+                  3
+                ],
+                "rotation": [
+                  0.5,
+                  -0.5,
+                  0.5,
+                  -0.5
+                ]
+              }
+            ],
+            "hooks": [
+              {
+                "Id": 2147483649,
+                "HookType": 1,
+                "Direction": -1
+              },
+              {
+                "SoundType": 2147483649,
+                "HookType": 2,
+                "Direction": -1
+              },
+              {
+                "AttackCone": {
+                  "PartIndex": 7,
+                  "LeftX": 1,
+                  "LeftY": 2,
+                  "RightX": 3,
+                  "RightY": 4,
+                  "Radius": 5,
+                  "Height": 6
+                },
+                "HookType": 3,
+                "Direction": -1
+              },
+              {
+                "HookType": 4,
+                "Direction": -1
+              },
+              {
+                "APChange": {
+                  "PartIndex": 52,
+                  "PartID": 16851781
+                },
+                "HookType": 5,
+                "Direction": -1
+              },
+              {
+                "Ethereal": -2147483647,
+                "HookType": 6,
+                "Direction": -1
+              },
+              {
+                "Part": 8,
+                "Start": 1,
+                "End": 2,
+                "Time": 3,
+                "HookType": 7,
+                "Direction": -1
+              },
+              {
+                "Start": 1,
+                "End": 2,
+                "Time": 3,
+                "HookType": 8,
+                "Direction": -1
+              },
+              {
+                "Part": 8,
+                "Start": 1,
+                "End": 2,
+                "Time": 3,
+                "HookType": 9,
+                "Direction": -1
+              },
+              {
+                "Start": 1,
+                "End": 2,
+                "Time": 3,
+                "HookType": 10,
+                "Direction": -1
+              },
+              {
+                "Part": 8,
+                "Start": 1,
+                "End": 2,
+                "Time": 3,
+                "HookType": 11,
+                "Direction": -1
+              },
+              {
+                "End": 1,
+                "Time": 2,
+                "HookType": 12,
+                "Direction": -1
+              },
+              {
+                "EmitterInfoId": 838860801,
+                "PartIndex": 9,
+                "Offset": {
+                  "Origin": {
+                    "X": 1.25,
+                    "Y": -2,
+                    "Z": 3
+                  },
+                  "Orientation": {
+                    "IsIdentity": false,
+                    "X": -0.5,
+                    "Y": 0.5,
+                    "Z": -0.5,
+                    "W": 0.5
+                  }
+                },
+                "EmitterId": 10,
+                "HookType": 13,
+                "Direction": -1
+              },
+              {
+                "EmitterId": 2147483649,
+                "HookType": 14,
+                "Direction": -1
+              },
+              {
+                "EmitterId": 2147483649,
+                "HookType": 15,
+                "Direction": -1
+              },
+              {
+                "NoDraw": 2147483649,
+                "HookType": 16,
+                "Direction": -1
+              },
+              {
+                "HookType": 17,
+                "Direction": -1
+              },
+              {
+                "PartIndex": 2147483649,
+                "HookType": 18,
+                "Direction": -1
+              },
+              {
+                "PES": 855638017,
+                "Pause": 2.5,
+                "HookType": 19,
+                "Direction": -1
+              },
+              {
+                "Start": 1,
+                "End": 2,
+                "Time": 3,
+                "HookType": 20,
+                "Direction": -1
+              },
+              {
+                "SoundID": 536870913,
+                "Priority": 1,
+                "Probability": 0.5,
+                "Volume": 0.75,
+                "HookType": 21,
+                "Direction": -1
+              },
+              {
+                "Axis": {
+                  "X": 1,
+                  "Y": 2,
+                  "Z": 3
+                },
+                "HookType": 22,
+                "Direction": -1
+              },
+              {
+                "USpeed": 1,
+                "VSpeed": 2,
+                "HookType": 23,
+                "Direction": -1
+              },
+              {
+                "PartIndex": 3,
+                "USpeed": 1,
+                "VSpeed": 2,
+                "HookType": 24,
+                "Direction": -1
+              },
+              {
+                "LightsOn": -2147483647,
+                "HookType": 25,
+                "Direction": -1
+              },
+              {
+                "EmitterInfoId": 838860801,
+                "PartIndex": 9,
+                "Offset": {
+                  "Origin": {
+                    "X": 1.25,
+                    "Y": -2,
+                    "Z": 3
+                  },
+                  "Orientation": {
+                    "IsIdentity": false,
+                    "X": -0.5,
+                    "Y": 0.5,
+                    "Z": -0.5,
+                    "W": 0.5
+                  }
+                },
+                "EmitterId": 10,
+                "HookType": 26,
+                "Direction": -1
+              }
+            ]
+          },
+          {
+            "parts": [
+              {
+                "origin": [
+                  1.25,
+                  -2,
+                  3
+                ],
+                "rotation": [
+                  0.5,
+                  -0.5,
+                  0.5,
+                  -0.5
+                ]
+              }
+            ],
+            "hooks": [
+              {
+                "AttackCone": {
+                  "PartIndex": 7,
+                  "LeftX": 1,
+                  "LeftY": 2,
+                  "RightX": 3,
+                  "RightY": 4,
+                  "Radius": 5,
+                  "Height": 6
+                },
+                "HookType": 3,
+                "Direction": -1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "environment": {
+      "bytes": "0700000D020000000100000001000000010000000100000001000000030000000000010000000000000000000000000000000000000000000000803F0000803E0000403F010001000000803F000080BF0000000000000000000000000000803F0000803E0000403F0200010000000040000000C00000000000000000000000000000803F0000803E0000403F0500030002000000000001000000010002000000000000000500CCCC54524F500000803F0000000000000000000000C04641454C010000004641454C020000000400030001000000000001000000010002000000004641454CF9FFFFFF010000000000803F000000400000404000008040010000000400010000004641454C09000000CC0200000001000000010000000100000001000000030000000000010000000000000000000000000000000000000000000000803F0000803E0000403F010001000000803F000080BF0000000000000000000000000000803F0000803E0000403F0200010000000040000000C00000000000000000000000000000803F0000803E0000403F0500030002000000000001000000010002000000000000000500CCCC54524F500000803F0000000000000000000000C04641454C010000004641454C020000000400030001000000000001000000010002000000004641454CF9FFFFFF010000000000803F00000040000040400000804001000000040000000000CC",
+      "id": 218103815,
+      "cells": {
+        "1": {
+          "vertices": {
+            "0": {
+              "position": [
+                0,
+                0,
+                0
+              ],
+              "normal": [
+                0,
+                0,
+                1
+              ],
+              "uvs": [
+                [
+                  0.25,
+                  0.75
+                ]
+              ]
+            },
+            "1": {
+              "position": [
+                1,
+                -1,
+                0
+              ],
+              "normal": [
+                0,
+                0,
+                1
+              ],
+              "uvs": [
+                [
+                  0.25,
+                  0.75
+                ]
+              ]
+            },
+            "2": {
+              "position": [
+                2,
+                -2,
+                0
+              ],
+              "normal": [
+                0,
+                0,
+                1
+              ],
+              "uvs": [
+                [
+                  0.25,
+                  0.75
+                ]
+              ]
+            }
+          },
+          "polygons": {
+            "5": {
+              "vertices": [
+                0,
+                1,
+                2
+              ],
+              "positive_uvs": [
+                0,
+                0,
+                0
+              ],
+              "negative_uvs": [
+                0,
+                0,
+                0
+              ],
+              "positive_surface": 0,
+              "negative_surface": 1,
+              "cull": 2,
+              "stippling": 0
+            }
+          },
+          "portals": [
+            5
+          ],
+          "cell_bsp": [
+            {
+              "tag": 1347375700,
+              "positive": 1,
+              "negative": 2,
+              "splitting_plane": [
+                1,
+                0,
+                0,
+                -2
+              ],
+              "sphere": null,
+              "polygons": [],
+              "portal_polygons": [],
+              "leaf_index": null,
+              "solid": null
+            },
+            {
+              "tag": 1279607110,
+              "positive": null,
+              "negative": null,
+              "splitting_plane": null,
+              "sphere": null,
+              "polygons": [],
+              "portal_polygons": [],
+              "leaf_index": 1,
+              "solid": null
+            },
+            {
+              "tag": 1279607110,
+              "positive": null,
+              "negative": null,
+              "splitting_plane": null,
+              "sphere": null,
+              "polygons": [],
+              "portal_polygons": [],
+              "leaf_index": 2,
+              "solid": null
+            }
+          ],
+          "physics_polygons": {
+            "4": {
+              "vertices": [
+                0,
+                1,
+                2
+              ],
+              "positive_uvs": [
+                0,
+                0,
+                0
+              ],
+              "negative_uvs": [
+                0,
+                0,
+                0
+              ],
+              "positive_surface": 0,
+              "negative_surface": 0,
+              "cull": 1,
+              "stippling": 0
+            }
+          },
+          "physics_bsp": [
+            {
+              "tag": 1279607110,
+              "positive": null,
+              "negative": null,
+              "splitting_plane": null,
+              "sphere": {
+                "origin": [
+                  1,
+                  2,
+                  3
+                ],
+                "radius": 4
+              },
+              "polygons": [
+                4
+              ],
+              "portal_polygons": [],
+              "leaf_index": -7,
+              "solid": 1
+            }
+          ],
+          "drawing_bsp": [
+            {
+              "tag": 1279607110,
+              "positive": null,
+              "negative": null,
+              "splitting_plane": null,
+              "sphere": null,
+              "polygons": [],
+              "portal_polygons": [],
+              "leaf_index": 9,
+              "solid": null
+            }
+          ]
+        },
+        "2": {
+          "vertices": {
+            "0": {
+              "position": [
+                0,
+                0,
+                0
+              ],
+              "normal": [
+                0,
+                0,
+                1
+              ],
+              "uvs": [
+                [
+                  0.25,
+                  0.75
+                ]
+              ]
+            },
+            "1": {
+              "position": [
+                1,
+                -1,
+                0
+              ],
+              "normal": [
+                0,
+                0,
+                1
+              ],
+              "uvs": [
+                [
+                  0.25,
+                  0.75
+                ]
+              ]
+            },
+            "2": {
+              "position": [
+                2,
+                -2,
+                0
+              ],
+              "normal": [
+                0,
+                0,
+                1
+              ],
+              "uvs": [
+                [
+                  0.25,
+                  0.75
+                ]
+              ]
+            }
+          },
+          "polygons": {
+            "5": {
+              "vertices": [
+                0,
+                1,
+                2
+              ],
+              "positive_uvs": [
+                0,
+                0,
+                0
+              ],
+              "negative_uvs": [
+                0,
+                0,
+                0
+              ],
+              "positive_surface": 0,
+              "negative_surface": 1,
+              "cull": 2,
+              "stippling": 0
+            }
+          },
+          "portals": [
+            5
+          ],
+          "cell_bsp": [
+            {
+              "tag": 1347375700,
+              "positive": 1,
+              "negative": 2,
+              "splitting_plane": [
+                1,
+                0,
+                0,
+                -2
+              ],
+              "sphere": null,
+              "polygons": [],
+              "portal_polygons": [],
+              "leaf_index": null,
+              "solid": null
+            },
+            {
+              "tag": 1279607110,
+              "positive": null,
+              "negative": null,
+              "splitting_plane": null,
+              "sphere": null,
+              "polygons": [],
+              "portal_polygons": [],
+              "leaf_index": 1,
+              "solid": null
+            },
+            {
+              "tag": 1279607110,
+              "positive": null,
+              "negative": null,
+              "splitting_plane": null,
+              "sphere": null,
+              "polygons": [],
+              "portal_polygons": [],
+              "leaf_index": 2,
+              "solid": null
+            }
+          ],
+          "physics_polygons": {
+            "4": {
+              "vertices": [
+                0,
+                1,
+                2
+              ],
+              "positive_uvs": [
+                0,
+                0,
+                0
+              ],
+              "negative_uvs": [
+                0,
+                0,
+                0
+              ],
+              "positive_surface": 0,
+              "negative_surface": 0,
+              "cull": 1,
+              "stippling": 0
+            }
+          },
+          "physics_bsp": [
+            {
+              "tag": 1279607110,
+              "positive": null,
+              "negative": null,
+              "splitting_plane": null,
+              "sphere": {
+                "origin": [
+                  1,
+                  2,
+                  3
+                ],
+                "radius": 4
+              },
+              "polygons": [
+                4
+              ],
+              "portal_polygons": [],
+              "leaf_index": -7,
+              "solid": 1
+            }
+          ],
+          "drawing_bsp": null
+        }
+      }
+    },
+    "setup": {
+      "bytes": "010000020F000000020000000100000102000001FFFFFFFF000000000000803F0000803F0000803F00000040000000400000004001000000F9FFFFFF010000000000A03F000000C0000040400000003F000000BF0000003F000000BF01000000F8FFFFFF010000000000A03F000000C0000040400000003F000000BF0000003F000000BF01000000000000000000A03F000000C0000040400000003F000000BF0000003F000000BF0000A03F000000C0000040400000003F000000BF0000003F000000BF0100000006000000FFFFFFFF01000080010000000000803F00000040000040400000003F00002040020000000000803F000000400000404000008040000080BF000000C0000040C00000803E000020400000003FCDCCCC3E9A99193F0000803F0000004000004040000080400000803F00000040000040400000804001000000FCFFFFFF0000A03F000000C0000040400000003F000000BF0000003F000000BF332211FF0000803F0000003F000000400100000301000033010000090100002001000034",
+      "decoded": {
+        "id": 33554433,
+        "flags": 15,
+        "parts": [
+          16777217,
+          16777218
+        ],
+        "parents": [
+          4294967295,
+          0
+        ],
+        "default_scales": [
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            2,
+            2,
+            2
+          ]
+        ],
+        "holding_locations": {
+          "-7": {
+            "part_id": 1,
+            "frame": {
+              "origin": [
+                1.25,
+                -2,
+                3
+              ],
+              "rotation": [
+                0.5,
+                -0.5,
+                0.5,
+                -0.5
+              ]
+            }
+          }
+        },
+        "connection_points": {
+          "-8": {
+            "part_id": 1,
+            "frame": {
+              "origin": [
+                1.25,
+                -2,
+                3
+              ],
+              "rotation": [
+                0.5,
+                -0.5,
+                0.5,
+                -0.5
+              ]
+            }
+          }
+        },
+        "placements": {
+          "0": {
+            "parts": [
+              {
+                "origin": [
+                  1.25,
+                  -2,
+                  3
+                ],
+                "rotation": [
+                  0.5,
+                  -0.5,
+                  0.5,
+                  -0.5
+                ]
+              },
+              {
+                "origin": [
+                  1.25,
+                  -2,
+                  3
+                ],
+                "rotation": [
+                  0.5,
+                  -0.5,
+                  0.5,
+                  -0.5
+                ]
+              }
+            ],
+            "hooks": [
+              {
+                "Ethereal": -2147483647,
+                "HookType": 6,
+                "Direction": -1
+              }
+            ]
+          }
+        },
+        "cylinders": [
+          {
+            "origin": [
+              1,
+              2,
+              3
+            ],
+            "radius": 0.5,
+            "height": 2.5
+          }
+        ],
+        "spheres": [
+          {
+            "origin": [
+              1,
+              2,
+              3
+            ],
+            "radius": 4
+          },
+          {
+            "origin": [
+              -1,
+              -2,
+              -3
+            ],
+            "radius": 0.25
+          }
+        ],
+        "height": 2.5,
+        "radius": 0.5,
+        "step_up_height": 0.4,
+        "step_down_height": 0.6,
+        "sorting_sphere": {
+          "origin": [
+            1,
+            2,
+            3
+          ],
+          "radius": 4
+        },
+        "selection_sphere": {
+          "origin": [
+            1,
+            2,
+            3
+          ],
+          "radius": 4
+        },
+        "lights": {
+          "-4": {
+            "frame": {
+              "origin": [
+                1.25,
+                -2,
+                3
+              ],
+              "rotation": [
+                0.5,
+                -0.5,
+                0.5,
+                -0.5
+              ]
+            },
+            "color": 4279312947,
+            "intensity": 1,
+            "falloff": 0.5,
+            "cone_angle": 2
+          }
+        },
+        "default_animation": 50331649,
+        "default_script": 855638017,
+        "default_motion_table": 150994945,
+        "default_sound_table": 536870913,
+        "default_script_table": 872415233
+      }
+    }
+  }
+}

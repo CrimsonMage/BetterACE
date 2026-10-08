@@ -6,7 +6,7 @@ source = "user-provided divergences.md"
 source_sha256 = "942983be9ac93b4ad6997f47fb8bd26f01f6c27217afc91dbc32b66730a782c5"
 reported_ace_revision = "7ae5dad plus settime changes"
 bace_ace_commit = "47edade3bd3f6044b676d4eb877c4965c7eda62b"
-policy = "Check observations against the BACE pin; preserve evidence uncertainty. Client-project instructions and decisions in the source do not govern BACE. Do not reproduce authority, durability, aliasing or visibility bugs as compatibility requirements."
+policy = "Preserve evidence uncertainty. ACE remains the wire baseline; per owner direction on 2026-10-07, compare pinned GDLE as primary for door/monster server authority and player casting movement/release; ACE remains the wire reference; combat follows verified retail evidence, then pinned GDLE, with reviewed ACE gap-fills. Rare structure follows the supplied Turbine brief, with uncertain numerical policies explicitly configured. Client-project instructions in the original report do not govern BACE. Do not reproduce authority, durability, aliasing or visibility bugs as compatibility requirements."
 
 [[observations]]
 id = 1
@@ -146,7 +146,7 @@ reported_retail = "Answered a skill TRAIN with the public `0x02E2 UpdateSkillAC`
 reported_shard = "Answers with `0x02DD PrivateUpdateSkill` (xref)."
 evidence_pointer = "`net/messages-inbound.md` \u00a76J"
 source_status = "ACCEPTED"
-bace_status = "pinned_wire_private_skill_verified; gameplay_training_pending"
+bace_status = "approved_public_skill_class_projection_0x02E2; independent_wire_fixture_and_durable_skill_worker_tests"
 
 [[observations]]
 id = 15
@@ -156,7 +156,7 @@ reported_retail = "No refusal message for an attribute raise (0 in the corpus; r
 reported_shard = "At a stored rank \u2265 190 sends `0xF7E0` type 0 \"Your attempt to raise <Attr> has failed.\" and nothing else (xref + the shard log)."
 evidence_pointer = "`net/messages-inbound.md` \u00a73.12.5.1; A\u00b7R247"
 source_status = "ACCEPTED"
-bace_status = "pinned_maximum_rank_domain_regression"
+bace_status = "maximum_rank_domain_refusal_has_no_fabricated_chat; pinned_boundary_regression"
 
 [[observations]]
 id = 16
@@ -166,7 +166,7 @@ reported_retail = "Records obeyed \u00a73.5's rank law."
 reported_shard = "`+Black Breath`'s wire ranks are > 190 over a spend deriving 153\u2013178 (hand-levelled character data)."
 evidence_pointer = "`types/character.md` \u00a73.5.1; A\u00b7R247"
 source_status = "ACCEPTED"
-bace_status = "fresh_progression_derives_rank_from_xp"
+bace_status = "fresh_and_loaded_progression_derives_rank_from_xp; inconsistent_saved_rank_rejected"
 
 [[observations]]
 id = 17
@@ -176,7 +176,7 @@ reported_retail = "Doors: no `0xF74B` on open / close; the create names On / Off
 reported_shard = "Creates name On / Off like retail (DR1 measured), but `Open` / `FinalizeClose` also broadcast `0xF74B SetState` (xref, not captured)."
 evidence_pointer = "`net/messages-inbound.md` \u00a73.7.11 note; `physics/animation.md` \u00a73.19; A\u00b7R280; DR1 map"
 source_status = "ACCEPTED"
-bace_status = "state_codec_verified; door_lifecycle_pending"
+bace_status = "state_codec_verified; gdle_server_door_and_synthetic_occupancy_regressions; authentic_projection_pending"
 
 [[observations]]
 id = 18
@@ -216,7 +216,7 @@ reported_retail = "`@fillcomps clear` = `{0, \u22121}` clears the buy table."
 reported_shard = "Rejects WCID 0 (\"invalid spell component wcid\"): never clears; stores any amount unchecked (xref; CP1 saw the \u22121 stored unsigned)."
 evidence_pointer = "`ui/panels.md` \u00a76.4.3 xref note; `net/messages-outbound.md` \u00a73.20.4; CP1 map"
 source_status = "ACCEPTED"
-bace_status = "requires_pinned_review"
+bace_status = "component_zero_minus_one_clear_implemented; bounded_character_UI_and_save_reload_tests"
 
 [[observations]]
 id = 22
@@ -306,7 +306,7 @@ reported_retail = "Salvage `0x02B4` lists unsuitable items in `not_salvagable` \
 reported_shard = "ACE always sends an EMPTY `not_salvagable` and skips an unsuitable id silently \u2014 that line never appears on the shard."
 evidence_pointer = "`ui/panels.md` \u00a76.34.9; A\u00b7R316"
 source_status = "ACCEPTED"
-bace_status = "requires_pinned_review"
+bace_status = "unsuitable_ids_retained_in_domain_and_wire; stacked_inputs_untouched"
 
 [[observations]]
 id = 31
@@ -316,7 +316,7 @@ reported_retail = "A salvage that yields nothing still answers `0x02B4` \u2192 \
 reported_shard = "ACE sends NO `0x02B4` when nothing was salvaged."
 evidence_pointer = "`ui/panels.md` \u00a76.34.9; A\u00b7R316"
 source_status = "ACCEPTED"
-bace_status = "requires_pinned_review"
+bace_status = "empty_salvage_result_explicitly_encoded; no_empty_valuable_transaction"
 
 [[observations]]
 id = 32
@@ -326,7 +326,7 @@ reported_retail = "One salvage result per `0x02B4` (6,413 retail messages never 
 reported_shard = "ACE groups results BY SKILL into one `0x02B4`, so a mixed batch arrives as one message with several results (the \"A, B and C\" form); `aug_bonus` = `AugmentationBonusSalvage \u00d7 25` for skill 40, else 0."
 evidence_pointer = "`ui/panels.md` \u00a76.34.9; A\u00b7R316"
 source_status = "ACCEPTED"
-bace_status = "requires_pinned_review"
+bace_status = "zero_or_one_salvage_result_per_message_enforced; official_wire_fixture_and_approved_projection_policy"
 
 [[observations]]
 id = 33
@@ -366,7 +366,7 @@ reported_retail = "Retail's creator never sends a locked skill (Arcane Lore, Mag
 reported_shard = "Vanilla ACE ACCEPTS a `0xF656` create with a locked skill at 1 (UNTRAINED) \u2014 [redacted] made one on 2026-09-29."
 evidence_pointer = "`ui/frontend.md` \u00a76.9.3; `ui/panels.md` \u00a76.2.4; A\u00b7R339"
 source_status = "ACCEPTED"
-bace_status = "pinned_creation_allocation_behavior_verified"
+bace_status = "heritage_and_augmentation_locked_skill_transitions_rejected; pinned_transition_oracle_and_device_tests"
 
 [[observations]]
 id = 37
@@ -401,12 +401,12 @@ bace_status = "requires_pinned_review"
 [[observations]]
 id = 40
 area = "character"
-owners = ["bace-character", "bace-wire"]
+owners = ["bace-character", "bace-simulation", "bace-runtime", "bace-wire"]
 reported_retail = "After an attribute-transfer gem's Yes, retail's server sends the success as the `0x01C7` UseDone RESULT `0x4E1` (`ui/temples.md`; 51 of 51 in the corpus) \u2014 the client prints it through HandleFailureEvent."
 reported_shard = "Vanilla ACE sends `0x028A 0x4E1` instead of the UseDone result."
 evidence_pointer = "`ui/temples.md`; A\u00b7R354 `df05091f`"
 source_status = "ACCEPTED"
-bace_status = "requires_pinned_review"
+bace_status = "pinned_ace_weenie_error_implemented_retail_usedone_unqualified"
 
 [[observations]]
 id = 41
@@ -592,10 +592,112 @@ bace_status = "pinned_byname_response_dispatch_verified"
 id = "lifestone-position-alias"
 owners = ["bace-interactions", "bace-physics"]
 description = "2026-10-05: recalling through an aliased lifestone Position reportedly mutates the stone. BACE teleport targets must be value snapshots; assert the stone stays fixed."
-status = "pending"
+status = "server_owner_regression_tested; repeated_recall_preserves_stationary_lifestone_and_link_value; client_testing_deferred"
 
 [[regressions]]
 id = "teleport-forget-race"
 owners = ["bace-replication", "bace-world"]
 description = "2026-10-06: returning near a 25-second forget deadline reportedly loses mutual visibility and local speech. Invalidate stale removal work on re-entry; test symmetric visibility, same-cell recall and different-cell recall. Reported workaround value 1 is shard-specific; retail behavior remains unverified."
 status = "knowledge_tracker_regression_tested; world_visibility_composition_pending"
+
+[[regressions]]
+id = "character-rare-rng-isolation"
+owners = ["bace-random", "bace-loot", "bace-db-postgres"]
+description = "Owner requirement: another player's successes must not advance this character's rare stream. Ordinary loot is event/table-local. Keyed domains, persisted per-character ordinals and atomic reward saves must preserve the exact decision across retries/reconnect. See docs/rare-evidence.toml; emitter probabilities are not retail evidence."
+status = "rng_and_evaluator_isolation_tested; atomic_postgres_save_replay_and_rollback_tested"
+
+[[regressions]]
+id = "native-profile-publication"
+owners = ["bace-content-tools", "bace-runtime", "bace-db-postgres"]
+description = "Native loot/rare edits share the durable candidate journal, including SQL inserts. Validate frozen identities and item references before mapped acceptance; preserve rejected heads and one base plus at most two active deltas. Mixed weenie/profile transactions remain explicitly unsupported by the native-only worker."
+status = "postgres_journal_rejection_restart_and_three_pack_compaction_tested"
+
+[[regressions]]
+id = "gdle-slide-cast-authority"
+owners = ["bace-magic", "bace-simulation", "bace-physics"]
+description = "Owner-selected GDLE cast-control policy uses accepted server heading/displacement for the 45-degree release cone, >=6m disruption, correlated gestures and finite turn/gesture waits. NPK/PK share the selected policy; client pose or motion-completion claims cannot authorize release. ACE remains the wire reference; combat follows verified retail evidence, then pinned GDLE, with reviewed ACE gap-fills."
+status = "61_compiled_gdle_control_mode_ordering_rows; world_owned_sequence_completion_and_rootless_slide_regressions; 6266_DAT_formulas_13538_gestures_prepared; stock_client_casting_unqualified"
+
+[[regressions]]
+id = "gdle-negative-rating-defect"
+owners = ["bace-combat"]
+description = "Pinned GDLE Util.GetRatingMod uses 100/(100+rating) for a negative combined rating, so -10 amplifies damage and -100 is singular. Retain the compiled original as discrepancy evidence; selected correction is 100/(100-rating) for negative combined ratings, preserving GDLE additive composition and positive branch. ACE inverse-rating semantics corroborate the correction; the original divergence register supplies no independent retail numerical proof."
+status = "explicit_defect_correction_in_implementation; retail_formula_not_claimed"
+
+[[regressions]]
+id = "ace-native-emote-timeline"
+owners = ["bace-emotes", "bace-simulation", "bace-persistence"]
+description = "Owner requirement: match ACE emote tables behaviorally. EmoteManager.Enqueue adds previous action post-delay to current row pre-delay; DelayManager releases at EndTime<=now with sequence tie-break. Nested and detached action chains retain their own scheduling. Quest checks happen at execution. Accepted hand-in consumption precedes the Give set. Durable checkpoints follow those source-defined stages; do not batch the whole conversation or move rewards/dialogue to the end."
+status = "compiled_execution_timeline_and_queued_no_share_XP_oracles; PostgreSQL_stage_recovery_tested; broader_owner_service_composition_pending"
+
+[[regressions]]
+id = "gdle-motion-clock-under-stalls"
+owners = ["bace-motion", "bace-world", "bace-runtime"]
+description = "Pinned GDLE PhysicsObj.cpp update_object uses Timer::cur_time minus update_time; its inspected default branch retains elapsed time at <=1/30s, discards a >2s backlog, otherwise processes 0.2s chunks and a remaining quantum greater than 1/30s. The admitted quantum passes through float before CSequence's double cursor. BetterACE's current fixed tick/30 clock skips catch-up after missed runtime deadlines, so server ownership does not establish GDLE wall-time behavior under stalls. Sequence execution and runtime clock admission require separate source-derived tests; never accept client completion or timestamps as a substitute."
+status = "source_boundary_identified; explicit_delta_sequence_qualification_in_progress; runtime_wall_time_admission_pending"
+
+[[regressions]]
+id = "gdle-slide-cast-with-authoritative-locomotion"
+owners = ["bace-magic", "bace-motion", "bace-physics", "bace-world"]
+description = "Pinned GDLE ClientEvents.cpp MoveToState handling accepts movement while casting and performs a bounded transition toward a reported client pose. BetterACE must preserve legal casting movement without trusting that pose. For qualified rootless player cast programs, the server's existing validated locomotion may continue while the action cursor owns completion; arbitrary root displacement and movement input must not be summed. Root-bearing movement/casting combinations require full source-state composition and qualification. MotionTable action branches retain the substate cycle/modifiers; a zero-root action must not accidentally become a blanket movement lock."
+status = "all_20_human_component_gestures_rootless; chain_backed_slide_cancellation_and_missing_asset_regressions_pass; stock_client_reconciliation_unqualified"
+
+[[regressions]]
+id = "starter-gear-property-case"
+owners = ["bace-content", "bace-content-tools", "bace-import", "bace-runtime"]
+description = "Pinned ACE starterGear.json spells two item properties weenieID instead of weenieId (45542 Training Club and 45546 Training Spear). The original ConfigManager options do not enable case-insensitive properties. Native conversion explicitly preserves these authored IDs instead of retaining zero IDs or silently losing the starter items. Authored row order and all 107 gear / 33 spell rows are retained in native TOML and the frozen kind22/schema1 bootstrap profile. Missing referenced content or start geometry fails creation; no guessed instantiation fallback is installed."
+status = "native_source_conversion_and_frozen_profile_regressions; creation_runtime_composition_in_progress"
+
+[[regressions]]
+id = "depleted-equipment-reconstruction"
+owners = ["bace-simulation", "bace-runtime"]
+description = "Pinned WorldObject_Magic stores equipment mana accumulator/warning only transiently; Player_Tick delays exhausted-item spell removal by two seconds. Durable mana zero and absent IsAffecting may therefore survive a crash before that transient removal. BetterACE reconstructs an immediate bounded removal only for matching known exhausted item-cast entries before initial entry/capture, without replaying a warning or touching unrelated buffs. Live routine and correlated valuable saves retain the original owner obligation; logout waits for it. This explicitly hardens loss of ACE's transient action without inventing a durable timer schema."
+status = "source_heartbeat_1080_vectors_and_owner_freezer_reconstruction_regressions; client_testing_deferred"
+
+[[regressions]]
+id = "gdle-player-emote-double-mana"
+owners = ["bace-simulation"]
+description = "Pinned GDLE 353cbab52ef7da2b7063bc3e3f008461d8531693 SpellcastingManager.cpp CreatureBeginCast (2949-2998) debits base mana before motion; LaunchSpellEffect (858-930) checks actual AsPlayer and uses_mana, so a player-owned noninstant emote can pay again or fizzle after prepayment. SpellCastData has no IsCreatureCast guard at this pin. BetterACE intentionally applies release mana conversion/fizzle/cost only to explicit Player cast origin, preserving one up-front base charge when AIUsesMana is enabled and no charge when disabled for Monster/noninstant Emote origins regardless of actor subtype. The disabled player-emote release charge is also intentionally removed; the oracle records it, while connected owner comparisons cover enabled mana. This is a defect correction under ARCHITECTURE.md BASE-01, not a claim of matching that GDLE edge case. The original-method creature_mana oracle retains the double debit as discrepancy evidence; synthetic motion callback tests cover real NPCs, player emotes, exhausted prepaid pools and unchanged ordinary-player release costs."
+status = "original_source_discrepancy_oracle_and_owner_regressions; stock_client_testing_deferred"
+
+[[regressions]]
+id = "ace-cold-constructed-creature-identity"
+owners = ["bace-spawning", "bace-simulation", "bace-runtime", "bace-storage-codec", "bace-persistence", "bace-db-postgres"]
+description = "Pinned ACE Creature.cs constructs a cold creature and calls GenerateWieldedTreasure; Creature_Equipment.cs GenerateWieldedTreasure draws a new equipment set. BetterACE deliberately restores an already durable contained Creature/Cow and its V4 construction companion with the exact saved creature, nested item identities, equipment order, enchantments and death roster. It reconciles generator profile occupancy before the first population tick, instead of rerolling equipment on cold entry. A mismatched or incomplete companion fails closed. This is an identity-preserving durability correction, not a claim of exact ACE cold-construction behavior. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Creature.cs and Creature_Equipment.cs."
+status = "contained_V4_cold_restore_and_occupancy_regressions; dedicated_constructed_creature_first_promotion_receipt_and_postgres_rollback_replay_tests_pass; nested_runtime_and_broader_subtypes_pending"
+
+[[regressions]]
+id = "ace-treasure-enum-attribute-extraction"
+owners = ["bace-loot"]
+description = "The pinned ACE UpdatePositionFlag.cs contains SuppressMessage attributes with commas before Placement and ZeroQw/ZeroQx/ZeroQy/ZeroQz. The original oracle extractor split enum members before stripping attributes, creating a synthetic UpdatePositionFlag.[SuppressMessage entry with value 5 and losing five real members. The corrected extractor strips attributes first; native treasure export resolves those members directly from pinned source and rejects recurrence of the invalid synthetic name. This is a correction to BetterACE extraction, not a change to ACE semantics."
+status = "all_eight_pinned_UpdatePositionFlag_members_restored; synthetic_attribute_row_removed"
+
+[[regressions]]
+id = "ace-corpse-permittee-open-durability"
+owners = ["bace-simulation", "bace-storage-codec", "bace-runtime"]
+description = "Pinned ACE Corpse.cs keeps permitteeOpened in an ephemeral HashSet. BetterACE corpse V5 retains an accepted permittee after the durable Open receipt so that authorized access survives restart. The grant remains recipient-owned and transient until that receipt; rejection and expiry cannot fabricate a persisted permit. This is an intentional durability correction rather than an ACE restart-parity claim."
+status = "confirmed_open_receipt_and_transient_grant_owner_regressions"
+
+[[regressions]]
+id = "ace-no-corpse-inventory-world-ownership"
+owners = ["bace-simulation", "bace-runtime", "bace-storage-codec"]
+description = "Pinned ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b Creature_Death.cs CreateCorpse/GenerateTreasure appends an existing pack item to NoCorpse world loot, then Landblock.AddWorldObjectInternal notifies nearby players without removing it from the creature Inventory dictionary. The compiled original-source oracle row 1|1|0|1|0 records world:22 while the final Inventory still contains 22. BetterACE intentionally transfers the item to one durable world owner in the same PlayerSaveV6 death checkpoint, preserving its ID, authored DestinationType and copied accepted pose. BetterACE also closes the resulting same-lane pack-slot gap in the durable inventory graph after exact revision and placement checks. The pinned corpse-null branch emits no private removal or slot update for a direct noncontainer pack root; world visibility supplies CreateObject. BetterACE sends the exact committed post-transfer burden value on the canonical private property stream because its corrected owner no longer carries that item. This corrects duplicate ownership and the resulting client burden discrepancy rather than claiming exact ACE packet or in-memory state parity. Equipped presentation and ordinary world-container Open remain held. The selected container branch preserves its nested Contain tree with same-placement descendant revision advances in the one exact death operation. Valid-client regression: pinned source oracle row and a committed selected pack-root and sibling-slot V5/visibility receipt. Invalid-state regressions: legacy unknown DestinationType, stale accepted pose, mismatched root or sibling identity/placement/revision, burden overflow, and repeated commit cannot create or publish an extra root."
+status = "zero_drop_owner_and_atomic_freezer_tests_pass; pinned_selected_pack_and_exact_slot_receipt_tests_pass; corrective_private_burden_projection_test_passes; selected_container_nested_forest_source_and_postgres_receipt_tests_pass; narrow_equipped_source_packet_order_and_durable_receipt_tests_pass; other_equipped_held; actual_dat_sample_spill_placement_and_create_pass; game_client_testing_deferred"
+
+[[regressions]]
+id = "ace-initial-login-portal-override-order"
+owners = ["bace-simulation", "bace-runtime"]
+description = "Pinned ACE GameActionLoginComplete calls OnTeleportComplete, marks FirstEnterWorldDone, then sends property updates and Bool68 overrides once. Landblock readiness can defer the teleport completion after that property update. BetterACE retains the initial materialization until the exact accepted ClientReady receipt and emits Bool68 in its reliable materialization batch only once per entered character binding. The markers are cleared when that binding leaves the authenticated session. This fences the accepted portal view and prevents a duplicate initial completion from repeating the override; it deliberately fixes an out-of-order readiness window rather than claiming identical ACE packet timing. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/Network/GameAction/Actions/GameActionLoginComplete.cs and Player_Location.cs."
+status = "connected_out_of_order_and_duplicate_initial_materialization_tests; game_client_testing_deferred"
+
+[[regressions]]
+id = "ace-vendor-buy-total-overflow"
+owners = ["bace-economy"]
+description = "Pinned ACE vendor default Buy pricing multiplies stack unit value, applies the vendor buy rate and a minimum price of one, then accumulates the total in an unchecked unsigned integer. BetterACE's bounded quote preserves the positive source arithmetic and request/stack order but rejects a total that would overflow the supported durable currency amount. This prevents a crafted oversized request from wrapping its price before the still-unsupported live Buy transaction. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Vendor.cs and Player_Commerce.cs."
+status = "default_buy_quote_bounds_and_overflow_regressions_pass; live_buy_sell_unsupported"
+
+[[regressions]]
+id = "ace-staff-ban-durable-audit-order"
+owners = ["bace-admin", "bace-gameplay-api", "bace-simulation", "bace-runtime", "bace-persistence", "bace-db-postgres"]
+description = "Pinned ACE SentinelCommands handles @ban/@unban with database mutation, private results, online boot and Audit broadcasts through its live command flow. BetterACE gates the private result and exact-generation AccountBoot behind a revision-fenced durable ban receipt and one correlated authoritative in-game Audit acceptance. This changes relative output timing so a failed or uncertain write cannot report success or boot a replacement session. If the issuer detaches before post-commit Audit admission, the committed phase remains retained with failure rather than fabricating Audit or success. BetterACE's separate non-durable external Audit feed has no pinned ACE counterpart; its bounded publisher now reserves capacity before assigning sequence, retains Full for retry, and surfaces Closed as a recoverable degraded state. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/Command/Handlers/SentinelCommands.cs."
+status = "real_postgres_ban_replay_runtime_audit_generation_disconnect_and_feed_pressure_recovery_tests_pass; stock_client_testing_deferred"

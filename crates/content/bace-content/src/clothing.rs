@@ -147,7 +147,7 @@ impl ClothingPatchV1 {
                     r.offset % 8 != 0
                         || r.colors % 8 != 0
                         || r.offset / 8 > 255
-                        || r.colors / 8 > 255
+                        || (r.colors != 2048 && r.colors / 8 > 255)
                 }) {
                     return Err(ClothingError::Limit);
                 }

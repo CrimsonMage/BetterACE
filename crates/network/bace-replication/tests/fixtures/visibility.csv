@@ -1,0 +1,24 @@
+# Official ACEmulator/ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b; AGPL-3.0-only; original methods with synthetic object/cell/lock adapters
+# Source/ACE.Server/Physics/Common/ObjectMaint.cs sha256 2946d2a3713e8cd3fb8a891e397c51a055898180d70d7b54aee6e1e2c5ef67e3
+# Source/ACE.Server/Physics/Common/Position.cs sha256 0bbfdaebd6d233e11b0f6e62b87b4d130b25eaeb2c98daf16fd2c7fbfab243ad
+# Source/ACE.Server/Physics/PhysicsObj.cs sha256 8757900f217be4a4426ac6324d333777589cbf24ce7ca8a343510bef83b3469a
+clamp,0,00000000,1
+clamp,0,4645C100,1
+clamp,0,4645C102,0
+clamp,0,471C4000,0
+clamp,1,00000000,1
+clamp,1,4645C100,1
+clamp,1,4645C102,1
+clamp,1,471C4000,1
+expiry,0,749,00000000,0,0,1
+expiry,0,749,471C4000,0,0,1
+expiry,0,750,00000000,1,1,1
+expiry,0,750,471C4000,1,0,0
+expiry,0,751,00000000,1,1,1
+expiry,0,751,471C4000,1,0,0
+expiry,1,749,00000000,0,0,1
+expiry,1,749,471C4000,0,0,1
+expiry,1,750,00000000,1,1,1
+expiry,1,750,471C4000,1,0,0
+expiry,1,751,00000000,1,1,1
+expiry,1,751,471C4000,1,0,0

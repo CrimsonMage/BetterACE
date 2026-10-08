@@ -20,7 +20,7 @@ fn identifier(value: &str) -> Result<String, SqlStagingError> {
     }
     Ok(format!("`{value}`"))
 }
-fn rows(
+pub(crate) fn rows(
     db: &IsolatedMariaDb,
     spec: &TableSpec,
 ) -> Result<Vec<Map<String, Value>>, SqlStagingError> {
@@ -38,9 +38,21 @@ fn rows(
         .iter()
         .map(|(column, native)| {
             let column = identifier(column)?;
-            let expression = if (spec.native == "bools" && *native == "value")
-                || matches!(*native, "try_to_bond" | "ignore_author" | "display")
-            {
+            let expression = if ((spec.native == "bools" || spec.name.ends_with("_bool"))
+                && *native == "value")
+                || matches!(
+                    *native,
+                    "try_to_bond"
+                        | "ignore_author"
+                        | "display"
+                        | "continues_previous_set"
+                        | "executes_on_success"
+                        | "has_sub_set"
+                        | "is_link_child"
+                        | "non_tracking"
+                        | "set_start"
+                        | "unknown_7"
+                ) {
                 format!("CAST({column} AS UNSIGNED)")
             } else {
                 column
@@ -102,6 +114,14 @@ pub(crate) fn extract(
     db: &IsolatedMariaDb,
     source_sha256: String,
 ) -> Result<StagedWorld, SqlStagingError> {
+    extract_mode(db, source_sha256, false)
+}
+
+pub(crate) fn extract_mode(
+    db: &IsolatedMariaDb,
+    source_sha256: String,
+    complete: bool,
+) -> Result<StagedWorld, SqlStagingError> {
     let other_schemas = db.query("SELECT SCHEMA_NAME FROM information_schema.schemata WHERE SCHEMA_NAME NOT IN ('mysql','information_schema','performance_schema','sys','ace_world')")?;
     if !other_schemas.trim().is_empty() {
         return Err(error("SQL created unsupported databases outside ace_world"));
@@ -121,7 +141,14 @@ pub(crate) fn extract(
     }
     let unsupported: Vec<_> = counts
         .iter()
-        .filter(|(table, count)| **count > 0 && !TABLES.iter().any(|s| s.name == table.as_str()))
+        .filter(|(table, count)| {
+            **count > 0
+                && !TABLES.iter().any(|s| s.name == table.as_str())
+                && !(complete
+                    && crate::world_extract::WORLD_TABLES
+                        .iter()
+                        .any(|s| s.name == table.as_str()))
+        })
         .map(|(table, _)| table.clone())
         .collect();
     if !unsupported.is_empty() {
@@ -232,7 +259,13 @@ pub(crate) fn extract(
         table_row_counts: counts,
         unsupported_tables: vec![],
     };
-    crate::staging_inventory::validate(&manifest, &result)?;
+    let mut weenie_manifest = manifest.clone();
+    if complete {
+        weenie_manifest
+            .table_row_counts
+            .retain(|name, _| TABLES.iter().any(|s| s.name == name));
+    }
+    crate::staging_inventory::validate(&weenie_manifest, &result)?;
     Ok(StagedWorld {
         manifest,
         weenies: result,

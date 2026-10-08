@@ -1,0 +1,22 @@
+{
+  "source_sha256": "ef81aea7c07860e46ad92b93369407fa0f110591778776e7e4a6ee3f931d1230",
+  "cases": [
+    {
+      "accepted": true,
+      "result": true,
+      "messages": [
+        "create",
+        "contain",
+        "stack"
+      ]
+    },
+    {
+      "accepted": false,
+      "result": false,
+      "messages": [
+        "error-text",
+        "save-failed"
+      ]
+    }
+  ]
+}

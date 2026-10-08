@@ -2,7 +2,7 @@
 version = 1
 repository = "https://github.com/ACEmulator/ACE"
 commit = "47edade3bd3f6044b676d4eb877c4965c7eda62b"
-source_count = 524
+source_count = 618
 
 [[sources]]
 source = "Source/ACE.Common/Cryptography/CryptoSystem.cs"
@@ -55,6 +55,26 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.Common/Extensions/EnumHelper.cs"
+sha256 = "3f7dd537ed8cf16c4f34a7318f44b353d21c59e770710399e4cc2aec1dd5c10d"
+git_blob = "2c6f5d8d09e7751c5caf9e1c7e6fed8060e156b3"
+owner = "bace-wire"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.Common/ThreadSafeRandom.cs"
+sha256 = "4653d0480f4c1d9c595a83d00e99af03d8b49abe9813491f549c7c980abbd405"
+git_blob = "fec221bcf69db3ddae46919c6ee319bfbcb6c245"
+owner = "bace-wire"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
 source = "Source/ACE.DatLoader/BinaryReaderExtensions.cs"
 sha256 = "c8aacc633f15f29329f963c6cc3222322291d926dd66cde9e31fbd4f4966adb1"
 git_blob = "0839efb9adf84137d037b4543b38fc35d3f453ba"
@@ -62,7 +82,7 @@ owner = "bace-dat"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/DatDatabaseType.cs"
@@ -72,7 +92,7 @@ owner = "bace-dat"
 identifiers = ["Portal=1", "Cell=2", "Language=3"]
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs", "tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs", "tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/DatDatabaseTypeAttribute.cs"
@@ -82,7 +102,7 @@ owner = "bace-dat"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/DatFileType.cs"
@@ -92,7 +112,7 @@ owner = "bace-dat"
 identifiers = ["LandBlock=1", "LandBlockInfo=2", "EnvCell=3", "LandBlockObjects=4", "Instantiation=5", "GraphicsObject=6", "Setup=7", "Animation=8", "AnimationHook=9", "Palette=10", "SurfaceTexture=11", "Texture=12", "Surface=13", "MotionTable=14", "Wave=15", "Environment=16", "ChatPoseTable=17", "ObjectHierarchy=18", "BadData=19", "TabooTable=20", "FileToId=21", "NameFilterTable=22", "MonitoredProperties=23", "PaletteSet=24", "Clothing=25", "DegradeInfo=26", "Scene=27", "Region=28", "KeyMap=29", "RenderTexture=30", "RenderMaterial=31", "MaterialModifier=32", "MaterialInstance=33", "SoundTable=34", "UiLayout=35", "EnumMapper=36", "StringTable=37", "DidMapper=38", "ActionMap=39", "DualDidMapper=40", "String=41", "ParticleEmitter=42", "PhysicsScript=43", "PhysicsScriptTable=44", "MasterProperty=45", "Font=46", "FontLocal=47", "StringState=48", "DbProperties=49", "RenderMesh=67", "WeenieDefaults=0x10000001", "CharacterGenerator=0x10000002", "SecondaryAttributeTable=0x10000003", "SkillTable=0x10000004", "SpellTable=0x10000005", "SpellComponentTable=0x10000006", "TreasureTable=0x10000007", "CraftTable=0x10000008", "XpTable=0x10000009", "Quests=0x1000000A", "GameEventTable=0x1000000B", "QualityFilter=0x1000000C", "CombatTable=0x1000000D", "ItemMutation=0x1000000E", "ContractTable=0x10000010"]
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/DatFileTypeAttribute.cs"
@@ -102,7 +122,7 @@ owner = "bace-dat"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/DatFileTypeExtensionAttribute.cs"
@@ -112,7 +132,7 @@ owner = "bace-dat"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/DatFileTypeIdRangeAttribute.cs"
@@ -122,7 +142,277 @@ owner = "bace-dat"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimData.cs"
+sha256 = "80c38e9c37d23de1a550c225152827399cc47588f566411b0118f97ba7717e60"
+git_blob = "4f12435edcbe13709ebae6f8f62825e8a171003a"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationFrame.cs"
+sha256 = "8143eb3a44c5323ade4ad9b58ac11731e9a74cd65914296934b64f4903b16327"
+git_blob = "6d11e597f05e778a0aa1b6642e8009dffea16f44"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHook.cs"
+sha256 = "6661752f0107a79caff14e800fe0074b1a97023c2529e116856c94598a332308"
+git_blob = "b6a2c3d035726dab7be77732ec6b2b5bf104f4cf"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/AttackHook.cs"
+sha256 = "aee684a99b4e8f0e8e28e6cd6abe17b75e9c4ed9087b6b949659eb3d5faf785a"
+git_blob = "73da1caae8cbf8276b461a6d9859ca37e1160dcc"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/CallPESHook.cs"
+sha256 = "a2e83e260419ca7c32c04fef8217c1d2614fde63b2f8914a2e0db23d1ecda27d"
+git_blob = "4e7cabc45385606757b4875a0b9b220851c05ab7"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/CreateBlockingParticle.cs"
+sha256 = "0b7abc5a3f11bb61f157784c9034bd5049e96c5bbd0f09ed9d5c70dddf97e4d1"
+git_blob = "2812df7287deefcd4cd6e5534599f8e0c65f9184"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/CreateParticleHook.cs"
+sha256 = "c0e5857b6c70ef42954ed40e07735107de553a8c1bfc3fd9dacfaf03749ec995"
+git_blob = "85d751dc5103ff127ab5a5e5bb633afc5b2615b5"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/DefaultScriptPartHook.cs"
+sha256 = "0b387ce5e8a4d4ad8d17ff43bdeeb7390914f25f56bcf6d0462bcdab42d69f94"
+git_blob = "6c987b8c1312a0257585c5aa5da31a90890bbed5"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/DestroyParticleHook.cs"
+sha256 = "29b24408dc3d43164101591f66e5309f5e5d0bca7f12309ff38e0e44a67265c7"
+git_blob = "70583302a238eb89b60753b4d42bcd8d223e283e"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/DiffuseHook.cs"
+sha256 = "31bc1ee6a2722f95badbe223380f5b1826f875c8d65d41bb6b8494d9536f97b7"
+git_blob = "b30da8c262f7059b0ce7af7fa9a181c27d4bf64a"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/DiffusePartHook.cs"
+sha256 = "2cc4646a56deacad9b4ff05a81a32209260011fc02ad25050ac81fff469d6968"
+git_blob = "8d087377210f1f1b8613814d1cf735e3b40d56d5"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/EtherealHook.cs"
+sha256 = "4ebae99e1fc7d213b8bf24eee086c32deb1216ebc7c13f818ac6d251d7b648e9"
+git_blob = "cdd3da6e5b2fade8b39e0ac58899784be912a640"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/LuminousHook.cs"
+sha256 = "77f4df7904a38eb83df82f8f1a0c6cae38c49a402ec2ebebceeea502aabd7d00"
+git_blob = "8b45f9472fe0739fec71846e08d77d0ed5fc4b5a"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/LuminousPartHook.cs"
+sha256 = "6d3e8d844de3a0124eb2b7e1ac0d67e131cb06d10bdc4ed0d5a88a708c701961"
+git_blob = "7e5aa25b5be782a8aea21b6359f974f7f85e7b87"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/NoDrawHook.cs"
+sha256 = "1be13aac87bbcc72c3c86e94d26c795fbb5a4e4db76da55113e2d353d5f08d0f"
+git_blob = "74c4ee40f394ae5f296c74f0d46ff8e4b9cf14c0"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/ReplaceObjectHook.cs"
+sha256 = "8747f6206445247c01d1692f1c0bbbe84ce828b1b5faf0360b84bc30aed7b6e8"
+git_blob = "e1b97216a95a6120956bc4e82018c4f4e3437cc1"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/ScaleHook.cs"
+sha256 = "91a92c6f25a6abd198560b512cd0f637674ebd5455a6d642371a70aee3617f5c"
+git_blob = "47bd013ed989f4bf64e507933e74798cccd44748"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/SetLightHook.cs"
+sha256 = "6a5b63b8e8905d93f419ec57bc96352e3e456277fd90cc10c2e58449a3fdcba6"
+git_blob = "310bccfea755d0942b49c89b90cbcaf31d288b89"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/SetOmegaHook.cs"
+sha256 = "a116b47d92653d5b71d12999fe06981c7ded1499810986d5287343af45938504"
+git_blob = "896d5e8d75c095627508b956ea08206dd771358b"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/SoundHook.cs"
+sha256 = "4a62ac9c47b94346de600784ee717862227cf8073af510176672565fc8683404"
+git_blob = "5415ae6b7e44edaddfc5abd74d73c1e8a03ccfa6"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/SoundTableHook.cs"
+sha256 = "95ab36f47e83d56f34b4c3a3a37c0a181abac1fcfdf47a4243dfbefceb08824c"
+git_blob = "0ebbafcbce029466186d43cc0b68edb516117a81"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/SoundTweakedHook.cs"
+sha256 = "1b8655c3cd5747706afaa80bcba6921a851d569a2bde5167430ccd165bd99e83"
+git_blob = "ee2a5adc3c7529ced71840b0c309cab7cd0220f9"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/StopParticleHook.cs"
+sha256 = "fd5f2400fc7e2dc64c6f11651ba65c2072f1ff3830a021a1eff52c6677f26210"
+git_blob = "df7b661f1a7ac0233d158f8a3276a8e0fc3b874b"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/TextureVelocityHook.cs"
+sha256 = "3049eb5783d00ffcc361486dba9d9be7d1b5814e023663e9225711729ff1ddaf"
+git_blob = "4ee445cf9f57588fb3d5d13d2de828a1dc7cb0ee"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/TextureVelocityPartHook.cs"
+sha256 = "573d5d1b3faf7ba7a2a1a990239c273567a2077582bb5238f4af29f5db93d338"
+git_blob = "9373ca47969ded0149135f6b9aaf1c6b8c33c246"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/TransparentHook.cs"
+sha256 = "f8847cdfc84584fa54de889f196d5a93a492b0fcade4fe999b6437599462ceed"
+git_blob = "743c3aa72c7cfa304b8ab627cbebdfd9aeebb72e"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AnimationHooks/TransparentPartHook.cs"
+sha256 = "b33861f9123385b6e6266f0b1e860d8acf9dff0d0f17c9c9113c754fe2378c3f"
+git_blob = "0ef9e7ba3b2ad7c3db36504b9fcec2152bd7d4c1"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/Entity/AnimationPartChange.cs"
@@ -132,7 +422,167 @@ owner = "bace-dat"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/AttackCone.cs"
+sha256 = "0932053a0511f21babc79d4f2be9ea1e7be8143196dde9906780637dabed46ba"
+git_blob = "71bb699036b44bee9f213a6c191c5a800408d3cf"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/Attribute2ndBase.cs"
+sha256 = "4f9229bb85e5ab8984fd793664c9725ad19eba50be9d036fc89b5067117068d8"
+git_blob = "f6d69a16264461c2d5d742ce1c2b07ff6744aba7"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/BSPLeaf.cs"
+sha256 = "b6e11b7d8fed52e52b1359591fa5c1cfa3f0e2632a4cac6881fe66873785c8ab"
+git_blob = "1b787dd07243cf4db082dd2f4935fdd73808de37"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/BSPNode.cs"
+sha256 = "232b26a271c7d715f08cdf1875ed9bc4f1e2f18900f51c59c6dc97290ab1db10"
+git_blob = "f103b7c206bcdac5cbdbd510bc2b9cd1876d8d32"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/BSPPortal.cs"
+sha256 = "95e3123a1318ebb8ceae93993c2c6d952997713f914cd71223b22becba691505"
+git_blob = "d00086216e825f266f583fd1e5b21b7f64fd1d4e"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/BSPTree.cs"
+sha256 = "c864f47e24768b29fa0e3ba86132a6c589470e8d5748a07fd9e1288afbb735e1"
+git_blob = "c4499f13e1876d653116bc9f6498c4069266e166"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/CVertexArray.cs"
+sha256 = "204cd6aefdbb553544280871135a1abfed1f161ed581f6f0775601ea9c0ec7b2"
+git_blob = "f55463c8071fd2ef82ca85e9933f702e1b964f90"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/CellPortal.cs"
+sha256 = "c3d0f284ccb837fd6d3cc55cae95a1f42e85545e1c743f3649926f050de9281b"
+git_blob = "69bb70e4cc04ba67e8c1cb04284c3500f1623ee7"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/CellStruct.cs"
+sha256 = "5248444ae70d4f47feb38fd6e939a98938f20df667d70852652563cf9f705d02"
+git_blob = "1574ebbaa41294e372fbdfc9079d447ce57e6fca"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/CloObjectEffect.cs"
+sha256 = "0d58f65c27befc99f7c76239eedc6a80ee478effa394a89e1ac0f49329c511fd"
+git_blob = "e3633874b20eba429255f4daa7cbde14ef85cf94"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/CloSubPalEffect.cs"
+sha256 = "954945540a9444d8b396dbdb2e364f543ff077f9066c0045d992a4daa174d1a0"
+git_blob = "43a745d52f3e5d91e9484efe59fd58883ecdd0a4"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/CloSubPalette.cs"
+sha256 = "77b2bef1250479da76553fce082b84674c0c9ea1802818969f3118f5cee1a1a3"
+git_blob = "bd13b1882fa6bed8ee556f0f35150fc23511469d"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/CloSubPaletteRange.cs"
+sha256 = "36decc26565e0401245dc3179ae67eb69b0c4305766b7d45a2a5066cf2fd3872"
+git_blob = "3cbe4ee1c7cb6f8523ab296e9c1b1c1fa3df8fcf"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/CloTextureEffect.cs"
+sha256 = "c723aa8cea130b42f86329898487718f71244e98b35cffb6e45837a3b4737925"
+git_blob = "efd973ce1209915428b97f4aad7c51b71ca749cf"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/ClothingBaseEffect.cs"
+sha256 = "8804f71524dd0d66de0f1b95387303e46e4ffc2614649b76568d98a2cc332b1a"
+git_blob = "e8187c1296bc2b053422a1e77794602b1452715f"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/CylSphere.cs"
+sha256 = "223f4efe2259ad679c68dd0193a40d5ea71bfd3fdd23aabda4d3688dd4c4019e"
+git_blob = "e7e3ec824f4ac4135099e0d4efa9079ce8565840"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/Entity/EyeStripCG.cs"
@@ -162,7 +612,7 @@ owner = "bace-dat"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/Entity/GearCG.cs"
@@ -195,6 +645,36 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.DatLoader/Entity/LightInfo.cs"
+sha256 = "7e0dcdbb9e2888756d37d04e0aaf668647831c5966e45f1cfc4a73d789116416"
+git_blob = "cf145592d272d063e77050a5c335e06705de48dd"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/LocationType.cs"
+sha256 = "38f41db9cfe58a2093d2e1f9ebe7a118330e9b95f3b22cb71db1c34855ae5e2a"
+git_blob = "3026ac05866ad18f966a4fe26fca9a79bef8f9a2"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/MotionData.cs"
+sha256 = "89cc3fb329cca58437e43330ffdd40926b80c6121d2de7a88f7ba4ddbbc67d7b"
+git_blob = "b56d464452a539287a61bccae9932707d3d93a41"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
 source = "Source/ACE.DatLoader/Entity/ObjDesc.cs"
 sha256 = "fd8f4ddf4a071c3a9114ae5159da00532074286e267e39df6bf197dd6113cd33"
 git_blob = "42d9d708639e76373aecbecfbaeff145169f3133"
@@ -205,6 +685,46 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.DatLoader/Entity/PlacementType.cs"
+sha256 = "3a9168a70092bf1ce5e91d0465b4176ff83eb06a94530d9ae0d39c6f6c6ece78"
+git_blob = "92cab21beab29e680361bd4964c11f359d7513a3"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/Plane.cs"
+sha256 = "f8d7f787ff91049692d49bc042106fee37d307ba697dc6d4461b1a5c0ea773b0"
+git_blob = "c47193ce5fc439da593f7bca332a1d35f4f574f7"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/Polygon.cs"
+sha256 = "d9c69d1456d1fa3582a2ec34fb32015fc80f2ef126a5ad185beb33269b21d0d5"
+git_blob = "658d5306d5c05cdac5d48cbfc2d14a418960c5ff"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/PortalPoly.cs"
+sha256 = "67a4e5b7af77e8d7264f762b419844a66eed4deb47e70353b87a74a035b47dde"
+git_blob = "5b3e8f646a60281e681d3b115de1b5b7ead3889d"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
 source = "Source/ACE.DatLoader/Entity/Position.cs"
 sha256 = "e318c984208a3d8b1feac8c99f20214a12ef79e60c55ca689b5542b66757d0f4"
 git_blob = "23d81cc9e6f0ab0511d0cdd6c12c864356089236"
@@ -213,6 +733,16 @@ identifiers = []
 handlers = []
 status = "foundation"
 evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/SWVertex.cs"
+sha256 = "68aae90b9c9417d68b9af301d87609588bc7869fd65c2839806629b7d848b715"
+git_blob = "7a051ccbf3171ae95102b9b0b12a581c7d71058d"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/Entity/SexCG.cs"
@@ -255,6 +785,26 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.DatLoader/Entity/Sphere.cs"
+sha256 = "5f265016272ebaaca42f2f551796990a80d97bb6288cc2d838d3920afa22222a"
+git_blob = "d9e515de54f588eb3303dc9508d28dc43a885d3d"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/Entity/Stab.cs"
+sha256 = "22be685c3f6e86fb8ff70185acc88ce6efdc9dca8ade209da54733b6ce0b45b4"
+git_blob = "d21fbf4b808f58bb5b3b7c8b47edde584cba47ce"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
 source = "Source/ACE.DatLoader/Entity/StarterArea.cs"
 sha256 = "207e6f4e1779520fb611873385c7ea78ce923dcae09345de1837abff88f2174d"
 git_blob = "b3879a53fb4faee64c4fdfebcf7dde9fc4e7225e"
@@ -295,6 +845,26 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.DatLoader/Entity/Vec2Duv.cs"
+sha256 = "821e1bc907772ba2257cecbc54df4c2bb53db88696a13339478b7af7734cfacf"
+git_blob = "1d9f5c7a6e3b045fd8426c520b9df93418e4d2f5"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/Animation.cs"
+sha256 = "3bea4def59098873966baf24e2ed2fc5a6cd9b2ec064a538c747f4126f3354f9"
+git_blob = "82edc6cd113528368e6775f1e1493916e5ded38e"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
 source = "Source/ACE.DatLoader/FileTypes/CharGen.cs"
 sha256 = "88005e85cc1ec45e63d4c76ac64360ad065eb93417d53c463d99d8e927a8cf71"
 git_blob = "280c5c98b77c90e135e3afbb4328d240ac9ebff5"
@@ -305,6 +875,36 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.DatLoader/FileTypes/ClothingTable.cs"
+sha256 = "266fb3893b0aa3154fe77a7925a002783b74da597a886d1c119bcf9e4bb25922"
+git_blob = "4321b52cc4a6fdda53e7ec3355910cafe23abaaa"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/EnvCell.cs"
+sha256 = "86ab98964dbf1e1bcb4cb3aa1ae5449a164637ffc9bb8c6c1d8bdaba6d8094d0"
+git_blob = "b287af379764202cc9b0d3f49eb9fb6c68d7a8ce"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/Environment.cs"
+sha256 = "279bff30beb1f5db169271a3b42cf38c3e318caf3a54ad7562feba2613d87bca"
+git_blob = "977309e23abaef80486f7583c1207b42bab703f7"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
 source = "Source/ACE.DatLoader/FileTypes/FileType.cs"
 sha256 = "6f94f96626381dd574e45c778fc80aacfbf439b9b8138c2885ebdbca7c3d8665"
 git_blob = "0359972ab39d9ceff47e4a19c8e3bae18931c449"
@@ -312,7 +912,67 @@ owner = "bace-dat"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/GfxObj.cs"
+sha256 = "80f1958745d5c7e2f10309c68399f2212a536ba247841db0e4ab330706ea1806"
+git_blob = "7e537fe2210c9dc0ff7d6d885f70321811551575"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/MotionTable.cs"
+sha256 = "ef79cc76688a1714b3ef2729696e4f4446218eb910dda00708500874dbe5d793"
+git_blob = "1dfaadcf27d41656ddab3c6386e8fa335e0aecec"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/Palette.cs"
+sha256 = "aa1738b875fcac7b0c88087c883827ef6758fca84c3f955cd2f3982728e1cae8"
+git_blob = "f6eabc94fe5a8cd89aa08e6201a09a5da62dbdf6"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/PaletteSet.cs"
+sha256 = "0208ade0ab9b9ca34cf4dbd158e68fc708bcc720feed4a10fdef659be4b85d1f"
+git_blob = "3a25e3136b3800a0cfc5de18f91008bd355b31df"
+owner = "bace-dat"
+identifiers = ["palIndex=0"]
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/SecondaryAttributeTable.cs"
+sha256 = "35020db5aa496140b9c456ac689725659f18332637f5341e0c5b4741c8c494af"
+git_blob = "ecde1b8c361f0508ae16c8ef50f4ec2d70295c06"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/SetupModel.cs"
+sha256 = "79829df03e3c23a1479b0d03f5acb914d59f5105464bc5a4a53f012e040ea8af"
+git_blob = "b53bae90b4299a59ba1fc779adbc3de66b401e6f"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/FileTypes/SkillTable.cs"
@@ -323,6 +983,26 @@ identifiers = []
 handlers = []
 status = "foundation"
 evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/Surface.cs"
+sha256 = "4f331b9104e34560e90f2c5b0efc89ac7f64a880acb92ce1d3c1bef68c211936"
+git_blob = "0e52733677dcb74f0d7331af00b1feb0af7683ca"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.DatLoader/FileTypes/SurfaceTexture.cs"
+sha256 = "0f4736d31292f0d8a6d078c4b587d8cb69911b4e29fbf8f476e33d838cab367f"
+git_blob = "6bd609820d3baadac270a8aa1270cdb6a6e81144"
+owner = "bace-dat"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
 
 [[sources]]
 source = "Source/ACE.DatLoader/FileTypes/XpTable.cs"
@@ -342,7 +1022,7 @@ owner = "bace-dat"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.DatLoader/UnpackableExtensions.cs"
@@ -352,7 +1032,7 @@ owner = "bace-dat"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.Database/Models/Shard/CharacterPropertiesFriendList.cs"
@@ -365,6 +1045,26 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.Database/Models/Shard/CharacterPropertiesSpellBar.cs"
+sha256 = "48923560e8bb658291d173597ff361874f88575370c1753e70a17462dc02ff34"
+git_blob = "c62fe928f800425b893464cfadaf73d4006ca58f"
+owner = "bace-wire"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.Database/Models/Shard/CharacterPropertiesTitleBook.cs"
+sha256 = "6d0ff3dbe548060e67a47ec3c6bc09bca65a2713ea463ec5297d2ee7f22b581e"
+git_blob = "1a09491de3254c58190423b271958c2a70bff21f"
+owner = "bace-wire"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
 source = "Source/ACE.Entity/Appearance.cs"
 sha256 = "b9cf9c739202b2a5bb2110147cdf91e2d90ac1d68881f29455885f464e51672d"
 git_blob = "8d198e7f9896cac053633e386adff940dc8b01f9"
@@ -373,6 +1073,16 @@ identifiers = []
 handlers = []
 status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/AttackFrameParams.cs"
+sha256 = "0e2e73bf4818583a56087b2dc1d9c08c6b2ae0d2daee0e7a21fe6d4440f68502"
+git_blob = "7642ef8a69f228789e0f8a78ecebcb3df16a7a26"
+owner = "bace-wire"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.Entity/CharacterCreateInfo.cs"
@@ -395,6 +1105,56 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.Entity/Enum/AnimationFlags.cs"
+sha256 = "b9e31bd99a1a72a133d885100ce13ed040d27fb32d00078352698e3a404ff9d0"
+git_blob = "02a4edfe00b7ff8a46349d0753d3be1fc62c0687"
+owner = "bace-wire"
+identifiers = []
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/AnimationHookDir.cs"
+sha256 = "d13782ccca25c7ec84ceeaf94bc74e7e1b8dacd7a5b960d39e99b8ab5ea8e1e4"
+git_blob = "cd0df91acb6e6bf3ecaeb1f1cb041ff45febcec8"
+owner = "bace-wire"
+identifiers = ["Both=0", "Forward=1"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/AnimationHookType.cs"
+sha256 = "d39a773a4786c9c95799554ba1fe875e167768b91506e90fce25c1dfff1877ae"
+git_blob = "53206ae2316f2fcb7ed6b7c9958cfc695ad5cf2f"
+owner = "bace-wire"
+identifiers = ["NoOp=0", "Sound=1", "SoundTable=2", "Attack=3", "AnimationDone=4", "ReplaceObject=5", "Ethereal=6", "TransparentPart=7", "Luminous=8", "LuminousPart=9", "Diffuse=10", "DiffusePart=11", "Scale=12", "CreateParticle=13", "DestroyParticle=14", "StopParticle=15", "NoDraw=16", "DefaultScript=17", "DefaultScriptPart=18", "CallPES=19", "Transparent=20", "SoundTweaked=21", "SetOmega=22", "TextureVelocity=23", "TextureVelocityPart=24", "SetLight=25", "CreateBlockingParticle=26"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/AttackConditions.cs"
+sha256 = "72b773377a900a516a8737a824269b7c6e7f283f4b6cb498396a1f95aa587953"
+git_blob = "4fbbba68028dcc495326364cf4e16bec4025ecf7"
+owner = "bace-wire"
+identifiers = ["None=0x0", "CriticalProtectionAugmentation=0x1", "Recklessness=0x2", "SneakAttack=0x4"]
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/AttributeCache.cs"
+sha256 = "6ebb265e172c54ee2cb007fc94b154ab59eba4ec2c32b3916a484f29dedc0a5a"
+git_blob = "bb4fd06064ee4826e286c9f17999769f76a9ab58"
+owner = "bace-wire"
+identifiers = ["Undef=0x00000000", "Strength=0x00000001", "Endurance=0x00000002", "Quickness=0x00000004", "Coordination=0x00000008", "Focus=0x00000010", "Self=0x00000020", "Health=0x00000040", "Stamina=0x00000080", "Mana=0x00000100"]
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
 source = "Source/ACE.Entity/Enum/AttributeExtensions.cs"
 sha256 = "07b9d955ac5ddcab1c7da216652c0faa30cfed4e0c363c977b13d6d4f5fde47e"
 git_blob = "e50f24042b20f791ab9e41d0fb38bd2800fdebc8"
@@ -415,6 +1175,16 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/official_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.Entity/Enum/BSPType.cs"
+sha256 = "f624b45cd6c66386c30d81f9ce0c243016d2645907fa130d42dc5b10d8937cb0"
+git_blob = "9e7b97fcc678735c1ab3d34b160c7841b93d8457"
+owner = "bace-wire"
+identifiers = ["Drawing=0", "Physics=1", "Cell=2"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
 source = "Source/ACE.Entity/Enum/Channel.cs"
 sha256 = "42cc5298826e853a89fb10a1fc40ce44a9707c0834a074ba6e38ea4e6e8d132f"
 git_blob = "4f7f8fc4c7f6ef2db066b304e2f5db717e542248"
@@ -423,6 +1193,16 @@ identifiers = ["Undef=0x00000000", "Abuse=0x00000001", "Admin=0x00000002", "Audi
 handlers = []
 status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/CharacterOptionDataFlag.cs"
+sha256 = "09ede9a0a95d7de1ea4cc792cf05d16ef03f2fac84aa8c07b296f8013a30677a"
+git_blob = "4367d739bc6f931e752fa55de782c54cef945e9c"
+owner = "bace-wire"
+identifiers = ["Shortcut=0x00000001", "SquelchList=0x00000002", "MultiSpellList=0x00000004", "DesiredComps=0x00000008", "ExtendedMultiSpellLists=0x00000010", "SpellbookFilters=0x00000020", "CharacterOptions2=0x00000040", "TimestampFormat=0x00000080", "GenericQualitiesData=0x00000100", "GameplayOptions=0x00000200"]
+handlers = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Entity/Enum/ChatMessageType.cs"
@@ -475,6 +1255,16 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.Entity/Enum/CombatMode.cs"
+sha256 = "e1746411808955537d3cae1bb5691a9498fc0287166b4cdbabd0d67955b62c01"
+git_blob = "f7a41671b9424676e9719dca5339cecdd3f005b8"
+owner = "bace-wire"
+identifiers = ["Undef=0x00", "NonCombat=0x01", "Melee=0x02", "Missile=0x04", "Magic=0x08"]
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
 source = "Source/ACE.Entity/Enum/ContainerType.cs"
 sha256 = "051a842b41f3020cc6ff5dc28c0bb9fb0c01158ebb75655f315b24fdc6f27083"
 git_blob = "6fae6ddc78231fb940c1ef7b6267c8d726b77cc1"
@@ -483,6 +1273,16 @@ identifiers = ["NonContainer=0", "Container=1"]
 handlers = []
 status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/CoverageMask.cs"
+sha256 = "4a21914833e4c68d4db73081668d6f97002a67595b7fdf5addf050645e52b388"
+git_blob = "f0beba18be513320905448d788521c1b37358ffd"
+owner = "bace-wire"
+identifiers = ["Unknown=0x00000001", "UnderwearUpperLegs=0x00000002", "UnderwearLowerLegs=0x00000004", "UnderwearChest=0x00000008", "UnderwearAbdomen=0x00000010", "UnderwearUpperArms=0x00000020", "UnderwearLowerArms=0x00000040", "OuterwearUpperLegs=0x00000100", "OuterwearLowerLegs=0x00000200", "OuterwearChest=0x00000400", "OuterwearAbdomen=0x00000800", "OuterwearUpperArms=0x00001000", "OuterwearLowerArms=0x00002000", "Head=0x00004000", "Hands=0x00008000", "Feet=0x00010000"]
+handlers = []
+status = "unsupported"
+evidence = []
 
 [[sources]]
 source = "Source/ACE.Entity/Enum/CreatureType.cs"
@@ -495,6 +1295,26 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.Entity/Enum/CullMode.cs"
+sha256 = "5505b6eb3f656ba3fac7c4730ac270ddd0cdc79b8bb2bfcc2ad61fe78de8881d"
+git_blob = "d14faf209fe352b66e6ef5acbf15414ba42b5475"
+owner = "bace-wire"
+identifiers = ["Landblock=0x0", "None=0x1", "Clockwise=0x2"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/DamageType.cs"
+sha256 = "3d6416332d5078fc43553518d675271fff27a305075f94a2cf02a0a79ba23e36"
+git_blob = "ef562f9fbe17d731548429955acba9fd7ecbe1e4"
+owner = "bace-wire"
+identifiers = ["Undef=0x0", "Slash=0x1", "Pierce=0x2", "Bludgeon=0x4", "Cold=0x8", "Fire=0x10", "Acid=0x20", "Electric=0x40", "Health=0x80", "Stamina=0x100", "Mana=0x200", "Nether=0x400", "Base=0x10000000"]
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
 source = "Source/ACE.Entity/Enum/EndTradeReason.cs"
 sha256 = "e938459969052b636ccc5454e2938ef45f9f5b1295bfd038f5000d9a1d98ec2a"
 git_blob = "3de8d4924f7df5cd4323a8c94dc5ca0944557e67"
@@ -505,6 +1325,16 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.Entity/Enum/EnvCellFlags.cs"
+sha256 = "997bf1818709c5974c3a3596794a1a5d5f9cdfb3a86906c6c168eb136b47ddf8"
+git_blob = "4dae1f1d296065b91a4e3a5fe66e2e308e476bd2"
+owner = "bace-wire"
+identifiers = ["SeenOutside=0x1", "HasStaticObjs=0x2"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
 source = "Source/ACE.Entity/Enum/EquipMask.cs"
 sha256 = "aac2b8db0193149cda215bada82aeeddbb299b8ce5277b32b16db87acc033aed"
 git_blob = "73adb0e5e073beb3685fc893d07e1a096ffd1e1a"
@@ -513,6 +1343,16 @@ identifiers = ["None=0x00000000", "HeadWear=0x00000001", "ChestWear=0x00000002",
 handlers = []
 status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/GfxObjFlags.cs"
+sha256 = "0ff7438330e8b7879f91e576c130de42f13ecf8a74d1f2e7ce1828bd5e216a82"
+git_blob = "ea071ee44aab4116f779639ab7d822e193243907"
+owner = "bace-wire"
+identifiers = ["HasPhysics=0x1", "HasDrawing=0x2", "Unknown=0x4"]
+handlers = []
+status = "unsupported"
+evidence = []
 
 [[sources]]
 source = "Source/ACE.Entity/Enum/HeritageGroup.cs"
@@ -552,7 +1392,17 @@ owner = "bace-wire"
 identifiers = ["Invalid=0x0", "HoldRun=0x85000001", "HoldSidestep=0x85000002", "Ready=0x41000003", "Stop=0x40000004", "WalkForward=0x45000005", "WalkBackwards=0x45000006", "RunForward=0x44000007", "Fallen=0x40000008", "Interpolating=0x40000009", "Hover=0x4000000a", "On=0x4000000b", "Off=0x4000000c", "TurnRight=0x6500000d", "TurnLeft=0x6500000e", "SideStepRight=0x6500000f", "SideStepLeft=0x65000010", "Dead=0x40000011", "Crouch=0x41000012", "Sitting=0x41000013", "Sleeping=0x41000014", "Falling=0x40000015", "Reload=0x40000016", "Unload=0x40000017", "Pickup=0x40000018", "StoreInBackpack=0x40000019", "Eat=0x4000001a", "Drink=0x4000001b", "Reading=0x4000001c", "JumpCharging=0x4000001d", "AimLevel=0x4000001e", "AimHigh15=0x4000001f", "AimHigh30=0x40000020", "AimHigh45=0x40000021", "AimHigh60=0x40000022", "AimHigh75=0x40000023", "AimHigh90=0x40000024", "AimLow15=0x40000025", "AimLow30=0x40000026", "AimLow45=0x40000027", "AimLow60=0x40000028", "AimLow75=0x40000029", "AimLow90=0x4000002a", "MagicBlast=0x4000002b", "MagicSelfHead=0x4000002c", "MagicSelfHeart=0x4000002d", "MagicBonus=0x4000002e", "MagicClap=0x4000002f", "MagicHarm=0x40000030", "MagicHeal=0x40000031", "MagicThrowMissile=0x40000032", "MagicRecoilMissile=0x40000033", "MagicPenalty=0x40000034", "MagicTransfer=0x40000035", "MagicVision=0x40000036", "MagicEnchantItem=0x40000037", "MagicPortal=0x40000038", "MagicPray=0x40000039", "StopTurning=0x2000003a", "Jump=0x2500003b", "HandCombat=0x8000003c", "NonCombat=0x8000003d", "SwordCombat=0x8000003e", "BowCombat=0x8000003f", "SwordShieldCombat=0x80000040", "CrossbowCombat=0x80000041", "UnusedCombat=0x80000042", "SlingCombat=0x80000043", "TwoHandedSwordCombat=0x80000044", "TwoHandedStaffCombat=0x80000045", "DualWieldCombat=0x80000046", "ThrownWeaponCombat=0x80000047", "Graze=0x80000048", "Magic=0x80000049", "Hop=0x1000004a", "Jumpup=0x1000004b", "Cheer=0x1300004c", "ChestBeat=0x1000004d", "TippedLeft=0x1000004e", "TippedRight=0x1000004f", "FallDown=0x10000050", "Twitch1=0x10000051", "Twitch2=0x10000052", "Twitch3=0x10000053", "Twitch4=0x10000054", "StaggerBackward=0x10000055", "StaggerForward=0x10000056", "Sanctuary=0x10000057", "ThrustMed=0x10000058", "ThrustLow=0x10000059", "ThrustHigh=0x1000005a", "SlashHigh=0x1000005b", "SlashMed=0x1000005c", "SlashLow=0x1000005d", "BackhandHigh=0x1000005e", "BackhandMed=0x1000005f", "BackhandLow=0x10000060", "Shoot=0x10000061", "AttackHigh1=0x10000062", "AttackMed1=0x10000063", "AttackLow1=0x10000064", "AttackHigh2=0x10000065", "AttackMed2=0x10000066", "AttackLow2=0x10000067", "AttackHigh3=0x10000068", "AttackMed3=0x10000069", "AttackLow3=0x1000006a", "HeadThrow=0x1000006b", "FistSlam=0x1000006c", "BreatheFlame=0x1000006d", "SpinAttack=0x1000006e", "MagicPowerUp01=0x1000006f", "MagicPowerUp02=0x10000070", "MagicPowerUp03=0x10000071", "MagicPowerUp04=0x10000072", "MagicPowerUp05=0x10000073", "MagicPowerUp06=0x10000074", "MagicPowerUp07=0x10000075", "MagicPowerUp08=0x10000076", "MagicPowerUp09=0x10000077", "MagicPowerUp10=0x10000078", "ShakeFist=0x13000079", "Beckon=0x1300007a", "BeSeeingYou=0x1300007b", "BlowKiss=0x1300007c", "BowDeep=0x1300007d", "ClapHands=0x1300007e", "Cry=0x1300007f", "Laugh=0x13000080", "MimeEat=0x13000081", "MimeDrink=0x13000082", "Nod=0x13000083", "Point=0x13000084", "ShakeHead=0x13000085", "Shrug=0x13000086", "Wave=0x13000087", "Akimbo=0x13000088", "HeartyLaugh=0x13000089", "Salute=0x1300008a", "ScratchHead=0x1300008b", "SmackHead=0x1300008c", "TapFoot=0x1300008d", "WaveHigh=0x1300008e", "WaveLow=0x1300008f", "YawnStretch=0x13000090", "Cringe=0x13000091", "Kneel=0x13000092", "Plead=0x13000093", "Shiver=0x13000094", "Shoo=0x13000095", "Slouch=0x13000096", "Spit=0x13000097", "Surrender=0x13000098", "Woah=0x13000099", "Winded=0x1300009a", "YMCA=0x1200009b", "EnterGame=0x1000009c", "ExitGame=0x1000009d", "OnCreation=0x1000009e", "OnDestruction=0x1000009f", "EnterPortal=0x100000a0", "ExitPortal=0x100000a1", "Cancel=0x80000a2", "UseSelected=0x90000a3", "AutosortSelected=0x90000a4", "DropSelected=0x90000a5", "GiveSelected=0x90000a6", "SplitSelected=0x90000a7", "ExamineSelected=0x90000a8", "CreateShortcutToSelected=0x80000a9", "PreviousCompassItem=0x90000aa", "NextCompassItem=0x90000ab", "ClosestCompassItem=0x90000ac", "PreviousSelection=0x90000ad", "LastAttacker=0x90000ae", "PreviousFellow=0x90000af", "NextFellow=0x90000b0", "ToggleCombat=0x90000b1", "HighAttack=0xd0000b2", "MediumAttack=0xd0000b3", "LowAttack=0xd0000b4", "EnterChat=0x80000b5", "ToggleChat=0x80000b6", "SavePosition=0x80000b7", "OptionsPanel=0x90000b8", "ResetView=0x90000b9", "CameraLeftRotate=0xd0000ba", "CameraRightRotate=0xd0000bb", "CameraRaise=0xd0000bc", "CameraLower=0xd0000bd", "CameraCloser=0xd0000be", "CameraFarther=0xd0000bf", "FloorView=0x90000c0", "MouseLook=0xc0000c1", "PreviousItem=0x90000c2", "NextItem=0x90000c3", "ClosestItem=0x90000c4", "ShiftView=0xd0000c5", "MapView=0x90000c6", "AutoRun=0x90000c7", "DecreasePowerSetting=0x90000c8", "IncreasePowerSetting=0x90000c9", "Pray=0x130000ca", "Mock=0x130000cb", "Teapot=0x130000cc", "SpecialAttack1=0x100000cd", "SpecialAttack2=0x100000ce", "SpecialAttack3=0x100000cf", "MissileAttack1=0x100000d0", "MissileAttack2=0x100000d1", "MissileAttack3=0x100000d2", "CastSpell=0x400000d3", "Flatulence=0x120000d4", "FirstPersonView=0x90000d5", "AllegiancePanel=0x90000d6", "FellowshipPanel=0x90000d7", "SpellbookPanel=0x90000d8", "SpellComponentsPanel=0x90000d9", "HousePanel=0x90000da", "AttributesPanel=0x90000db", "SkillsPanel=0x90000dc", "MapPanel=0x90000dd", "InventoryPanel=0x90000de", "Demonet=0x120000df", "UseMagicStaff=0x400000e0", "UseMagicWand=0x400000e1", "Blink=0x100000e2", "Bite=0x100000e3", "TwitchSubstate1=0x400000e4", "TwitchSubstate2=0x400000e5", "TwitchSubstate3=0x400000e6", "CaptureScreenshotToFile=0x90000e7", "BowNoAmmo=0x800000e8", "CrossBowNoAmmo=0x800000e9", "ShakeFistState=0x430000ea", "PrayState=0x430000eb", "BowDeepState=0x430000ec", "ClapHandsState=0x430000ed", "CrossArmsState=0x430000ee", "ShiverState=0x430000ef", "PointState=0x430000f0", "WaveState=0x430000f1", "AkimboState=0x430000f2", "SaluteState=0x430000f3", "ScratchHeadState=0x430000f4", "TapFootState=0x430000f5", "LeanState=0x430000f6", "KneelState=0x430000f7", "PleadState=0x430000f8", "ATOYOT=0x420000f9", "SlouchState=0x430000fa", "SurrenderState=0x430000fb", "WoahState=0x430000fc", "WindedState=0x430000fd", "AutoCreateShortcuts=0x90000fe", "AutoRepeatAttacks=0x90000ff", "AutoTarget=0x9000100", "AdvancedCombatInterface=0x9000101", "IgnoreAllegianceRequests=0x9000102", "IgnoreFellowshipRequests=0x9000103", "InvertMouseLook=0x9000104", "LetPlayersGiveYouItems=0x9000105", "AutoTrackCombatTargets=0x9000106", "DisplayTooltips=0x9000107", "AttemptToDeceivePlayers=0x9000108", "RunAsDefaultMovement=0x9000109", "StayInChatModeAfterSend=0x900010a", "RightClickToMouseLook=0x900010b", "VividTargetIndicator=0x900010c", "SelectSelf=0x900010d", "SkillHealSelf=0x1000010e", "SkillHealOther=0x1000010f", "PreviousMonster=0x9000110", "ClosestMonster=0x9000111", "NextPlayer=0x9000112", "PreviousPlayer=0x9000113", "ClosestPlayer=0x9000114", "SnowAngelState=0x43000118", "WarmHands=0x13000119", "CurtseyState=0x4300011a", "AFKState=0x4300011b", "MeditateState=0x4300011c", "TradePanel=0x900011d", "LogOut=0x1000011e", "DoubleSlashLow=0x1000011f", "DoubleSlashMed=0x10000120", "DoubleSlashHigh=0x10000121", "TripleSlashLow=0x10000122", "TripleSlashMed=0x10000123", "TripleSlashHigh=0x10000124", "DoubleThrustLow=0x10000125", "DoubleThrustMed=0x10000126", "DoubleThrustHigh=0x10000127", "TripleThrustLow=0x10000128", "TripleThrustMed=0x10000129", "TripleThrustHigh=0x1000012a", "MagicPowerUp01Purple=0x1000012b", "MagicPowerUp02Purple=0x1000012c", "MagicPowerUp03Purple=0x1000012d", "MagicPowerUp04Purple=0x1000012e", "MagicPowerUp05Purple=0x1000012f", "MagicPowerUp06Purple=0x10000130", "MagicPowerUp07Purple=0x10000131", "MagicPowerUp08Purple=0x10000132", "MagicPowerUp09Purple=0x10000133", "MagicPowerUp10Purple=0x10000134", "Helper=0x13000135", "Pickup5=0x40000136", "Pickup10=0x40000137", "Pickup15=0x40000138", "Pickup20=0x40000139", "HouseRecall=0x1000013a", "AtlatlCombat=0x8000013b", "ThrownShieldCombat=0x8000013c", "SitState=0x4300013d", "SitCrossleggedState=0x4300013e", "SitBackState=0x4300013f", "PointLeftState=0x43000140", "PointRightState=0x43000141", "TalktotheHandState=0x43000142", "PointDownState=0x43000143", "DrudgeDanceState=0x43000144", "PossumState=0x43000145", "ReadState=0x43000146", "ThinkerState=0x43000147", "HaveASeatState=0x43000148", "AtEaseState=0x43000149", "NudgeLeft=0x1300014a", "NudgeRight=0x1300014b", "PointLeft=0x1300014c", "PointRight=0x1300014d", "PointDown=0x1300014e", "Knock=0x1300014f", "ScanHorizon=0x13000150", "DrudgeDance=0x13000151", "HaveASeat=0x13000152", "LifestoneRecall=0x10000153", "CharacterOptionsPanel=0x9000154", "SoundAndGraphicsPanel=0x9000155", "HelpfulSpellsPanel=0x9000156", "HarmfulSpellsPanel=0x9000157", "CharacterInformationPanel=0x9000158", "LinkStatusPanel=0x9000159", "VitaePanel=0x900015a", "ShareFellowshipXP=0x900015b", "ShareFellowshipLoot=0x900015c", "AcceptCorpseLooting=0x900015d", "IgnoreTradeRequests=0x900015e", "DisableWeather=0x900015f", "DisableHouseEffect=0x9000160", "SideBySideVitals=0x9000161", "ShowRadarCoordinates=0x9000162", "ShowSpellDurations=0x9000163", "MuteOnLosingFocus=0x9000164", "Fishing=0x10000165", "MarketplaceRecall=0x10000166", "EnterPKLite=0x10000167", "AllegianceChat=0x9000168", "AutomaticallyAcceptFellowshipRequests=0x9000169", "Reply=0x900016a", "MonarchReply=0x900016b", "PatronReply=0x900016c", "ToggleCraftingChanceOfSuccessDialog=0x900016d", "UseClosestUnopenedCorpse=0x900016e", "UseNextUnopenedCorpse=0x900016f", "IssueSlashCommand=0x9000170", "AllegianceHometownRecall=0x10000171", "PKArenaRecall=0x10000172", "OffhandSlashHigh=0x10000173", "OffhandSlashMed=0x10000174", "OffhandSlashLow=0x10000175", "OffhandThrustHigh=0x10000176", "OffhandThrustMed=0x10000177", "OffhandThrustLow=0x10000178", "OffhandDoubleSlashLow=0x10000179", "OffhandDoubleSlashMed=0x1000017a", "OffhandDoubleSlashHigh=0x1000017b", "OffhandTripleSlashLow=0x1000017c", "OffhandTripleSlashMed=0x1000017d", "OffhandTripleSlashHigh=0x1000017e", "OffhandDoubleThrustLow=0x1000017f", "OffhandDoubleThrustMed=0x10000180", "OffhandDoubleThrustHigh=0x10000181", "OffhandTripleThrustLow=0x10000182", "OffhandTripleThrustMed=0x10000183", "OffhandTripleThrustHigh=0x10000184", "OffhandKick=0x10000185", "AttackHigh4=0x10000186", "AttackMed4=0x10000187", "AttackLow4=0x10000188", "AttackHigh5=0x10000189", "AttackMed5=0x1000018a", "AttackLow5=0x1000018b", "AttackHigh6=0x1000018c", "AttackMed6=0x1000018d", "AttackLow6=0x1000018e", "PunchFastHigh=0x1000018f", "PunchFastMed=0x10000190", "PunchFastLow=0x10000191", "PunchSlowHigh=0x10000192", "PunchSlowMed=0x10000193", "PunchSlowLow=0x10000194", "OffhandPunchFastHigh=0x10000195", "OffhandPunchFastMed=0x10000196", "OffhandPunchFastLow=0x10000197", "OffhandPunchSlowHigh=0x10000198", "OffhandPunchSlowMed=0x10000199", "OffhandPunchSlowLow=0x1000019a", "WoahDuplicate2=0x1000019b"]
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/MotionDataFlags.cs"
+sha256 = "2039c214749af4856d55b577460f8a077a36e315e6007e55767bedea97bb94c4"
+git_blob = "6d3c8d91ba5c3d22da446b6accde8d0dab256b6c"
+owner = "bace-wire"
+identifiers = ["HasVelocity=0x1"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.Entity/Enum/MotionFlags.cs"
@@ -572,7 +1422,7 @@ owner = "bace-wire"
 identifiers = ["Invalid=0x80000000", "HandCombat=0x8000003c", "NonCombat=0x8000003d", "SwordCombat=0x8000003e", "BowCombat=0x8000003f", "SwordShieldCombat=0x80000040", "CrossbowCombat=0x80000041", "UnusedCombat=0x80000042", "SlingCombat=0x80000043", "TwoHandedSwordCombat=0x80000044", "TwoHandedStaffCombat=0x80000045", "DualWieldCombat=0x80000046", "ThrownWeaponCombat=0x80000047", "Graze=0x80000048", "Magic=0x80000049", "BowNoAmmo=0x800000e8", "CrossBowNoAmmo=0x800000e9", "AtlatlCombat=0x8000013b", "ThrownShieldCombat=0x8000013c"]
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.Entity/Enum/MovementParams.cs"
@@ -652,7 +1502,27 @@ owner = "bace-wire"
 identifiers = ["Default=0", "RightHandCombat=1", "RightHandNonCombat=2", "LeftHand=3", "Belt=4", "Quiver=5", "Shield=6", "LeftWeapon=7", "LeftUnarmed=8", "SpecialCrowssbowBolt=51", "MissileFlight=52", "Resting=101", "Other=102", "Hook=103", "Random1=121", "Random2=122", "Random3=123", "Random4=124", "Random5=125", "Random6=126", "Random7=127", "Random8=128", "Random9=129", "Random10=130", "XXXUnknownA=0x0000000A", "XXXUnknownF=0x0000000F", "XXXUnknown14=0x00000014", "XXXUnknown1E=0x0000001E", "XXXUnknown20=0x00000020", "XXXUnknown3C=0x0000003C", "XXXUnknown69=0x00000069", "XXXUnknown6A=0x0000006A", "XXXUnknown63=0x00000063", "XXXUnknown68=0x00000068", "XXXUnknown78=0x00000078", "XXXUnknown84=0x00000084", "XXXUnknownF0=0x000000F0", "XXXUnknown3F2=0x000003F2"]
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs", "tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/PlayScript.cs"
+sha256 = "420195bf6d20c2a16213f5305eba0cd14ab5c689abba7f441ca8416b4cdf0b8e"
+git_blob = "772fddd3f7a8d7597424f181ef4c51b6b619e477"
+owner = "bace-wire"
+identifiers = ["Invalid=0x00", "Test1=0x01", "Test2=0x02", "Test3=0x03", "Launch=0x04", "Explode=0x05", "AttribUpRed=0x06", "AttribDownRed=0x07", "AttribUpOrange=0x08", "AttribDownOrange=0x09", "AttribUpYellow=0x0A", "AttribDownYellow=0x0B", "AttribUpGreen=0x0C", "AttribDownGreen=0x0D", "AttribUpBlue=0x0E", "AttribDownBlue=0x0F", "AttribUpPurple=0x10", "AttribDownPurple=0x11", "SkillUpRed=0x12", "SkillDownRed=0x13", "SkillUpOrange=0x14", "SkillDownOrange=0x15", "SkillUpYellow=0x16", "SkillDownYellow=0x17", "SkillUpGreen=0x18", "SkillDownGreen=0x19", "SkillUpBlue=0x1A", "SkillDownBlue=0x1B", "SkillUpPurple=0x1C", "SkillDownPurple=0x1D", "SkillDownBlack=0x1E", "HealthUpRed=0x1F", "HealthDownRed=0x20", "HealthUpBlue=0x21", "HealthDownBlue=0x22", "HealthUpYellow=0x23", "HealthDownYellow=0x24", "RegenUpRed=0x25", "RegenDownREd=0x26", "RegenUpBlue=0x27", "RegenDownBlue=0x28", "RegenUpYellow=0x29", "RegenDownYellow=0x2A", "ShieldUpRed=0x2B", "ShieldDownRed=0x2C", "ShieldUpOrange=0x2D", "ShieldDownOrange=0x2E", "ShieldUpYellow=0x2F", "ShieldDownYellow=0x30", "ShieldUpGreen=0x31", "ShieldDownGreen=0x32", "ShieldUpBlue=0x33", "ShieldDownBlue=0x34", "ShieldUpPurple=0x35", "ShieldDownPurple=0x36", "ShieldUpGrey=0x37", "ShieldDownGrey=0x38", "EnchantUpRed=0x39", "EnchantDownRed=0x3A", "EnchantUpOrange=0x3B", "EnchantDownOrange=0x3C", "EnchantUpYellow=0x3D", "EnchantDownYellow=0x3E", "EnchantUpGreen=0x3F", "EnchantDownGreen=0x40", "EnchantUpBlue=0x41", "EnchantDownBlue=0x42", "EnchantUpPurple=0x43", "EnchantDownPurple=0x44", "VitaeUpWhite=0x45", "VitaeDownBlack=0x46", "VisionUpWhite=0x47", "VisionDownBlack=0x48", "SwapHealth_Red_To_Yellow=0x49", "SwapHealth_Red_To_Blue=0x4A", "SwapHealth_Yellow_To_Red=0x4B", "SwapHealth_Yellow_To_Blue=0x4C", "SwapHealth_Blue_To_Red=0x4D", "SwapHealth_Blue_To_Yellow=0x4E", "TransUpWhite=0x4F", "TransDownBlack=0x50", "Fizzle=0x51", "PortalEntry=0x52", "PortalExit=0x53", "BreatheFlame=0x54", "BreatheFrost=0x55", "BreatheAcid=0x56", "BreatheLightning=0x57", "Create=0x58", "Destroy=0x59", "ProjectileCollision=0x5A", "SplatterLowLeftBack=0x5B", "SplatterLowLeftFront=0x5C", "SplatterLowRightBack=0x5D", "SplatterLowRightFront=0x5E", "SplatterMidLeftBack=0x5F", "SplatterMidLeftFront=0x60", "SplatterMidRightBack=0x61", "SplatterMidRightFront=0x62", "SplatterUpLeftBack=0x63", "SplatterUpLeftFront=0x64", "SplatterUpRightBack=0x65", "SplatterUpRightFront=0x66", "SparkLowLeftBack=0x67", "SparkLowLeftFront=0x68", "SparkLowRightBack=0x69", "SparkLowRightFront=0x6A", "SparkMidLeftBack=0x6B", "SparkMidLeftFront=0x6C", "SparkMidRightBack=0x6D", "SparkMidRightFront=0x6E", "SparkUpLeftBack=0x6F", "SparkUpLeftFront=0x70", "SparkUpRightBack=0x71", "SparkUpRightFront=0x72", "PortalStorm=0x73", "Hide=0x74", "UnHide=0x75", "Hidden=0x76", "DisappearDestroy=0x77", "SpecialState1=0x78", "SpecialState2=0x79", "SpecialState3=0x7A", "SpecialState4=0x7B", "SpecialState5=0x7C", "SpecialState6=0x7D", "SpecialState7=0x7E", "SpecialState8=0x7F", "SpecialState9=0x80", "SpecialState0=0x81", "SpecialStateRed=0x82", "SpecialStateOrange=0x83", "SpecialStateYellow=0x84", "SpecialStateGreen=0x85", "SpecialStateBlue=0x86", "SpecialStatePurple=0x87", "SpecialStateWhite=0x88", "SpecialStateBlack=0x89", "LevelUp=0x8A", "EnchantUpGrey=0x8B", "EnchantDownGrey=0x8C", "WeddingBliss=0x8D", "EnchantUpWhite=0x8E", "EnchantDownWhite=0x8F", "CampingMastery=0x90", "CampingIneptitude=0x91", "DispelLife=0x92", "DispelCreature=0x93", "DispelAll=0x94", "BunnySmite=0x95", "BaelZharonSmite=0x96", "WeddingSteele=0x97", "RestrictionEffectBlue=0x98", "RestrictionEffectGreen=0x99", "RestrictionEffectGold=0x9A", "LayingofHands=0x9B", "AugmentationUseAttribute=0x9C", "AugmentationUseSkill=0x9D", "AugmentationUseResistances=0x9E", "AugmentationUseOther=0x9F", "BlackMadness=0xA0", "AetheriaLevelUp=0xA1", "AetheriaSurgeDestruction=0xA2", "AetheriaSurgeProtection=0xA3", "AetheriaSurgeRegeneration=0xA4", "AetheriaSurgeAffliction=0xA5", "AetheriaSurgeFestering=0xA6", "HealthDownVoid=0xA7", "RegenDownVoid=0xA8", "SkillDownVoid=0xA9", "DirtyFightingHealDebuff=0xAA", "DirtyFightingAttackDebuff=0xAB", "DirtyFightingDefenseDebuff=0xAC"]
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/PortalFlags.cs"
+sha256 = "d28962133ef6ce79ab4700f8abe70ff94b46a7a855c169d049eb7d952d4af66d"
+git_blob = "a7ac3fc3ce79421834eab0982275b39ee493826c"
+owner = "bace-wire"
+identifiers = ["ExactMatch=0x1"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.Entity/Enum/PositionFlags.cs"
@@ -665,6 +1535,16 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.Entity/Enum/Properties/PositionType.cs"
+sha256 = "998359ebee149d088288fe2d4a9da86dcd2e0ced4ceb8e78b1489fb9e96755f7"
+git_blob = "9474cb7bb04728d8c8913aa642df9406ada2df8e"
+owner = "bace-wire"
+identifiers = ["Undef=0", "Location=1", "Destination=2", "Instantiation=3", "Sanctuary=4", "Home=5", "ActivationMove=6", "Target=7", "LinkedPortalOne=8", "LastPortal=9", "PortalStorm=10", "CrashAndTurn=11", "PortalSummonLoc=12", "HouseBoot=13", "LastOutsideDeath=14", "LinkedLifestone=15", "LinkedPortalTwo=16", "Save1=17", "Save2=18", "Save3=19", "Save4=20", "Save5=21", "Save6=22", "Save7=23", "Save8=24", "Save9=25", "RelativeDestination=26", "TeleportedCharacter=27"]
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
 source = "Source/ACE.Entity/Enum/Properties/PropertyAttribute.cs"
 sha256 = "e959f2b1aebcbd3765be356d0aeba0730ef31f6349edd7c1c18e5f858cc78ceb"
 git_blob = "d2e950bd10b9e9557140250f5aeb782d133bb1b7"
@@ -675,6 +1555,26 @@ status = "foundation"
 evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
 
 [[sources]]
+source = "Source/ACE.Entity/Enum/Properties/SendOnLoginProperties.cs"
+sha256 = "bdbfef2d0b557ce9bcf84646f48ddef463345c60f28053d2d36f0b3af0ed9813"
+git_blob = "79e19d3d0f7c5f842521428ddbdd2ab301eaf66b"
+owner = "bace-wire"
+identifiers = []
+handlers = []
+status = "unsupported"
+evidence = []
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/SetupFlags.cs"
+sha256 = "5a3d4b895542b608944f0515a5135eae49afad9b99f48213c503eba46dff43ed"
+git_blob = "5ec4092f6baaf92712cab0e22044c59b89b4a866"
+owner = "bace-wire"
+identifiers = ["HasParent=0x1", "HasDefaultScale=0x2", "AllowFreeHeading=0x4"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
 source = "Source/ACE.Entity/Enum/Skill.cs"
 sha256 = "3e74683d6bb7ffa60c92f52bbb0f438e375faa8a503b2d66f0823a6b30e7abc8"
 git_blob = "a2fc21ffa2aae763f91e415c5938a190357321ba"
@@ -682,7 +1582,17 @@ owner = "bace-wire"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/dat_vectors.rs"]
+evidence = ["tools/bace-compat/tests/dat_vectors.rs", "crates/network/bace-wire/tests/crafting.rs", "crates/gameplay/bace-character/tests/skills.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/Sound.cs"
+sha256 = "d4d18d077a7e0d79372d4cf2174e6962ec6232afcb592a81a3fd33f598ce697a"
+git_blob = "75d018d57fd74f0b482c46ff856f8352ec73402d"
+owner = "bace-wire"
+identifiers = ["Invalid=0x00", "Speak1=0x01", "Random=0x02", "Attack1=0x03", "Attack2=0x04", "Attack3=0x05", "SpecialAttack1=0x06", "SpecialAttack2=0x07", "SpecialAttack3=0x08", "Damage1=0x09", "Damage2=0x0A", "Damage3=0x0B", "Wound1=0x0C", "Wound2=0x0D", "Wound3=0x0E", "Death1=0x0F", "Death2=0x10", "Death3=0x11", "Grunt1=0x12", "Grunt2=0x13", "Grunt3=0x14", "Oh1=0x15", "Oh2=0x16", "Oh3=0x17", "Heave1=0x18", "Heave2=0x19", "Heave3=0x1A", "Knockdown1=0x1B", "Knockdown2=0x1C", "Knockdown3=0x1D", "Swoosh1=0x1E", "Swoosh2=0x1F", "Swoosh3=0x20", "Thump1=0x21", "Smash1=0x22", "Scratch1=0x23", "Spear=0x24", "Sling=0x25", "Dagger=0x26", "ArrowWhiz1=0x27", "ArrowWhiz2=0x28", "CrossbowPull=0x29", "CrossbowRelease=0x2A", "BowPull=0x2B", "BowRelease=0x2C", "ThrownWeaponRelease1=0x2D", "ArrowLand=0x2E", "Collision=0x2F", "HitFlesh1=0x30", "HitLeather1=0x31", "HitChain1=0x32", "HitPlate1=0x33", "HitMissile1=0x34", "HitMissile2=0x35", "HitMissile3=0x36", "Footstep1=0x37", "Footstep2=0x38", "Walk1=0x39", "Dance1=0x3A", "Dance2=0x3B", "Dance3=0x3C", "Hidden1=0x3D", "Hidden2=0x3E", "Hidden3=0x3F", "Eat1=0x40", "Drink1=0x41", "Open=0x42", "Close=0x43", "OpenSlam=0x44", "CloseSlam=0x45", "Ambient1=0x46", "Ambient2=0x47", "Ambient3=0x48", "Ambient4=0x49", "Ambient5=0x4A", "Ambient6=0x4B", "Ambient7=0x4C", "Ambient8=0x4D", "Waterfall=0x4E", "LogOut=0x4F", "LogIn=0x50", "LifestoneOn=0x51", "AttribUp=0x52", "AttribDown=0x53", "SkillUp=0x54", "SkillDown=0x55", "HealthUp=0x56", "HealthDown=0x57", "ShieldUp=0x58", "ShieldDown=0x59", "EnchantUp=0x5A", "EnchantDown=0x5B", "VisionUp=0x5C", "VisionDown=0x5D", "Fizzle=0x5E", "Launch=0x5F", "Explode=0x60", "TransUp=0x61", "TransDown=0x62", "BreatheFlaem=0x63", "BreatheAcid=0x64", "BreatheFrost=0x65", "BreatheLightning=0x66", "Create=0x67", "Destroy=0x68", "Lockpicking=0x69", "UI_EnterPortal=0x6A", "UI_ExitPortal=0x6B", "UI_GeneralQuery=0x6C", "UI_GeneralError=0x6D", "UI_TransientMessage=0x6E", "UI_IconPickUp=0x6F", "UI_IconSuccessfulDrop=0x70", "UI_IconInvalid_Drop=0x71", "UI_ButtonPress=0x72", "UI_GrabSlider=0x73", "UI_ReleaseSlider=0x74", "UI_NewTargetSelected=0x75", "UI_Roar=0x76", "UI_Bell=0x77", "UI_Chant1=0x78", "UI_Chant2=0x79", "UI_DarkWhispers1=0x7A", "UI_DarkWhispers2=0x7B", "UI_DarkLaugh=0x7C", "UI_DarkWind=0x7D", "UI_DarkSpeech=0x7E", "UI_Drums=0x7F", "UI_GhostSpeak=0x80", "UI_Breathing=0x81", "UI_Howl=0x82", "UI_LostSouls=0x83", "UI_Squeal=0x84", "UI_Thunder1=0x85", "UI_Thunder2=0x86", "UI_Thunder3=0x87", "UI_Thunder4=0x88", "UI_Thunder5=0x89", "UI_Thunder6=0x8A", "RaiseTrait=0x8B", "WieldObject=0x8C", "UnwieldObject=0x8D", "ReceiveItem=0x8E", "PickUpItem=0x8F", "DropItem=0x90", "ResistSpell=0x91", "PicklockFail=0x92", "LockSuccess=0x93", "OpenFailDueToLock=0x94", "TriggerActivated=0x95", "SpellExpire=0x96", "ItemManaDepleted=0x97", "TriggerActivated1=0x98", "TriggerActivated2=0x99", "TriggerActivated3=0x9A", "TriggerActivated4=0x9B", "TriggerActivated5=0x9C", "TriggerActivated6=0x9D", "TriggerActivated7=0x9E", "TriggerActivated8=0x9F", "TriggerActivated9=0xA0", "TriggerActivated10=0xA1", "TriggerActivated11=0xA2", "TriggerActivated12=0xA3", "TriggerActivated13=0xA4", "TriggerActivated14=0xA5", "TriggerActivated15=0xA6", "TriggerActivated16=0xA7", "TriggerActivated17=0xA8", "TriggerActivated18=0xA9", "TriggerActivated19=0xAA", "TriggerActivated20=0xAB", "TriggerActivated21=0xAC", "TriggerActivated22=0xAD", "TriggerActivated23=0xAE", "TriggerActivated24=0xAF", "TriggerActivated25=0xB0", "TriggerActivated26=0xB1", "TriggerActivated27=0xB2", "TriggerActivated28=0xB3", "TriggerActivated29=0xB4", "TriggerActivated30=0xB5", "TriggerActivated31=0xB6", "TriggerActivated32=0xB7", "TriggerActivated33=0xB8", "TriggerActivated34=0xB9", "TriggerActivated35=0xBA", "TriggerActivated36=0xBB", "TriggerActivated37=0xBC", "TriggerActivated38=0xBD", "TriggerActivated39=0xBE", "TriggerActivated40=0xBF", "TriggerActivated41=0xC0", "TriggerActivated42=0xC1", "TriggerActivated43=0xC2", "TriggerActivated44=0xC3", "TriggerActivated45=0xC4", "TriggerActivated46=0xC5", "TriggerActivated47=0xC6", "TriggerActivated48=0xC7", "TriggerActivated49=0xC8", "TriggerActivated50=0xC9", "HealthDownVoid=0xCA", "RegenDownVoid=0xCB"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Entity/Enum/SquelchMask.cs"
@@ -693,6 +1603,26 @@ identifiers = ["None=0x0", "Speech=0x4", "Tell=0x8", "Combat=0x40", "Magic=0x80"
 handlers = []
 status = "foundation"
 evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/StipplingType.cs"
+sha256 = "0bc5ecbba03c03b3b3e16fcf5e088bfee773a5821ccdccc202c145622cc0d37e"
+git_blob = "ce7cdf4fafc81fb246cc27875162253ad8b28af7"
+owner = "bace-wire"
+identifiers = ["None=0x0", "Positive=0x1", "Negative=0x2", "Both=0x3", "NoPos=0x4", "NoNeg=0x8"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/dat_geometry_vectors.rs"]
+
+[[sources]]
+source = "Source/ACE.Entity/Enum/SurfaceType.cs"
+sha256 = "61519de0c87490b5407cd817cc06424b6680d993137c311e9ae0dd0eb4809c9c"
+git_blob = "3b3f79440f18f8a50a1691073902e7e497063aa6"
+owner = "bace-wire"
+identifiers = ["Base1Solid=0x1", "Base1Image=0x2", "Base1ClipMap=0x4", "Translucent=0x10", "Diffuse=0x20", "Luminous=0x40", "Alpha=0x100", "InvAlpha=0x200", "Additive=0x10000", "Detail=0x20000", "Gouraud=0x10000000", "Stippled=0x40000000"]
+handlers = []
+status = "unsupported"
+evidence = []
 
 [[sources]]
 source = "Source/ACE.Entity/Enum/TradeSide.cs"
@@ -1001,8 +1931,8 @@ git_blob = "2ab672eb6b26c5a0026bdde39c939ea042a04f20"
 owner = "bace-wire"
 identifiers = ["Packed_None=0", "Packed_IntStats=1", "Packed_BoolStats=2", "Packed_FloatStats=4", "Packed_StringStats=8"]
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/Enum/NetAuthType.cs"
@@ -1092,7 +2022,7 @@ owner = "bace-wire"
 identifiers = ["column=0"]
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs", "crates/network/bace-wire/tests/crafting.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionAbandonContract.cs"
@@ -1161,8 +2091,8 @@ git_blob = "e0c9237b437dd8c9a4a0a10a78d1f1428771a866"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.AddShortCut"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionAddSpellFavorite.cs"
@@ -1171,8 +2101,8 @@ git_blob = "1125ec21a9795f921f350de0d5103778f05d5d9b"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.AddSpellFavorite"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionAddToTrade.cs"
@@ -1341,8 +2271,8 @@ git_blob = "a54d53891e56a6e4393b0be26db38b7904cf829b"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.CancelAttack"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionChangeCombatMode.cs"
@@ -1351,8 +2281,8 @@ git_blob = "f3e50e03855127ff3cfa6d1481aadf6abc99d690"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.ChangeCombatMode"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionChannelIndex.cs"
@@ -1501,8 +2431,8 @@ git_blob = "8d5b8c04c6309d9dd4010815fb1e9a1485bd8561"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.ConfirmationResponse"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/crafting.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionCreateTinkeringTool.cs"
@@ -1511,8 +2441,8 @@ git_blob = "049c3fe5e7fcf2a6322639ee99d3059d5cfcf090"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.CreateTinkeringTool"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/crafting.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionDeclineTrade.cs"
@@ -1941,8 +2871,8 @@ git_blob = "19e097909eecfa84b0f5d46a5f83ccac8d5e7490"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.LoginComplete"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_player_description.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionMagicCastTargetedSpell.cs"
@@ -2091,8 +3021,8 @@ git_blob = "12d0318ca36a4a2527fc4f629440ee9b72612f0d"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.QueryHealth"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionQueryItemMana.cs"
@@ -2231,8 +3161,8 @@ git_blob = "53178ceb80bfb379b3ed1cd7b31cbb1c3469b325"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.RemoveShortCut"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionRemoveSpellFavorite.cs"
@@ -2241,8 +3171,8 @@ git_blob = "31a1bed89e06620b8e9180e1d21bdd2c5f01d75e"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.RemoveSpellFavorite"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionResetTrade.cs"
@@ -2331,8 +3261,8 @@ git_blob = "29183af6167fd14f5e9754d8823e70dd0bd72db2"
 owner = "bace-session"
 identifiers = ["spellbookFilters=0x3FFF"]
 handlers = ["GameActionType.SetCharacterOptions"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionSetDesiredComponentLevel.cs"
@@ -2341,8 +3271,8 @@ git_blob = "02fb99e62cc05323db06cfa12ecd3b834b0c0d31"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.SetDesiredComponentLevel"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionSetInscription.cs"
@@ -2371,8 +3301,8 @@ git_blob = "d1355469754865e8bdec3cfb0f9ad2203ca53947"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.SetSingleCharacterOption"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionSetTitle.cs"
@@ -2401,8 +3331,8 @@ git_blob = "95e82695164e3a7207f8467940aace223383383f"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.SpellbookFilter"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionStackableMerge.cs"
@@ -2471,8 +3401,8 @@ git_blob = "93152ae367d9f8b7da8de17dae65efce809eade7"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameActionType.TargetedMeleeAttack"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameAction/Actions/GameActionTargetedMissileAttack.cs"
@@ -2612,7 +3542,7 @@ owner = "bace-wire"
 identifiers = ["SetSingleCharacterOption=0x0005", "TargetedMeleeAttack=0x0008", "TargetedMissileAttack=0x000A", "SetAfkMode=0x000F", "SetAfkMessage=0x0010", "Talk=0x0015", "RemoveFriend=0x0017", "AddFriend=0x0018", "PutItemInContainer=0x0019", "GetAndWieldItem=0x001A", "DropItem=0x001B", "SwearAllegiance=0x001D", "BreakAllegiance=0x001E", "AllegianceUpdateRequest=0x001F", "RemoveAllFriends=0x0025", "TeleToPklArena=0x0026", "TeleToPkArena=0x0027", "TitleSet=0x002C", "QueryAllegianceName=0x0030", "ClearAllegianceName=0x0031", "TalkDirect=0x0032", "SetAllegianceName=0x0033", "UseWithTarget=0x0035", "Use=0x0036", "SetAllegianceOfficer=0x003B", "SetAllegianceOfficerTitle=0x003C", "ListAllegianceOfficerTitles=0x003D", "ClearAllegianceOfficerTitles=0x003E", "DoAllegianceLockAction=0x003F", "SetAllegianceApprovedVassal=0x0040", "AllegianceChatGag=0x0041", "DoAllegianceHouseAction=0x0042", "RaiseVital=0x0044", "RaiseAttribute=0x0045", "RaiseSkill=0x0046", "TrainSkill=0x0047", "CastUntargetedSpell=0x0048", "CastTargetedSpell=0x004A", "ChangeCombatMode=0x0053", "StackableMerge=0x0054", "StackableSplitToContainer=0x0055", "StackableSplitTo3D=0x0056", "ModifyCharacterSquelch=0x0058", "ModifyAccountSquelch=0x0059", "ModifyGlobalSquelch=0x005B", "Tell=0x005D", "Buy=0x005F", "Sell=0x0060", "TeleToLifestone=0x0063", "LoginComplete=0x00A1", "FellowshipCreate=0x00A2", "FellowshipQuit=0x00A3", "FellowshipDismiss=0x00A4", "FellowshipRecruit=0x00A5", "FellowshipUpdateRequest=0x00A6", "BookData=0x00AA", "BookModifyPage=0x00AB", "BookAddPage=0x00AC", "BookDeletePage=0x00AD", "BookPageData=0x00AE", "SetInscription=0x00BF", "IdentifyObject=0x00C8", "GiveObjectRequest=0x00CD", "AdvocateTeleport=0x00D6", "AbuseLogRequest=0x0140", "AddChannel=0x0145", "RemoveChannel=0x0146", "ChatChannel=0x0147", "ListChannels=0x0148", "IndexChannels=0x0149", "NoLongerViewingContents=0x0195", "StackableSplitToWield=0x019B", "AddShortCut=0x019C", "RemoveShortCut=0x019D", "SetCharacterOptions=0x01A1", "RemoveSpellC2S=0x01A8", "CancelAttack=0x01B7", "QueryHealth=0x01BF", "QueryAge=0x01C2", "QueryBirth=0x01C4", "Emote=0x01DF", "SoulEmote=0x01E1", "AddSpellFavorite=0x01E3", "RemoveSpellFavorite=0x01E4", "PingRequest=0x01E9", "OpenTradeNegotiations=0x01F6", "CloseTradeNegotiations=0x01F7", "AddToTrade=0x01F8", "AcceptTrade=0x01FA", "DeclineTrade=0x01FB", "ResetTrade=0x0204", "ClearPlayerConsentList=0x0216", "DisplayPlayerConsentList=0x0217", "RemoveFromPlayerConsentList=0x0218", "AddPlayerPermission=0x0219", "RemovePlayerPermission=0x021A", "BuyHouse=0x021C", "HouseQuery=0x021E", "AbandonHouse=0x021F", "RentHouse=0x0221", "SetDesiredComponentLevel=0x0224", "AddPermanentGuest=0x0245", "RemovePermanentGuest=0x0246", "SetOpenHouseStatus=0x0247", "ChangeStoragePermission=0x0249", "BootSpecificHouseGuest=0x024A", "RemoveAllStoragePermission=0x024C", "RequestFullGuestList=0x024D", "SetMotd=0x0254", "QueryMotd=0x0255", "ClearMotd=0x0256", "QueryLord=0x0258", "AddAllStoragePermission=0x025C", "RemoveAllPermanentGuests=0x025E", "BootEveryone=0x025F", "TeleToHouse=0x0262", "QueryItemMana=0x0263", "SetHooksVisibility=0x0266", "ModifyAllegianceGuestPermission=0x0267", "ModifyAllegianceStoragePermission=0x0268", "ChessJoin=0x0269", "ChessQuit=0x026A", "ChessMove=0x026B", "ChessMovePass=0x026D", "ChessStalemate=0x026E", "ListAvailableHouses=0x0270", "ConfirmationResponse=0x0275", "BreakAllegianceBoot=0x0277", "TeleToMansion=0x0278", "Suicide=0x0279", "AllegianceInfoRequest=0x027B", "CreateTinkeringTool=0x027D", "SpellbookFilter=0x0286", "TeleToMarketPlace=0x028D", "EnterPkLite=0x028F", "FellowshipAssignNewLeader=0x0290", "FellowshipChangeOpenness=0x0291", "AllegianceChatBoot=0x02A0", "AddAllegianceBan=0x02A1", "RemoveAllegianceBan=0x02A2", "ListAllegianceBans=0x02A3", "RemoveAllegianceOfficer=0x02A5", "ListAllegianceOfficers=0x02A6", "ClearAllegianceOfficers=0x02A7", "RecallAllegianceHometown=0x02AB", "QueryPluginListResponse=0x02AF", "QueryPluginResponse=0x02B2", "FinishBarber=0x0311", "AbandonContract=0x0316", "Jump=0xF61B", "MoveToState=0xF61C", "DoMovementCommand=0xF61E", "TurnTo=0xF649", "StopMovementCommand=0xF661", "ForceObjectDescSend=0xF6EA", "ObjectCreate=0xF745", "ObjectDelete=0xF747", "MovementEvent=0xF74C", "ApplySoundEffect=0xF750", "AutonomyLevel=0xF752", "AutonomousPosition=0xF753", "ApplyVisualEffect=0xF755", "JumpNonAutonomous=0xF7C9"]
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs", "crates/network/bace-wire/tests/crafting.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventAcceptTrade.cs"
@@ -2691,8 +3621,8 @@ git_blob = "6e4efa25b4f8b23893bb4bf3b69e755c42ce4ee2"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventAttackerNotification.cs"
@@ -2701,8 +3631,8 @@ git_blob = "e1c86d0771e69c73ae1a71810ddc4f8fb04b41e3"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventBookAddPageResponse.cs"
@@ -2791,8 +3721,8 @@ git_blob = "758db97ea030a1100e4662a7ab9de9d9aebf8d64"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_player_description.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventClearTradeAcceptance.cs"
@@ -2831,8 +3761,8 @@ git_blob = "7d9ceb5fd3c9ceead5c825b7be0341bb788093a0"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventCommunicationSetSquelch.cs"
@@ -2861,8 +3791,8 @@ git_blob = "0fade21cbe42b29d2179b571a03fe00d340c542e"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/crafting.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventConfirmationRequest.cs"
@@ -2871,8 +3801,8 @@ git_blob = "29c403bdc6d4d14ef90bba393c2e1821038f7ea1"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/crafting.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventDeclineTrade.cs"
@@ -2891,8 +3821,8 @@ git_blob = "af01e32c90b749e06ef6c923209ff8f20f8da8fe"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventEvasionAttackerNotification.cs"
@@ -2901,8 +3831,8 @@ git_blob = "5554985146f275ebd08172db6bf945576e1c2b93"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventEvasionDefenderNotification.cs"
@@ -2911,8 +3841,8 @@ git_blob = "a2e3e6efd97d5725abb9600a752f097c0467282c"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventFellowshipDisband.cs"
@@ -3151,8 +4081,8 @@ git_blob = "ae2946b6ad12a6dc228663f776a6fc3f45edb7f2"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventMagicDispelEnchantment.cs"
@@ -3301,8 +4231,8 @@ git_blob = "149a0f1446855fbafff3444f6599e70cb938e06d"
 owner = "bace-wire"
 identifiers = ["None=0x0000", "PropertyInt32=0x0001", "PropertyBool=0x0002", "PropertyDouble=0x0004", "PropertyDid=0x0008", "PropertyString=0x0010", "Position=0x0020", "PropertyIid=0x0040", "PropertyInt64=0x0080", "None=0x0000", "Attribute=0x0001", "Skill=0x0002", "Spell=0x0100"]
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_player_description.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventPopupString.cs"
@@ -3401,8 +4331,8 @@ git_blob = "6d2dd06229e2d42c37ccfb453ce0e71b6b0e4325"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/crafting.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventSendClientContractTracker.cs"
@@ -3481,8 +4411,8 @@ git_blob = "0a6e96a3a5d30581dd70f75f26a3ca4ad7be5263"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventUpdateTitle.cs"
@@ -3511,8 +4441,8 @@ git_blob = "a888d975f62c94bac3d4283b40909db8b751c691"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameEvent/Events/GameEventViewContents.cs"
@@ -3572,7 +4502,7 @@ owner = "bace-wire"
 identifiers = ["AllegianceUpdateAborted=0x0003", "PopupString=0x0004", "PlayerDescription=0x0013", "AllegianceUpdate=0x0020", "FriendsListUpdate=0x0021", "InventoryPutObjInContainer=0x0022", "WieldObject=0x0023", "CharacterTitle=0x0029", "UpdateTitle=0x002B", "CloseGroundContainer=0x0052", "VendorInfoEvent=0x0062", "ApproachVendor=0x0062", "StartBarber=0x0075", "InventoryServerSaveFailed=0x00A0", "FellowshipQuit=0x00A3", "FellowshipDismiss=0x00A4", "BookDataResponse=0x00B4", "BookModifyPageResponse=0x00B5", "BookAddPageResponse=0x00B6", "BookDeletePageResponse=0x00B7", "BookPageDataResponse=0x00B8", "GetInscriptionResponse=0x00C3", "IdentifyObjectResponse=0x00C9", "ChannelBroadcast=0x0147", "ChannelList=0x0148", "ChannelIndex=0x0149", "ViewContents=0x0196", "InventoryPutObjectIn3D=0x019A", "AttackDone=0x01A7", "MagicRemoveSpell=0x01A8", "VictimNotification=0x01AC", "KillerNotification=0x01AD", "AttackerNotification=0x01B1", "DefenderNotification=0x01B2", "EvasionAttackerNotification=0x01B3", "EvasionDefenderNotification=0x01B4", "CombatCommenceAttack=0x01B8", "UpdateHealth=0x01C0", "QueryAgeResponse=0x01C3", "UseDone=0x01C7", "AllegianceAllegianceUpdateDone=0x01C8", "FellowshipFellowUpdateDone=0x01C9", "FellowshipFellowStatsDone=0x01CA", "ItemAppraiseDone=0x01CB", "Emote=0x01E2", "PingResponse=0x01EA", "SetSquelchDB=0x01F4", "RegisterTrade=0x01FD", "OpenTrade=0x01FE", "CloseTrade=0x01FF", "AddToTrade=0x0200", "RemoveFromTrade=0x0201", "AcceptTrade=0x0202", "DeclineTrade=0x0203", "ResetTrade=0x0205", "TradeFailure=0x0207", "ClearTradeAcceptance=0x0208", "HouseProfile=0x021D", "HouseData=0x0225", "HouseStatus=0x0226", "UpdateRentTime=0x0227", "UpdateRentPayment=0x0228", "HouseUpdateRestrictions=0x0248", "UpdateHAR=0x0257", "HouseTransaction=0x0259", "QueryItemManaResponse=0x0264", "AvailableHouses=0x0271", "CharacterConfirmationRequest=0x0274", "CharacterConfirmationDone=0x0276", "AllegianceLoginNotification=0x027A", "AllegianceInfoResponse=0x027C", "JoinGameResponse=0x0281", "StartGame=0x0282", "MoveResponse=0x0283", "OpponentTurn=0x0284", "OpponentStalemate=0x0285", "WeenieError=0x028A", "WeenieErrorWithString=0x028B", "GameOver=0x028C", "SetTurbineChatChannels=0x0295", "AdminQueryPluginList=0x02AE", "AdminQueryPlugin=0x02B1", "AdminQueryPluginResponse=0x02B3", "SalvageOperationsResult=0x02B4", "Tell=0x02BD", "FellowshipFullUpdate=0x02BE", "FellowshipDisband=0x02BF", "FellowshipUpdateFellow=0x02C0", "MagicUpdateSpell=0x02C1", "MagicUpdateEnchantment=0x02C2", "MagicRemoveEnchantment=0x02C3", "MagicUpdateMultipleEnchantments=0x02C4", "MagicRemoveMultipleEnchantments=0x02C5", "MagicPurgeEnchantments=0x02C6", "MagicDispelEnchantment=0x02C7", "MagicDispelMultipleEnchantments=0x02C8", "MiscPortalStormBrewing=0x02C9", "MiscPortalStormImminent=0x02CA", "MiscPortalStorm=0x02CB", "MiscPortalstormSubsided=0x02CC", "CommunicationTransientString=0x02EB", "MagicPurgeBadEnchantments=0x0312", "SendClientContractTrackerTable=0x0314", "SendClientContractTracker=0x0315"]
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs", "crates/network/bace-wire/tests/crafting.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameMessageGroup.cs"
@@ -3881,8 +4811,8 @@ git_blob = "cc37ac4fc8a307979e55f7a570302ad112fc3b37"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameMessages/Messages/GameMessagePlayerTeleport.cs"
@@ -4111,8 +5041,8 @@ git_blob = "4bc57e5f99181b9571bf859a496ebc79e4c4dbe4"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameMessages/Messages/GameMessageServerName.cs"
@@ -4161,8 +5091,8 @@ git_blob = "957d1679a32262a0b9f6c76a4fd25cfd5f8ab613"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_combat.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/GameMessages/Messages/GameMessageSystemChat.cs"
@@ -4242,7 +5172,7 @@ owner = "bace-session"
 identifiers = []
 handlers = ["GameMessageOpcode.CharacterCreate, SessionState.AuthConnected", "GameMessageOpcode.CharacterEnterWorldRequest, SessionState.AuthConnected", "GameMessageOpcode.CharacterEnterWorld, SessionState.AuthConnected", "GameMessageOpcode.CharacterLogOff, SessionState.WorldConnected", "GameMessageOpcode.CharacterDelete, SessionState.AuthConnected", "GameMessageOpcode.CharacterRestore, SessionState.AuthConnected"]
 status = "foundation"
-evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_player_description.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/Handlers/ControlHandler.cs"
@@ -4251,8 +5181,8 @@ git_blob = "58903e255607bbbd08a4ff44388f1650af8f059e"
 owner = "bace-session"
 identifiers = []
 handlers = ["GameMessageOpcode.ForceObjectDescSend, SessionState.WorldConnected"]
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_player_description.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/Handlers/DDDHandler.cs"
@@ -4881,8 +5811,8 @@ git_blob = "d9121d223d1d67496c8e872114d41e7f3e5042e1"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-replication/tests/enchantments.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/Structure/EnchantmentRegistry.cs"
@@ -4891,8 +5821,8 @@ git_blob = "613d88e57d76cd97c1002fe1998974ff19a2ac31"
 owner = "bace-wire"
 identifiers = ["EnchantmentMask=0"]
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-replication/tests/enchantments.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/Structure/Extensions.cs"
@@ -5001,8 +5931,8 @@ git_blob = "0ce2b87e9f634b390b9dcdcf2f4b6bde58bf3518"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_player_description.rs", "crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/Structure/Origin.cs"
@@ -5091,8 +6021,8 @@ git_blob = "9a6b0329c0709615d02592e2a8f97f62f1494771"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["crates/network/bace-wire/tests/crafting.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/Structure/Shortcut.cs"
@@ -5101,8 +6031,8 @@ git_blob = "580a563da882d1fdc84a45a3137ce1edb0186881"
 owner = "bace-wire"
 identifiers = []
 handlers = []
-status = "unsupported"
-evidence = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/message_player_description.rs", "crates/network/bace-wire/tests/ui_input.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/Structure/SquelchDB.cs"
@@ -5162,7 +6092,7 @@ owner = "bace-wire"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs", "crates/gameplay/bace-character/tests/skills.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/WorldObjects/Entity/CreatureVital.cs"
@@ -5185,6 +6115,16 @@ status = "foundation"
 evidence = ["crates/application/bace-runtime/tests/progression_flow.rs", "crates/network/bace-replication/tests/progression.rs"]
 
 [[sources]]
+source = "Source/ACE.Server/WorldObjects/Player_Networking.cs"
+sha256 = "c43804e88e01854153c18360119bf7727a0c9d1f34e148ab4b226603e96aadfd"
+git_blob = "7c07baf1c618cca6e94b2723ec332354be15f8e4"
+owner = "bace-wire"
+identifiers = ["MinimumTimeSincePk=0"]
+handlers = []
+status = "foundation"
+evidence = ["tools/bace-compat/tests/login_projection.rs"]
+
+[[sources]]
 source = "Source/ACE.Server/WorldObjects/Player_Skills.cs"
 sha256 = "817176e5356cbf9dd8058f9be9ca25855b780cd32cc6f53d598de4eb4e7ee7a9"
 git_blob = "d50b21c9fe851d8d2fd4e1d64bbe57cfa0ee1d49"
@@ -5192,7 +6132,7 @@ owner = "bace-character"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["crates/application/bace-runtime/tests/progression_flow.rs", "crates/network/bace-replication/tests/progression.rs"]
+evidence = ["crates/application/bace-runtime/tests/progression_flow.rs", "crates/network/bace-replication/tests/progression.rs", "crates/gameplay/bace-character/tests/skills.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/WorldObjects/Player_Vitals.cs"
@@ -5212,7 +6152,7 @@ owner = "bace-character"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["crates/application/bace-runtime/tests/progression_flow.rs", "crates/network/bace-replication/tests/progression.rs"]
+evidence = ["crates/application/bace-runtime/tests/progression_flow.rs", "crates/network/bace-replication/tests/progression.rs", "crates/gameplay/bace-character/tests/skills.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/WorldObjects/Vendor.cs"

@@ -11,3 +11,5 @@ description = "Containers, equipment, stacks and ownership"
 workspace = true
 
 [dependencies]
+bace-gameplay-api.workspace = true
+bace-types.workspace = true

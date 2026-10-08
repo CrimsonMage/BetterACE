@@ -20,6 +20,10 @@ pub(crate) struct Editor {
     filter: String,
     page: usize,
     raw_mode: bool,
+    script_mode: bool,
+    helper_mode: bool,
+    helpers: crate::authoring_helpers::Helpers,
+    script: crate::script_editor::ScriptEditor,
     preview_mode: bool,
     preview: crate::preview::Preview,
     raw: String,
@@ -46,6 +50,10 @@ impl Default for Editor {
             filter: String::new(),
             page: 0,
             raw_mode: false,
+            script_mode: false,
+            helper_mode: false,
+            helpers: Default::default(),
+            script: Default::default(),
             preview_mode: false,
             preview: Default::default(),
             raw: String::new(),
@@ -64,7 +72,10 @@ impl Editor {
         self.job.is_some()
     }
     pub fn dirty(&self) -> bool {
-        self.raw_dirty || !self.forms.valid() || self.document.as_ref().is_some_and(Document::dirty)
+        self.script.dirty
+            || self.raw_dirty
+            || !self.forms.valid()
+            || self.document.as_ref().is_some_and(Document::dirty)
     }
     pub fn open(&mut self, path: PathBuf, ctx: &egui::Context) {
         self.action(Action::Open(path), ctx);
@@ -87,6 +98,7 @@ impl Editor {
         }
     }
     fn set_document(&mut self, doc: Document) {
+        self.script = Default::default();
         self.raw = doc.text().unwrap_or_default();
         self.document = Some(doc);
         self.forms.clear();
@@ -105,6 +117,14 @@ impl Editor {
         if let Some(result) = self.job.as_mut().and_then(Job::poll) {
             self.job = None;
             match result {
+                Ok(Reply::ScriptOpened(text)) => {
+                    self.script.text = text;
+                    self.script.dirty = true;
+                }
+                Ok(Reply::ScriptSaved) => {
+                    self.script.notice =
+                        "Exported script. Compile & apply to update the native document.".into()
+                }
                 Ok(Reply::Exported { path, notes }) => {
                     self.notice = format!(
                         "Exported to {}\n{notes}\nThe complete native document is preserved in native.toml.",
@@ -160,9 +180,10 @@ impl Editor {
         }
     }
     fn save(&mut self, save_as: bool, ctx: &egui::Context) {
-        if self.raw_dirty || !self.forms.valid() {
+        if self.script.dirty || self.raw_dirty || !self.forms.valid() {
             self.notice =
-                "Apply the TOML source or correct invalid numeric fields before saving.".into();
+                "Apply script / TOML drafts or correct invalid numeric fields before saving."
+                    .into();
             return;
         }
         let Some(doc) = &self.document else {
@@ -217,7 +238,7 @@ impl Editor {
     }
 
     fn export(&mut self, format: crate::legacy_bundle::Format, ctx: &egui::Context) {
-        if self.raw_dirty || !self.forms.valid() {
+        if self.script.dirty || self.raw_dirty || !self.forms.valid() {
             self.notice = "Apply source changes or correct numeric errors before export.".into();
             return;
         }
@@ -246,7 +267,11 @@ impl Editor {
         }
     }
 
-    pub fn ui(&mut self, ui: &mut egui::Ui) {
+    pub fn ui(
+        &mut self,
+        ui: &mut egui::Ui,
+        clothing_override: Option<&bace_content::ClothingPatchV1>,
+    ) {
         let ctx = ui.ctx().clone();
         self.poll(&ctx);
         if self.pending.is_some() {
@@ -285,9 +310,9 @@ impl Editor {
                 if ui.button("Undo").clicked() && let Some(doc)=&mut self.document {doc.undo();self.forms.clear();self.raw_dirty=false;self.raw=doc.text().unwrap_or_default();}
                 if ui.button("Redo").clicked() && let Some(doc)=&mut self.document {doc.redo();self.forms.clear();self.raw_dirty=false;self.raw=doc.text().unwrap_or_default();}
                 if ui.button("Validate").clicked() && let Some(doc)=&self.document {
-                    self.notice=if !self.forms.valid() || self.raw_dirty {"Apply source changes / fix numeric errors first.".into()} else {doc.validated().map(|_|"Content structure is valid. Runtime references still require publication validation.".into()).unwrap_or_else(|e|e)};
+                    self.notice=if !self.forms.valid() || self.raw_dirty || self.script.dirty {"Apply script/source changes and fix numeric errors first.".into()} else {doc.validated().map(|_|"Content structure is valid. Runtime references still require publication validation.".into()).unwrap_or_else(|e|e)};
                 }
-                ui.label(egui::RichText::new(if self.dirty() {"●  Unsaved"} else {"●  Saved"}).color(if self.dirty() {Color32::from_rgb(236,190,112)} else {crate::theme::MUTED}));
+                ui.label(egui::RichText::new(if self.dirty() {"Unsaved"} else {"Saved"}).color(if self.dirty() {Color32::from_rgb(236,190,112)} else {crate::theme::MUTED}));
             });
             ui.add_space(5.0);
             if let Some(doc)=&self.document {
@@ -295,26 +320,52 @@ impl Editor {
             }
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                if ui.selectable_label(!self.raw_mode&&!self.preview_mode,"Properties").clicked() && !self.raw_dirty {self.raw_mode=false;self.preview_mode=false;}
-                if ui.selectable_label(self.raw_mode,"TOML source").clicked() {
+                if ui.selectable_label(!self.raw_mode&&!self.preview_mode&&!self.script_mode&&!self.helper_mode,"Properties").clicked() && !self.raw_dirty {self.raw_mode=false;self.preview_mode=false;self.script_mode=false;self.helper_mode=false;}
+                if ui.selectable_label(self.raw_mode&&!self.preview_mode&&!self.script_mode&&!self.helper_mode,"TOML source").clicked() {
                     if !self.raw_mode && let Some(doc)=&self.document {self.raw=doc.text().unwrap_or_default();}
-                    self.raw_mode=true;self.preview_mode=false;
+                    self.raw_mode=true;self.preview_mode=false;self.script_mode=false;self.helper_mode=false;
                 }
+                if ui.selectable_label(self.preview_mode&&!self.script_mode&&!self.helper_mode,"3D model & DIDs").clicked() {self.preview_mode=true;self.script_mode=false;self.helper_mode=false;}
+                if ui.selectable_label(self.script_mode&&!self.helper_mode,"EmoteScript").clicked() {self.script_mode=true;self.helper_mode=false;}
+                if ui.selectable_label(self.helper_mode,"Authoring helpers").clicked() {self.helper_mode=true;}
             });
-            if ui.selectable_label(self.preview_mode,"3D model & DIDs").clicked() {self.preview_mode=true;}
             crate::theme::notice(ui, &self.notice);
             ui.separator();
-            if self.preview_mode {
-                egui::ScrollArea::vertical().id_salt("preview-scroll").show(ui,|ui|self.preview.ui(ui,self.document.as_ref().map(|d|&d.value)));
-                if let Some((setup,clothing,palette))=self.preview.take_apply() {
-                    if !self.forms.valid() || self.raw_dirty {self.notice="Apply source changes and correct numeric errors before changing DIDs.".into();}
-                    else if let Some(doc)=&mut self.document
-                        && let Some(rows)=doc.value.get_mut("properties").and_then(|p|p.get_mut("data_ids")).and_then(toml::Value::as_array_mut) {
-                            for (id,value) in [(1,setup),(7,clothing),(6,palette)] {
-                                if let Some(row)=rows.iter_mut().find(|p|p.get("id").and_then(toml::Value::as_integer)==Some(id)) {row["value"]=toml::Value::Integer(i64::from(value));}
-                                else {let mut row=toml::Table::new();row.insert("id".into(),toml::Value::Integer(id));row.insert("value".into(),toml::Value::Integer(i64::from(value)));rows.push(toml::Value::Table(row));}
+
+            if self.helper_mode {
+                if let Some(doc)=&mut self.document {
+                    match doc.value.clone().try_into::<bace_content::WeenieV1>() {
+                        Ok(mut weenie)=>{let mut changed=false;ui.add_enabled_ui(!self.raw_dirty&&!self.script.dirty&&self.forms.valid(),|ui|{egui::ScrollArea::vertical().id_salt("helpers-scroll").show(ui,|ui|{changed=self.helpers.ui(ui,&mut weenie,self.preview.tables());});});if changed {match toml::Value::try_from(weenie) {Ok(value)=>{doc.value=value;self.forms.clear();self.notice=doc.checkpoint().err().unwrap_or_default();},Err(e)=>self.notice=e.to_string()}}},
+                        Err(e)=>{ui.label(e.to_string());}
+                    }
+                }
+            } else if self.script_mode {
+                let mut action=None;
+                if let Some(doc)=&self.document {egui::ScrollArea::vertical().id_salt("emote-script").show(ui,|ui|{action=self.script.ui(ui,&doc.value);});}
+                if let Some(action)=action {match action {
+                    crate::script_editor::ScriptAction::Open(path)=>self.start_job(Request::ScriptOpen(path),&ctx),
+                    crate::script_editor::ScriptAction::Save(path,text)=>self.start_job(Request::ScriptSave(path,text),&ctx),
+                    crate::script_editor::ScriptAction::Apply(emotes)=>{
+                        if self.raw_dirty||!self.forms.valid(){self.script.notice="Apply TOML changes and fix invalid fields first.".into();}
+                        else if let Some(doc)=&mut self.document {
+                            let result=(|| {let mut weenie=doc.value.clone().try_into::<bace_content::WeenieV1>().map_err(|e|e.to_string())?;weenie.properties.emotes=emotes;let text=bace_content_tools::export(&weenie).map_err(|e|e.to_string())?;let value=toml::from_str(&text).map_err(|e|e.to_string())?;doc.value=value;doc.checkpoint()}) ();
+                            match result {Ok(())=>{self.script.dirty=false;self.forms.clear();self.script.notice="Compiled and applied. Save TOML to keep these changes.".into();},Err(e)=>self.script.notice=e,}
+                        }
+                    }
+                }}
+            } else if self.preview_mode {
+                egui::ScrollArea::vertical().id_salt("preview-scroll").show(ui,|ui|self.preview.ui(ui,self.document.as_ref().map(|d|&d.value),clothing_override));
+                if let Some(selection) = self.preview.take_apply() {
+                    if !self.forms.valid() || self.raw_dirty || self.script.dirty {
+                        self.notice = "Apply source/script changes and correct numeric errors before changing appearance.".into();
+                    } else if let Some(doc) = &mut self.document {
+                        match selection.apply(doc) {
+                            Ok(()) => {
+                                self.forms.clear();
+                                self.notice = "Appearance, palette template and shade updated together. Save TOML to keep these changes.".into();
                             }
-                            self.forms.clear();self.notice=doc.checkpoint().err().unwrap_or_else(||"Appearance DIDs updated. Save to keep these changes.".into());
+                            Err(error) => self.notice = error,
+                        }
                     }
                 }
             } else if self.raw_mode {

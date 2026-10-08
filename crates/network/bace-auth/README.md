@@ -19,3 +19,11 @@ Unknown/disabled accounts never authenticate; credential diagnostics stay redact
 Runtime uses a fixed worker pool and bounded admission/completion queues. Native
 account auto-creation defaults on and can be disabled via `[accounts]`.
 These are tested contracts, not a stock-client world-readiness claim.
+
+`StaffPrincipal` separates authenticated account access from accepted character
+privilege flags. Ordinary staff commands use character flags; sudo checks account
+access. Fresh role derivation clears stale higher privileges, and Envoy includes
+Sentinel. Map teleport independently requires Admin, Developer/Arch or explicit
+PSR; Sentinel/Envoy alone do not grant it. The full role matrix has regressions
+against the pinned AccessLevel and PlayerDesc privilege rules. Host operators and
+chat integration credentials remain separate authorities.

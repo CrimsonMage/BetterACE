@@ -7,6 +7,27 @@ fn pose() -> WirePosition {
         rotation: [1.0, 0.0, 0.0, 0.0],
     }
 }
+#[test]
+fn pinned_private_last_outside_death_position_has_exact_ace_fields() {
+    // ACE 47edade GameMessagePrivateUpdatePosition.cs writes opcode 0x02DB,
+    // the byte Position sequence, DWORD PositionType.LastOutsideDeath=14,
+    // then Position.Serialize's cell, XYZ and WXYZ floats without padding.
+    let value = PrivatePositionUpdate {
+        sequence: 0x42,
+        position_type: 14,
+        position: pose(),
+    };
+    let expected = [
+        0xdb, 0x02, 0, 0, 0x42, 14, 0, 0, 0, 1, 0, 0x34, 0x12, 0, 0, 0x80, 0x3f, 0, 0, 0, 0x40, 0,
+        0, 0x40, 0x40, 0, 0, 0x80, 0x3f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ];
+    assert_eq!(value.encode(), expected);
+    assert_eq!(PrivatePositionUpdate::decode(&expected), Ok(value));
+    for end in 0..expected.len() {
+        assert!(PrivatePositionUpdate::decode(&expected[..end]).is_err());
+    }
+    assert!(PrivatePositionUpdate::decode(&[expected.as_slice(), &[0]].concat()).is_err());
+}
 fn observed_position(raw: bool) -> Vec<u8> {
     let mut writer = Writer::new();
     if raw {

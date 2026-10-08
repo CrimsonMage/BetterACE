@@ -92,6 +92,49 @@ fn social_actions_bound_utf8_units_and_require_complete_strings() {
     );
     assert!(SocialRequest::decode(GameActionType::Jump, &[], 0, 0).is_err());
 }
+
+#[test]
+fn pinned_corpse_consent_actions_read_exact_string16l_prefixes() {
+    // Official ACE GameAction{Add,Remove}PlayerPermission and
+    // GameActionRemoveFromPlayerConsentList each read one String16L.
+    let name = [3, 0, b'A', b'd', b'a', 0, 0, 0];
+    for (opcode, expected) in [
+        (
+            GameActionType::AddPlayerPermission,
+            SocialAction::AddPlayerPermission("Ada".into()),
+        ),
+        (
+            GameActionType::RemovePlayerPermission,
+            SocialAction::RemovePlayerPermission("Ada".into()),
+        ),
+        (
+            GameActionType::RemoveFromPlayerConsentList,
+            SocialAction::RemoveFromPlayerConsentList("Ada".into()),
+        ),
+    ] {
+        let decoded = SocialRequest::decode(opcode, &name, name.len(), 16).unwrap();
+        assert_eq!(decoded.action, expected);
+        assert_eq!(decoded.trailing_bytes, 0);
+        assert_eq!(
+            SocialRequest::decode(opcode, &name[..name.len() - 1], name.len(), 16),
+            Err(WireError::Truncated)
+        );
+    }
+    for (opcode, expected) in [
+        (
+            GameActionType::DisplayPlayerConsentList,
+            SocialAction::DisplayPlayerConsentList,
+        ),
+        (
+            GameActionType::ClearPlayerConsentList,
+            SocialAction::ClearPlayerConsentList,
+        ),
+    ] {
+        let decoded = SocialRequest::decode(opcode, &[9], 1, 16).unwrap();
+        assert_eq!(decoded.action, expected);
+        assert_eq!(decoded.trailing_bytes, 1);
+    }
+}
 #[test]
 fn social_event_tables_validate_nested_limits_duplicate_ids_and_delta_cardinality() {
     let friend = FriendsUpdate {

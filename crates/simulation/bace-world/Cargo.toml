@@ -12,10 +12,9 @@ workspace = true
 
 [dependencies]
 bace-types.workspace = true
+bace-gameplay-api.workspace = true
 bace-entity.workspace = true
 bace-physics.workspace = true
 bace-geometry.workspace = true
-thiserror.workspace = true
-
-[dev-dependencies]
 bace-motion.workspace = true
+thiserror.workspace = true

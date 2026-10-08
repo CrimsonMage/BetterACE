@@ -2,12 +2,17 @@
 use crate::authentication::PasswordExecutor;
 use bace_auth::{AccountRecord, AccountRepository, LoginError, PasswordCredentials, authenticate};
 use bace_config::{AccountConfig, NetworkConfig};
+use bace_persistence::{
+    AccountBanChange, AccountBanOperation, AccountBanReceipt, AccountBanVerdict,
+};
 use bace_session::{SessionKey, validate_password_login};
+use bace_types::AccountId;
 use bace_wire::LoginRequest;
+use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
     sync::{Arc, Mutex as StdMutex},
-    time::Duration,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::{Mutex, mpsc};
 
@@ -16,7 +21,95 @@ pub struct AuthenticationJob {
     pub key: SessionKey,
     pub request: LoginRequest,
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub trait BanRepository: AccountRepository {
+    fn ban_verdict(
+        &self,
+        account_id: AccountId,
+        now_unix_millis: i64,
+    ) -> impl std::future::Future<Output = Result<AccountBanVerdict, Self::Error>> + Send;
+    fn expire_ban(
+        &self,
+        operation: &AccountBanOperation,
+    ) -> impl std::future::Future<Output = Result<AccountBanReceipt, Self::Error>> + Send;
+}
+
+impl BanRepository for bace_db_postgres::PgStore {
+    async fn ban_verdict(
+        &self,
+        account_id: AccountId,
+        now_unix_millis: i64,
+    ) -> Result<AccountBanVerdict, Self::Error> {
+        self.account_ban_verdict(account_id.0, now_unix_millis)
+            .await
+    }
+    async fn expire_ban(
+        &self,
+        operation: &AccountBanOperation,
+    ) -> Result<AccountBanReceipt, Self::Error> {
+        self.apply_account_ban(operation).await
+    }
+}
+
+async fn check_account_ban<R: BanRepository>(
+    repository: &R,
+    account_id: AccountId,
+) -> Result<(), AuthenticationFailure> {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| AuthenticationFailure::Repository)?;
+    let now = i64::try_from(now.as_millis()).map_err(|_| AuthenticationFailure::Repository)?;
+    // A concurrent ban/unban can race this read. Bound retries and fail closed
+    // if its revision cannot be resolved before account admission.
+    for _ in 0..3 {
+        let verdict = repository
+            .ban_verdict(account_id, now)
+            .await
+            .map_err(|_| AuthenticationFailure::Repository)?;
+        match verdict {
+            AccountBanVerdict::Allowed => return Ok(()),
+            AccountBanVerdict::Missing | AccountBanVerdict::Disabled => {
+                return Err(AuthenticationFailure::Rejected);
+            }
+            AccountBanVerdict::Banned(record) => {
+                let remaining = record.expires_unix_millis.saturating_sub(now) / 1_000;
+                return Err(AuthenticationFailure::Banned {
+                    seconds_remaining: u32::try_from(remaining).unwrap_or(u32::MAX),
+                    reason: record.reason.unwrap_or_default(),
+                });
+            }
+            AccountBanVerdict::Expired(record) => {
+                let mut digest = Sha256::new();
+                digest.update(b"BetterACE/account-ban-expiry/v1");
+                digest.update(account_id.0.to_le_bytes());
+                digest.update(record.account_revision.to_le_bytes());
+                digest.update(record.expires_unix_millis.to_le_bytes());
+                let hash = digest.finalize();
+                let mut operation_id = [0; 16];
+                operation_id.copy_from_slice(&hash[..16]);
+                let operation = AccountBanOperation {
+                    operation_id,
+                    account_id: account_id.0,
+                    expected_revision: record.account_revision,
+                    issuer_account_id: None,
+                    // The exact expiry instant is stable across retrying logins,
+                    // matching the deterministic operation ID and fingerprint.
+                    change: AccountBanChange::Expire {
+                        now_unix_millis: record.expires_unix_millis,
+                    },
+                };
+                // A replay uses this exact deterministic ID; an uncertain commit
+                // never causes a new operation to be invented on the next login.
+                repository
+                    .expire_ban(&operation)
+                    .await
+                    .map_err(|_| AuthenticationFailure::Repository)?;
+            }
+        }
+    }
+    Err(AuthenticationFailure::Repository)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AuthenticationFailure {
     InvalidLogin,
     Rejected,
@@ -24,6 +117,10 @@ pub enum AuthenticationFailure {
     Repository,
     Password,
     TimedOut,
+    Banned {
+        seconds_remaining: u32,
+        reason: String,
+    },
 }
 #[derive(Debug)]
 pub struct AuthenticationCompletion {
@@ -49,7 +146,7 @@ pub struct AuthenticationPool {
 impl AuthenticationPool {
     /// Must be called inside the adapter runtime. Workers are fixed at startup;
     /// no task is created per account/character. Account SQL remains in its port.
-    pub fn spawn<R: AccountRepository + 'static>(
+    pub fn spawn<R: BanRepository + 'static>(
         repository: Arc<R>,
         config: &NetworkConfig,
         policy: AccountConfig,
@@ -89,7 +186,16 @@ impl AuthenticationPool {
                             .await
                             {
                                 Err(_) => Err(AuthenticationFailure::TimedOut),
-                                Ok(Ok(account)) => Ok(account),
+                                Ok(Ok(account)) => match tokio::time::timeout(
+                                    timeout,
+                                    check_account_ban(repository.as_ref(), account.id),
+                                )
+                                .await
+                                {
+                                    Ok(Ok(())) => Ok(account),
+                                    Ok(Err(failure)) => Err(failure),
+                                    Err(_) => Err(AuthenticationFailure::TimedOut),
+                                },
                                 Ok(Err(LoginError::Rejected)) => {
                                     Err(AuthenticationFailure::Rejected)
                                 }

@@ -33,6 +33,25 @@ pub(crate) async fn check_lease(
     Ok(())
 }
 impl PgStore {
+    /// Offline changes use the same epoch fence as login and online writes.
+    /// A concurrent begin_login wins or loses atomically; it cannot load stale bytes.
+    pub async fn save_offline(
+        &self,
+        lease: CharacterLease,
+        snapshot: &SaveSnapshot,
+    ) -> Result<SaveAck, StoreError> {
+        if lease.state != OwnershipState::Offline || snapshot.object_id != lease.character_id {
+            return Err(StoreError::OwnershipConflict);
+        }
+        crate::writes::validate(std::slice::from_ref(snapshot))?;
+        let mut tx = self.pool.begin().await?;
+        check_lease(&mut tx, lease).await?;
+        let ack = crate::writes::write_all_unchecked(&mut tx, std::slice::from_ref(snapshot))
+            .await?
+            .remove(0);
+        tx.commit().await.map_err(crate::store::commit_error)?;
+        Ok(ack)
+    }
     /// Establishes a fresh character and its offline ownership atomically. No implicit takeover.
     pub async fn create_owned_character(
         &self,
@@ -94,13 +113,9 @@ impl PgStore {
         Ok(load)
     }
     pub async fn finish_login(&self, lease: CharacterLease) -> Result<CharacterLease, StoreError> {
-        self.transition(
-            lease,
-            OwnershipState::Loading,
-            OwnershipState::Online,
-            false,
-        )
-        .await
+        self.finish_login_receipt(lease)
+            .await
+            .map(|receipt| receipt.lease)
     }
     pub async fn abort_loading(&self, lease: CharacterLease) -> Result<CharacterLease, StoreError> {
         self.transition(

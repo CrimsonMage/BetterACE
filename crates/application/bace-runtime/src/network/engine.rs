@@ -34,8 +34,10 @@ struct Connection {
     peer: Option<Peer>,
     outbound: VecDeque<Outbound>,
     termination: Option<NetworkStopReason>,
+    closing_deadline: Option<u64>,
     notified: bool,
     challenge: Option<Outbound>,
+    pending_login_rejection: Option<Vec<u8>>,
     login_fingerprint: [u8; 32],
 }
 
@@ -46,6 +48,7 @@ pub(super) struct Engine {
     attempts: LoginAttempts,
     accounts: AccountSessions,
     rejected_commands: VecDeque<SessionKey>,
+    batch_results: VecDeque<NetworkEvent>,
     connections: BTreeMap<SessionKey, Connection>,
     commands: Receiver<NetworkCommand>,
     events: SyncSender<NetworkEvent>,
@@ -90,6 +93,7 @@ impl Engine {
             attempts,
             accounts,
             rejected_commands: VecDeque::new(),
+            batch_results: VecDeque::new(),
             connections: BTreeMap::new(),
             commands,
             events,
@@ -113,6 +117,19 @@ impl Engine {
             let now_ms = u64::try_from(self.start.elapsed().as_millis()).unwrap_or(u64::MAX);
             self.portal_time = self.clock.at(now_ms).map_err(NetworkThreadError::Clock)?;
             for _ in 0..self.config.batch_size {
+                let Some(result) = self.batch_results.pop_front() else {
+                    break;
+                };
+                match self.events.try_send(result) {
+                    Ok(()) => {}
+                    Err(TrySendError::Full(result)) => {
+                        self.batch_results.push_front(result);
+                        break;
+                    }
+                    Err(TrySendError::Disconnected(_)) => return Err(NetworkThreadError::Closed),
+                }
+            }
+            for _ in 0..self.config.batch_size {
                 let Some(key) = self.rejected_commands.front().copied() else {
                     break;
                 };
@@ -125,7 +142,9 @@ impl Engine {
                 }
             }
             for _ in 0..self.config.batch_size {
-                if self.rejected_commands.len() == self.config.command_capacity {
+                if self.rejected_commands.len() == self.config.command_capacity
+                    || self.batch_results.len() == self.config.command_capacity
+                {
                     break;
                 }
                 match self.commands.try_recv() {
@@ -238,6 +257,18 @@ impl Engine {
             if let Ok(key) = self.sessions.connect_response(cookie, address, now_ms) {
                 if let Some(connection) = self.connections.get_mut(&key) {
                     connection.challenge = None;
+                    if let Some(bytes) = connection.pending_login_rejection.take() {
+                        if connection
+                            .peer
+                            .as_mut()
+                            .is_none_or(|peer| peer.enqueue(9, bytes).is_err())
+                        {
+                            self.terminate(key, NetworkStopReason::Overloaded);
+                            return;
+                        }
+                        connection.closing_deadline = Some(now_ms.saturating_add(5_000));
+                        return;
+                    }
                 }
                 if let Some(peer) = self.connections.get_mut(&key).and_then(|c| c.peer.as_mut()) {
                     peer.enable_time_sync();
@@ -300,8 +331,10 @@ impl Engine {
                     peer: None,
                     outbound: VecDeque::new(),
                     termination: None,
+                    closing_deadline: None,
                     notified: false,
                     challenge: None,
+                    pending_login_rejection: None,
                     login_fingerprint: fingerprint,
                 },
             );
@@ -334,6 +367,13 @@ impl Engine {
                     self.terminate(key, NetworkStopReason::TimedOut);
                     return;
                 }
+                if self
+                    .connections
+                    .get(&key)
+                    .is_some_and(|c| c.closing_deadline.is_some())
+                {
+                    return;
+                }
                 for message in input.messages {
                     self.event(key, NetworkEvent::Message { key, message });
                     if self
@@ -356,6 +396,28 @@ impl Engine {
     }
     fn command(&mut self, command: NetworkCommand, now_ms: u64) {
         match command {
+            NetworkCommand::RejectBanned { key, bytes } => {
+                if !self
+                    .sessions
+                    .get(key)
+                    .is_ok_and(|s| s.lifecycle().state() == SessionState::AuthLoginRequest)
+                    || bytes.len() > 4096
+                {
+                    self.reject_command(key);
+                    return;
+                }
+                self.authenticate(key, now_ms);
+                if let Some(connection) = self.connections.get_mut(&key)
+                    && self
+                        .sessions
+                        .get(key)
+                        .is_ok_and(|s| s.lifecycle().state() == SessionState::AuthConnectResponse)
+                {
+                    connection.pending_login_rejection = Some(bytes);
+                } else {
+                    self.terminate(key, NetworkStopReason::TransportError);
+                }
+            }
             NetworkCommand::Authenticated { key, account_id } => {
                 if !self
                     .sessions
@@ -381,8 +443,11 @@ impl Engine {
                     )
                 }) {
                     self.reject_command(key);
-                } else if let Some(peer) =
-                    self.connections.get_mut(&key).and_then(|c| c.peer.as_mut())
+                } else if let Some(peer) = self
+                    .connections
+                    .get_mut(&key)
+                    .filter(|c| c.closing_deadline.is_none())
+                    .and_then(|c| c.peer.as_mut())
                 {
                     if peer.enqueue(queue, bytes).is_err() {
                         self.terminate(key, NetworkStopReason::Overloaded);
@@ -403,8 +468,11 @@ impl Engine {
                     )
                 }) {
                     self.reject_command(key);
-                } else if let Some(peer) =
-                    self.connections.get_mut(&key).and_then(|c| c.peer.as_mut())
+                } else if let Some(peer) = self
+                    .connections
+                    .get_mut(&key)
+                    .filter(|c| c.closing_deadline.is_none())
+                    .and_then(|c| c.peer.as_mut())
                 {
                     for message in messages {
                         if peer.enqueue(queue, message).is_err() {
@@ -415,6 +483,71 @@ impl Engine {
                 } else {
                     self.reject_command(key);
                 }
+            }
+            NetworkCommand::SendOrderedBatch { key, messages } => {
+                if !self.sessions.get(key).is_ok_and(|s| {
+                    matches!(
+                        s.lifecycle().state(),
+                        SessionState::AuthConnected | SessionState::WorldConnected
+                    )
+                }) {
+                    self.reject_command(key);
+                } else if let Some(peer) = self
+                    .connections
+                    .get_mut(&key)
+                    .filter(|c| c.closing_deadline.is_none())
+                    .and_then(|c| c.peer.as_mut())
+                {
+                    for (queue, message) in messages {
+                        if peer.enqueue(queue, message).is_err() {
+                            self.terminate(key, NetworkStopReason::Overloaded);
+                            break;
+                        }
+                    }
+                } else {
+                    self.reject_command(key);
+                }
+            }
+            NetworkCommand::SendReliableBatch {
+                key,
+                correlation,
+                messages,
+            } => {
+                let eligible = correlation != 0
+                    && !messages.is_empty()
+                    && self.sessions.get(key).is_ok_and(|s| {
+                        matches!(
+                            s.lifecycle().state(),
+                            SessionState::AuthConnected | SessionState::WorldConnected
+                        )
+                    });
+                let mut accepted = false;
+                let mut overloaded = false;
+                if eligible
+                    && let Some(peer) = self
+                        .connections
+                        .get_mut(&key)
+                        .filter(|c| c.closing_deadline.is_none())
+                        .and_then(|c| c.peer.as_mut())
+                {
+                    accepted = true;
+                    for (queue, bytes) in messages {
+                        if peer.enqueue(queue, bytes).is_err() {
+                            accepted = false;
+                            overloaded = true;
+                            break;
+                        }
+                    }
+                }
+                if overloaded {
+                    self.terminate(key, NetworkStopReason::Overloaded);
+                }
+                self.batch_results
+                    .push_back(NetworkEvent::ReliableBatchAdmission {
+                        key,
+                        correlation,
+                        accepted,
+                    });
             }
             NetworkCommand::EnterWorldCommitted { key } => {
                 if self
@@ -431,6 +564,34 @@ impl Engine {
             }
             NetworkCommand::LogoutCommitted { key } => {
                 let _ = self.sessions.logout_committed(key);
+            }
+            NetworkCommand::TerminateAfterFlush { key, queue, bytes } => {
+                if !self.sessions.get(key).is_ok_and(|s| {
+                    matches!(
+                        s.lifecycle().state(),
+                        SessionState::AuthConnected | SessionState::WorldConnected
+                    )
+                }) {
+                    self.reject_command(key);
+                    return;
+                }
+                let Some(connection) = self
+                    .connections
+                    .get_mut(&key)
+                    .filter(|c| c.closing_deadline.is_none())
+                else {
+                    self.reject_command(key);
+                    return;
+                };
+                let Some(peer) = connection.peer.as_mut() else {
+                    self.reject_command(key);
+                    return;
+                };
+                if peer.enqueue(queue, bytes).is_err() {
+                    self.terminate(key, NetworkStopReason::Overloaded);
+                } else {
+                    connection.closing_deadline = Some(now_ms.saturating_add(5_000));
+                }
             }
             NetworkCommand::Terminate { key } => self.terminate(key, NetworkStopReason::Requested),
             NetworkCommand::DrainCompleted { key } => {
@@ -534,6 +695,13 @@ impl Engine {
             }
             return;
         }
+        if connection
+            .closing_deadline
+            .is_some_and(|deadline| now_ms >= deadline)
+        {
+            self.terminate(key, NetworkStopReason::TimedOut);
+            return;
+        }
         // Flush retained datagrams before polling the peer for additional work.
         while let Some(packet) = connection.outbound.front() {
             match self
@@ -549,6 +717,15 @@ impl Engine {
                     return;
                 }
             }
+        }
+        if connection.closing_deadline.is_some()
+            && connection
+                .peer
+                .as_ref()
+                .is_some_and(|p| p.queued_message_bytes() == 0)
+        {
+            self.terminate(key, NetworkStopReason::Requested);
+            return;
         }
         let Some(peer) = connection.peer.as_mut() else {
             return;

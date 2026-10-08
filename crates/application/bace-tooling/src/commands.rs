@@ -25,6 +25,56 @@ pub struct Arguments {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Compile native nested loot/rare profiles into one immutable supplement.
+    LootBuild {
+        #[arg(long)]
+        table: Vec<PathBuf>,
+        #[arg(long)]
+        rare_profile: Vec<PathBuf>,
+        #[arg(long)]
+        output_directory: PathBuf,
+    },
+    /// Journal native profile edits; mapped publication validates and activates them.
+    LootPublish {
+        #[arg(long)]
+        table: Vec<PathBuf>,
+        #[arg(long)]
+        rare_profile: Vec<PathBuf>,
+    },
+    /// Sample authored loot using a public synthetic seed, never player randomness.
+    LootSample {
+        #[arg(long)]
+        input: PathBuf,
+        #[arg(long, default_value_t = 10000)]
+        events: u32,
+    },
+    /// Provision a private RNG key and bind its fingerprint in PostgreSQL.
+    RngInit {
+        #[arg(long)]
+        key_file: PathBuf,
+        #[arg(long, default_value_t = 1)]
+        version: u32,
+    },
+    /// Compile a complete legacy world SQL dump into one aggregate .bace pack.
+    WorldBuild {
+        #[arg(long)]
+        input: PathBuf,
+        #[arg(long)]
+        output_directory: PathBuf,
+    },
+    /// Validate and accept the initial world pack in PostgreSQL.
+    WorldActivate {
+        #[arg(long)]
+        manifest: PathBuf,
+        /// Replace derived indexes only; logical source records must match.
+        #[arg(long)]
+        reindex: bool,
+    },
+    /// Initialize/start a private local PostgreSQL and apply migrations (Unix).
+    LocalDatabase {
+        #[arg(long, default_value = ".local/postgres")]
+        directory: PathBuf,
+    },
     /// Provision host-console credentials once; read a password from piped stdin.
     HostInit {
         #[arg(long, default_value = "state/host")]
@@ -96,6 +146,48 @@ pub async fn execute(args: Arguments) -> Result<(), Box<dyn std::error::Error>> 
         .mariadb_basedir
         .or_else(|| std::env::var_os("BACE_MARIADB_BASEDIR").map(PathBuf::from));
     match args.command {
+        Command::LootBuild {
+            table,
+            rare_profile,
+            output_directory,
+        } => crate::loot_tools::build(&table, &rare_profile, &output_directory)?,
+        Command::LootPublish {
+            table,
+            rare_profile,
+        } => {
+            let store = connect(&args.database_url_env).await?;
+            let revision = crate::loot_tools::publish(&table, &rare_profile, &store).await?;
+            store.close().await;
+            println!(
+                "Queued native profile revision {revision}; pending mapped validation, not yet active."
+            );
+        }
+        Command::LootSample { input, events } => crate::loot_tools::sample(&input, events)?,
+        Command::RngInit { key_file, version } => {
+            let key = bace_runtime::random_keys::initialize_random_key(&key_file, version)?;
+            let store = connect(&args.database_url_env).await?;
+            store.bind_random_key(version, key.fingerprint).await?;
+            store.close().await;
+            println!(
+                "Private random key version {version} is bound to this database. Keep the key with protected backups; no rates were enabled."
+            );
+        }
+        Command::WorldBuild {
+            input,
+            output_directory,
+        } => {
+            crate::world_tools::build(&input, &output_directory, mariadb_basedir.as_deref())?;
+        }
+        Command::WorldActivate { manifest, reindex } => {
+            crate::world_tools::activate(&manifest, &args.database_url_env, reindex).await?;
+        }
+        Command::LocalDatabase { directory } => {
+            let url = bace_db_postgres::initialize_local_database(&directory).await?;
+            println!(
+                "Local PostgreSQL is ready. Set {}={url}",
+                args.database_url_env
+            );
+        }
         Command::HostInit { state_directory } => {
             provision_host(&state_directory)?;
         }
@@ -177,14 +269,29 @@ pub async fn execute(args: Arguments) -> Result<(), Box<dyn std::error::Error>> 
         Command::ContentStatus => {
             let store = connect(&args.database_url_env).await?;
             let status = store.content_status().await?;
+            let mapped = store.active_generation().await?;
             store.close().await;
             println!(
-                "Accepted generation: {}; active templates: {}; pending batches: {}; rejected batches: {}",
+                "Content journal revision: {}; SQL candidate heads: {}; pending batches: {}; rejected batches: {}",
                 status.accepted_revision,
                 status.active_templates,
                 status.pending_publications,
                 status.rejected_publications
             );
+            if let Some(mapped) = mapped {
+                let manifest = bace_storage_codec::PackManifest::decode(
+                    &mapped.manifest_bytes,
+                    bace_storage_codec::PackLimits::default(),
+                )?;
+                println!(
+                    "Disk world: pack generation {}; {} base records; {} active .bace files. PostgreSQL stores its manifest metadata.",
+                    manifest.generation,
+                    manifest.base.record_count,
+                    manifest.deltas.len() + 1,
+                );
+            } else {
+                println!("No disk world manifest has been accepted.");
+            }
         }
         Command::DatInspect {
             path,

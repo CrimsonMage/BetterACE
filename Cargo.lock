@@ -249,7 +249,9 @@ dependencies = [
  "axum",
  "bace-auth",
  "bace-config",
+ "bace-gameplay-api",
  "bace-observability",
+ "bace-types",
  "futures-util",
  "rand_core",
  "serde",
@@ -268,6 +270,18 @@ version = "0.1.0"
 [[package]]
 name = "bace-allegiance"
 version = "0.1.0"
+dependencies = [
+ "bace-gameplay-api",
+ "bace-types",
+]
+
+[[package]]
+name = "bace-asset-overlay"
+version = "0.1.0"
+dependencies = [
+ "bace-content",
+ "bace-dat",
+]
 
 [[package]]
 name = "bace-auth"
@@ -282,6 +296,7 @@ dependencies = [
 name = "bace-character"
 version = "0.1.0"
 dependencies = [
+ "bace-content",
  "bace-gameplay-api",
 ]
 
@@ -295,14 +310,25 @@ dependencies = [
 [[package]]
 name = "bace-combat"
 version = "0.1.0"
+dependencies = [
+ "bace-content",
+ "bace-gameplay-api",
+]
 
 [[package]]
 name = "bace-compat"
 version = "0.1.0"
 dependencies = [
+ "bace-character",
  "bace-dat",
+ "bace-gameplay-api",
+ "bace-geometry",
+ "bace-magic",
+ "bace-motion",
+ "bace-physics",
  "bace-replication",
  "bace-transport",
+ "bace-types",
  "bace-wire",
  "serde_json",
 ]
@@ -335,10 +361,15 @@ dependencies = [
 name = "bace-content-studio"
 version = "0.1.0"
 dependencies = [
+ "bace-asset-overlay",
  "bace-content",
  "bace-content-tools",
  "bace-dat",
+ "bace-emotes",
+ "bace-gameplay-api",
  "bace-import",
+ "bace-storage-codec",
+ "bace-types",
  "eframe",
  "rfd",
  "serde",
@@ -361,6 +392,10 @@ dependencies = [
 [[package]]
 name = "bace-crafting"
 version = "0.1.0"
+dependencies = [
+ "bace-content",
+ "bace-random",
+]
 
 [[package]]
 name = "bace-dat"
@@ -385,7 +420,9 @@ name = "bace-db-postgres"
 version = "0.1.0"
 dependencies = [
  "bace-auth",
+ "bace-content",
  "bace-persistence",
+ "bace-storage-codec",
  "bace-types",
  "sha2",
  "sqlx",
@@ -401,6 +438,12 @@ version = "0.1.0"
 [[package]]
 name = "bace-emotes"
 version = "0.1.0"
+dependencies = [
+ "bace-content",
+ "bace-gameplay-api",
+ "bace-geometry",
+ "bace-types",
+]
 
 [[package]]
 name = "bace-entity"
@@ -413,11 +456,16 @@ dependencies = [
 [[package]]
 name = "bace-fellowship"
 version = "0.1.0"
+dependencies = [
+ "bace-gameplay-api",
+ "bace-types",
+]
 
 [[package]]
 name = "bace-gameplay-api"
 version = "0.1.0"
 dependencies = [
+ "bace-geometry",
  "bace-types",
 ]
 
@@ -431,6 +479,10 @@ dependencies = [
 [[package]]
 name = "bace-housing"
 version = "0.1.0"
+dependencies = [
+ "bace-gameplay-api",
+ "bace-types",
+]
 
 [[package]]
 name = "bace-import"
@@ -438,6 +490,7 @@ version = "0.1.0"
 dependencies = [
  "bace-content",
  "bace-content-tools",
+ "bace-storage-codec",
  "serde",
  "serde_json",
  "sha2",
@@ -448,18 +501,37 @@ dependencies = [
 [[package]]
 name = "bace-interactions"
 version = "0.1.0"
+dependencies = [
+ "bace-types",
+]
 
 [[package]]
 name = "bace-inventory"
 version = "0.1.0"
+dependencies = [
+ "bace-gameplay-api",
+ "bace-types",
+]
 
 [[package]]
 name = "bace-loot"
 version = "0.1.0"
+dependencies = [
+ "bace-content",
+ "bace-gameplay-api",
+ "bace-random",
+ "serde_json",
+ "toml",
+]
 
 [[package]]
 name = "bace-magic"
 version = "0.1.0"
+dependencies = [
+ "bace-content",
+ "bace-gameplay-api",
+ "bace-geometry",
+]
 
 [[package]]
 name = "bace-motion"
@@ -499,6 +571,14 @@ name = "bace-quests"
 version = "0.1.0"
 
 [[package]]
+name = "bace-random"
+version = "0.1.0"
+dependencies = [
+ "hmac",
+ "sha2",
+]
+
+[[package]]
 name = "bace-replication"
 version = "0.1.0"
 dependencies = [
@@ -512,24 +592,37 @@ name = "bace-runtime"
 version = "0.1.0"
 dependencies = [
  "bace-admin",
+ "bace-allegiance",
  "bace-auth",
  "bace-character",
+ "bace-combat",
  "bace-config",
  "bace-content",
  "bace-content-tools",
+ "bace-crafting",
  "bace-dat",
  "bace-dat-service",
  "bace-db-postgres",
+ "bace-emotes",
  "bace-entity",
  "bace-gameplay-api",
  "bace-geometry",
+ "bace-housing",
+ "bace-interactions",
+ "bace-inventory",
+ "bace-loot",
+ "bace-magic",
  "bace-motion",
  "bace-observability",
  "bace-persistence",
  "bace-physics",
+ "bace-quests",
+ "bace-random",
  "bace-replication",
  "bace-session",
  "bace-simulation",
+ "bace-social",
+ "bace-spawning",
  "bace-storage-codec",
  "bace-transport",
  "bace-types",
@@ -545,6 +638,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
+ "toml",
 ]
 
 [[package]]
@@ -567,29 +661,59 @@ dependencies = [
 name = "bace-simulation"
 version = "0.1.0"
 dependencies = [
+ "bace-ai",
+ "bace-allegiance",
  "bace-character",
+ "bace-combat",
+ "bace-content",
+ "bace-crafting",
+ "bace-economy",
+ "bace-emotes",
  "bace-entity",
+ "bace-fellowship",
  "bace-gameplay-api",
  "bace-geometry",
+ "bace-housing",
+ "bace-interactions",
+ "bace-inventory",
+ "bace-loot",
+ "bace-magic",
  "bace-motion",
  "bace-physics",
+ "bace-quests",
+ "bace-random",
+ "bace-social",
+ "bace-spawning",
  "bace-types",
  "bace-world",
+ "bace-world-events",
  "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "bace-social"
 version = "0.1.0"
+dependencies = [
+ "bace-gameplay-api",
+ "bace-types",
+]
 
 [[package]]
 name = "bace-spawning"
 version = "0.1.0"
+dependencies = [
+ "bace-content",
+ "bace-gameplay-api",
+ "bace-geometry",
+ "bace-random",
+ "bace-types",
+]
 
 [[package]]
 name = "bace-storage-codec"
 version = "0.1.0"
 dependencies = [
+ "bace-content",
  "memmap2",
  "postcard",
  "serde",
@@ -609,8 +733,13 @@ dependencies = [
  "bace-dat",
  "bace-db-postgres",
  "bace-import",
+ "bace-loot",
  "bace-persistence",
+ "bace-random",
+ "bace-runtime",
+ "bace-storage-codec",
  "clap",
+ "tempfile",
  "tokio",
  "toml",
 ]
@@ -641,6 +770,7 @@ name = "bace-world"
 version = "0.1.0"
 dependencies = [
  "bace-entity",
+ "bace-gameplay-api",
  "bace-geometry",
  "bace-motion",
  "bace-physics",

@@ -1,0 +1,13 @@
+reference = "https://github.com/OptimShi/CustomClothingBase"
+commit = "122145d0f6d0c159183f0f229aae611085a67bf1"
+role = "Legacy interchange and merge semantics only; official ACE remains the DAT/protocol authority"
+source_policy = "No source or example assets copied; independent Rust implementation and synthetic fixtures"
+
+[source_sha256]
+"README.md" = "e3868208962c3501acebb8d500eedec8473728ba9835c890c83ae17bdc502189"
+"PatchClass.cs" = "36728f0106e248001c489b77d777189aa49274463b8c3b3ba66a6384dfe924ca"
+"ClothingTableEx.cs" = "565b911cc626f16ace501133cd0bd2eccd24ff156a4ecbcd0f6079df5e3374e9"
+"HexConverter.cs" = "acf367ece4e2754126fff63ee1f9888d7202406293456ab4fa29ac726f02e789"
+"Examples/10000188.json" = "b62e1f14776403cdf423eae987daf303ce9997a6dd9d1a1f128f90886a4b5114"
+"Examples/10000322.json" = "0c0269626dc4249ee02f9648ff496bf00fb63cf8ba2a059ae1103186e5feb368"
+"Examples/10000900.json" = "6faf9e92a2325a15672fae3b53ccfd62544e99f3c3529637a17e82d3e4df7714"

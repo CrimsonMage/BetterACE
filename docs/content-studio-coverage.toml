@@ -21,20 +21,46 @@ scope = "Bounded incremental TOML-to-.bace compiler with disk spool, compact ID 
 
 [[features]]
 name = "Saved editor preferences"
-status = "unsupported"
-scope = "Persistent preference storage is not implemented. Property and spell-name lookup uses pinned official ACE enums; unknown numeric IDs remain editable."
+status = "foundation"
+scope = "User-selected Portal DAT path persists as local TOML. No DAT auto-discovery. Other window/workspace preferences are not persisted."
 
 [[features]]
 name = "EmoteScript language"
-status = "unsupported"
-scope = "Structured native emote/action editing is separate from .es language compilation/decompilation."
+status = "foundation"
+scope = "Rust .es import/export, named and positional fields, indented branches, ranges, movement/heading shorthand and exact i64 values. Explicit compile/apply with undo. Full upstream grammar/decompiler parity is not claimed; external weenie display-name lookup requires numeric IDs. Relational metadata stays in TOML."
 
 [[features]]
 name = "Death treasure loot profiles"
-status = "unsupported"
-scope = "Requires a separate native content schema, importer and bace-loot interpretation; not a weenie property table."
+status = "foundation"
+scope = "Separate frozen native TOML schema and editor; legacy JSON import/export and SQL export. Unsupported JSON fields reject input. No loot SQL import, runtime interpretation, .bace loot compilation or live publication."
 
 [[features]]
-name = "Gameplay-derived calculators"
-status = "unsupported"
-scope = "Automatic skill/vital/body-part/spell-probability calculations need source-backed gameplay contracts and differential fixtures. Raw authored values remain editable."
+name = "Authoring calculators"
+status = "foundation"
+scope = "Skill/vital initial-level calculations use selected DAT formulas and existing attributes/ranks; explicit bulk body armor and monster spell-roll changes. Excludes gear/buffs/augmentations. Spell effective probabilities assume displayed enumeration order. Source-backed arithmetic tests do not establish full gameplay parity."
+
+[[features]]
+name = "DAT model viewport and DID lookup"
+status = "foundation"
+scope = "User-selected Portal DAT, textured Setup/GfxObj preview, orbit/pan/zoom, ClothingBase model/texture replacements, palette templates/shades/swatches, variant selectors and reference lookup. Validated appearance application (including template/shade) with undo. Explicit weenie visual overrides supported. The offline workspace can display a selected animation frame and ReplaceObject hooks. No animation playback, particles, full client shader/blending, automatic character creation appearance or collision preview."
+
+[[features]]
+name = "Offline generation workspace"
+status = "foundation"
+scope = "Open an existing immutable .bace manifest without PostgreSQL, browse and edit typed records as native TOML, stage additions and removals, review only changed records and derived indexes, then build a separately confirmed candidate generation. A recipe-focused panel groups cookbook uses, requirements, effects and effect details while saving each native row separately. The accepted generation is not modified. Runtime acceptance of animation swaps and ClothingBase visual patches is unsupported."
+
+[[features]]
+name = "Offline DAT world inspection"
+status = "foundation"
+scope = "User-selected Portal and Cell DAT landblock height terrain, fly camera and bounded static/pack location markers. It does not render static meshes or interiors or simulate collision, movement, scripts or stock-client appearance."
+
+[[features]]
+name = "Emote trace"
+status = "foundation"
+scope = "Deterministic local trace for text, basic quest mutation, item-count changes and XP rewards. Unsupported conditions and actions stop with a visible error; motion playback and full gameplay simulation are unsupported."
+
+[[features]]
+name = "CustomClothingBase documents"
+status = "foundation"
+scope = "Structured setup variants, ordered multi-part/model/texture changes and multi-source/range palette templates. Native TOML open/save, exact legacy JSON import/export, whole-table/selected-entry copy, template duplication, new IDs absent from DAT, atomic validated preview merges and shared matching-DID weenie preview. One active override document; no live server publication or ClothingBase pack compiler."
+reference = "https://github.com/OptimShi/CustomClothingBase/tree/122145d0f6d0c159183f0f229aae611085a67bf1"

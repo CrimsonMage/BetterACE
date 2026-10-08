@@ -207,3 +207,39 @@ fn younger_small_saves_cannot_keep_old_large_save_waiting_for_byte_capacity() {
         vec![7, 900, 2]
     );
 }
+#[test]
+fn clean_seed_batch_failure_and_hierarchy_handoff_preserve_dirty_age() {
+    let mut saves = DirtySaves::with_byte_limit(4, 100);
+    saves.register_clean(snapshot(1, 1)).unwrap();
+    assert!(saves.is_clean());
+    let mut child = snapshot(1, 1);
+    child.object_id = 8;
+    saves.register_clean(child.clone()).unwrap();
+    saves
+        .mark_at(snapshot(2, 1), Duration::from_secs(1))
+        .unwrap();
+    let mut invalid = child.clone();
+    invalid.mutation_revision = 0;
+    assert!(
+        saves
+            .mark_batch_at(vec![snapshot(3, 1), invalid], Duration::from_secs(4))
+            .is_err()
+    );
+    let due = saves.due(Duration::from_secs(6));
+    assert_eq!(
+        due,
+        vec![snapshot(2, 1)],
+        "failed batch did not partially replace player"
+    );
+    saves.failed(&due[0]).unwrap();
+    saves.reserve(&[7, 8]).unwrap();
+    let mut acquired = snapshot(1, 1);
+    acquired.object_id = 9;
+    saves
+        .finish_reserved_hierarchy(&[7, 8], &[snapshot(3, 2)], &[acquired], &[8])
+        .unwrap();
+    assert!(saves.is_clean());
+    assert!(saves.reserve(&[8]).is_err());
+    saves.reserve(&[7, 9]).unwrap();
+    saves.cancel_reserved(&[7, 9]).unwrap();
+}

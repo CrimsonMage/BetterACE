@@ -49,8 +49,8 @@ mod character_create;
 pub use character_create::{CharacterAbilities, CharacterAppearance, CharacterCreateRequest};
 mod position;
 pub use position::{
-    AutonomousPositionOutput, MovementEpochs, PositionPack, PositionUpdate, VectorUpdate,
-    WirePosition,
+    AutonomousPositionOutput, MovementEpochs, PositionPack, PositionUpdate, PrivatePositionUpdate,
+    VectorUpdate, WirePosition,
 };
 mod movement_input;
 pub use movement_input::{
@@ -94,3 +94,55 @@ mod inventory_output;
 pub use inventory_output::{ContainerEntry, InventoryEvent};
 mod vendor_output;
 pub use vendor_output::{VendorCurrency, VendorListing, VendorListingItem};
+mod combat_input;
+mod enchantment;
+mod magic_input;
+mod magic_output;
+pub use combat_input::{CombatAction, CombatRequest};
+pub use enchantment::{Enchantment, EnchantmentRegistry};
+pub use magic_input::{MagicAction, MagicRequest};
+pub use magic_output::MagicEvent;
+mod combat_output;
+pub use combat_output::{CombatEffect, CombatEvent, DamageNotification};
+mod player_description;
+pub use player_description::{
+    LoginAttribute, LoginEquipment, LoginShortcut, LoginSkill, LoginVital, PlayerDescription,
+    PlayerDescriptionLimits,
+};
+mod character_input;
+pub use character_input::{CharacterLifecycleAction, CharacterLifecycleRequest};
+mod character_title;
+pub use character_title::CharacterTitle;
+mod world_control;
+pub use world_control::{WorldControlAction, WorldControlRequest};
+
+mod ui_input;
+pub use ui_input::{UiAction, UiInput, UiOptions, UiShortcut};
+
+mod skill_class;
+pub use skill_class::SkillClassUpdate;
+
+mod crafting;
+pub use crafting::{CraftingAction, CraftingEvent, CraftingRequest, SalvageWireResult};
+
+mod staff_input;
+pub use staff_input::MapTeleportInput;
+
+mod group_input;
+pub use group_input::{GroupAction, GroupRequest};
+mod group_output;
+pub use group_output::{
+    AllegianceMemberData, AllegianceProfileData, FellowData, FellowshipData, GroupEvent,
+};
+
+mod recall_input;
+pub use recall_input::{RecallAction, RecallRequest};
+
+mod target_query;
+pub use target_query::{TargetQueryInput, encode_item_mana_query};
+
+mod jump_variants;
+pub use jump_variants::{ClientNonAutonomousJump, ClientPositionJump};
+
+mod appraisal;
+pub use appraisal::{AppraisalCreature, AppraisalLimits, AppraisalProfile, AppraisalWeapon};

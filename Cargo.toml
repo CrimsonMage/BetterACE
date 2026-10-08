@@ -22,6 +22,8 @@ todo = "deny"
 unimplemented = "deny"
 
 [workspace.dependencies]
+bace-random = { path = "crates/foundation/bace-random" }
+hmac = "0.12"
 bace-content-studio = { path = "crates/application/bace-content-studio" }
 eframe = { version = "0.36.2", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 rfd = "0.17.2"
@@ -30,6 +32,7 @@ bace-geometry = { path = "crates/foundation/bace-geometry" }
 bace-config = { path = "crates/foundation/bace-config" }
 bace-observability = { path = "crates/foundation/bace-observability" }
 bace-dat = { path = "crates/assets/bace-dat" }
+bace-asset-overlay = { path = "crates/assets/bace-asset-overlay" }
 bace-dat-service = { path = "crates/assets/bace-dat-service" }
 bace-content = { path = "crates/content/bace-content" }
 bace-content-tools = { path = "crates/content/bace-content-tools" }

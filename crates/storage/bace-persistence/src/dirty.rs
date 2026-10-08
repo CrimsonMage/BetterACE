@@ -53,6 +53,18 @@ impl DirtySaves {
             next_order: 0,
         }
     }
+    /// Seed an already durable aggregate without fabricating a save acknowledgment.
+    pub fn register_clean(&mut self, snapshot: SaveSnapshot) -> Result<(), DirtyError> {
+        if self.entries.contains_key(&snapshot.object_id) || snapshot.expected_version <= 0 {
+            return Err(DirtyError::Stale);
+        }
+        let id = snapshot.object_id;
+        self.mark_at(snapshot, self.last_now)?;
+        let entry = self.entries.get_mut(&id).ok_or(DirtyError::Unknown)?;
+        entry.dirty = false;
+        entry.dirty_since = None;
+        Ok(())
+    }
     /// Coalesce a newer immutable state. Caller maintains monotonic mutation revisions.
     pub fn mark(&mut self, snapshot: SaveSnapshot) -> Result<(), DirtyError> {
         self.mark_at(snapshot, self.last_now)
@@ -112,6 +124,63 @@ impl DirtySaves {
                     after_dispatch: None,
                 },
             );
+        }
+        Ok(())
+    }
+    /// Admit one immutable capture atomically, retaining first-dirty ordering.
+    pub fn mark_batch_at(
+        &mut self,
+        mut snapshots: Vec<SaveSnapshot>,
+        now: Duration,
+    ) -> Result<(), DirtyError> {
+        snapshots.retain(|s| {
+            !self
+                .entries
+                .get(&s.object_id)
+                .is_some_and(|e| e.snapshot == *s)
+        });
+        let mut ids = std::collections::BTreeSet::new();
+        let mut bytes = self.retained_bytes();
+        let mut fresh = 0usize;
+        if self
+            .next_order
+            .checked_add(snapshots.len() as u64)
+            .is_none()
+        {
+            return Err(DirtyError::Stale);
+        }
+        for s in &snapshots {
+            if !ids.insert(s.object_id)
+                || s.expected_version < 0
+                || s.bytes.len() > 17 * 1024 * 1024
+            {
+                return Err(DirtyError::Stale);
+            }
+            if let Some(e) = self.entries.get(&s.object_id) {
+                if e.reserved {
+                    return Err(DirtyError::Busy);
+                }
+                if s.mutation_revision <= e.snapshot.mutation_revision
+                    || s.expected_version != e.snapshot.expected_version
+                {
+                    return Err(DirtyError::Stale);
+                }
+                bytes = bytes.saturating_sub(e.snapshot.bytes.len());
+            } else {
+                fresh += 1;
+            }
+            bytes = bytes
+                .checked_add(s.bytes.len())
+                .ok_or(DirtyError::Capacity)?;
+            if bytes > self.byte_limit {
+                return Err(DirtyError::Capacity);
+            }
+        }
+        if bytes > self.byte_limit || self.entries.len() + fresh > self.capacity {
+            return Err(DirtyError::Capacity);
+        }
+        for s in snapshots {
+            self.mark_at(s, now)?;
         }
         Ok(())
     }
@@ -267,6 +336,111 @@ impl DirtySaves {
         }
         Ok(())
     }
+    /// Confirm a hierarchy transaction, including newly acquired aggregates and
+    /// retired ownership. All checks precede mutation; unchanged reserved entries
+    /// retain their dirty revisions and original age.
+    pub fn finish_reserved_hierarchy(
+        &mut self,
+        reserved: &[u32],
+        changed: &[SaveSnapshot],
+        acquired: &[SaveSnapshot],
+        retired: &[u32],
+    ) -> Result<(), DirtyError> {
+        let reserved_ids: std::collections::BTreeSet<_> = reserved.iter().copied().collect();
+        let retired_ids: std::collections::BTreeSet<_> = retired.iter().copied().collect();
+        if reserved_ids.len() != reserved.len()
+            || retired_ids.len() != retired.len()
+            || !retired_ids.is_subset(&reserved_ids)
+        {
+            return Err(DirtyError::Stale);
+        }
+        for id in reserved {
+            if !self
+                .entries
+                .get(id)
+                .is_some_and(|e| e.reserved && e.in_flight.is_none())
+            {
+                return Err(DirtyError::Busy);
+            }
+        }
+        let mut seen = std::collections::BTreeSet::new();
+        let mut bytes = self.retained_bytes();
+        for id in retired {
+            bytes = bytes.saturating_sub(self.entries[id].snapshot.bytes.len());
+        }
+        for s in changed {
+            if !reserved_ids.contains(&s.object_id) || !seen.insert(s.object_id) {
+                return Err(DirtyError::Stale);
+            }
+            let e = &self.entries[&s.object_id];
+            if s.mutation_revision <= e.snapshot.mutation_revision
+                || e.snapshot.expected_version.checked_add(1) != Some(s.expected_version)
+                || s.bytes.len() > 17 * 1024 * 1024
+            {
+                return Err(DirtyError::Stale);
+            }
+            if !retired_ids.contains(&s.object_id) {
+                bytes = bytes
+                    .saturating_sub(e.snapshot.bytes.len())
+                    .checked_add(s.bytes.len())
+                    .ok_or(DirtyError::Capacity)?;
+            }
+        }
+        for s in acquired {
+            if self.entries.contains_key(&s.object_id)
+                || !seen.insert(s.object_id)
+                || s.expected_version <= 0
+                || s.bytes.len() > 17 * 1024 * 1024
+            {
+                return Err(DirtyError::Stale);
+            }
+            bytes = bytes
+                .checked_add(s.bytes.len())
+                .ok_or(DirtyError::Capacity)?;
+        }
+        if bytes > self.byte_limit
+            || self.entries.len() - retired.len() + acquired.len() > self.capacity
+        {
+            return Err(DirtyError::Capacity);
+        }
+        for id in reserved {
+            self.entries
+                .get_mut(id)
+                .expect("validated reservation")
+                .reserved = false;
+        }
+        for s in changed
+            .iter()
+            .filter(|s| !retired_ids.contains(&s.object_id))
+        {
+            let e = self
+                .entries
+                .get_mut(&s.object_id)
+                .expect("validated changed row");
+            e.snapshot = s.clone();
+            e.dirty = false;
+            e.dirty_since = None;
+            e.after_dispatch = None;
+        }
+        for id in retired {
+            self.entries.remove(id);
+        }
+        for s in acquired {
+            self.entries.insert(
+                s.object_id,
+                Entry {
+                    snapshot: s.clone(),
+                    in_flight: None,
+                    dirty: false,
+                    reserved: false,
+                    dirty_since: None,
+                    dirty_order: 0,
+                    after_dispatch: None,
+                },
+            );
+        }
+        Ok(())
+    }
     /// Confirm rollback before cancellation; uncertain commits must be resolved first.
     pub fn cancel_reserved(&mut self, ids: &[u32]) -> Result<(), DirtyError> {
         for id in ids {
@@ -296,6 +470,27 @@ impl DirtySaves {
         self.entries
             .values()
             .all(|e| !e.dirty && e.in_flight.is_none() && !e.reserved)
+    }
+    pub fn is_object_clean(&self, object_id: u32) -> bool {
+        self.entries
+            .get(&object_id)
+            .is_some_and(|e| !e.dirty && e.in_flight.is_none() && !e.reserved)
+    }
+    pub fn forget_clean_batch(&mut self, ids: &[u32]) -> Result<(), DirtyError> {
+        let unique: std::collections::BTreeSet<_> = ids.iter().copied().collect();
+        if ids.is_empty() || unique.len() != ids.len() {
+            return Err(DirtyError::Stale);
+        }
+        for id in ids {
+            let e = self.entries.get(id).ok_or(DirtyError::Unknown)?;
+            if e.dirty || e.in_flight.is_some() || e.reserved {
+                return Err(DirtyError::Busy);
+            }
+        }
+        for id in ids {
+            self.entries.remove(id);
+        }
+        Ok(())
     }
     pub fn forget_clean(&mut self, object_id: u32) -> Result<(), DirtyError> {
         let entry = self.entries.get(&object_id).ok_or(DirtyError::Unknown)?;

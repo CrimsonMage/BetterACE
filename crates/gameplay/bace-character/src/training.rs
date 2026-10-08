@@ -98,9 +98,6 @@ impl CharacterProgression {
         if existing.is_none() && self.traits.len() >= 256 {
             return Err(SkillTrainingRejection::TraitCapacity);
         }
-        if training.augmentation_skills.contains(&request.skill) {
-            return Err(SkillTrainingRejection::UnsupportedAugmentation);
-        }
         let before = self.projection(target).unwrap_or(ProgressionProjection {
             target,
             experience_spent: 0,
@@ -108,10 +105,15 @@ impl CharacterProgression {
             advancement: SkillAdvancement::Untrained,
             details: entry.details,
         });
-        entry.progress.advancement = SkillAdvancement::Trained;
+        let augmented = training.augmentation_skills.contains(&request.skill);
+        entry.progress.advancement = if augmented {
+            SkillAdvancement::Specialized
+        } else {
+            SkillAdvancement::Trained
+        };
         entry.progress.experience_spent = 0;
         entry.details = Some(TraitDetails::Skill {
-            initial_level: 0,
+            initial_level: if augmented { 10 } else { 0 },
             resistance_at_last_check,
             last_used_time,
         });
@@ -154,11 +156,18 @@ impl CharacterProgression {
         else {
             return Err(SkillTrainingRejection::MissingTraitDetails);
         };
-        if training.augmentation_skills.contains(&skill) {
-            return Err(SkillTrainingRejection::UnsupportedAugmentation);
+        if crate::is_augmentation_skill(skill) {
+            return Err(SkillTrainingRejection::InvalidSpecialization);
         }
-        if entry.progress.experience_spent > self.tables.specialized_skills.maximum_experience() {
-            return Err(SkillTrainingRejection::ExperienceBeyondMaximum);
+        let total = self
+            .specialized_credit_total()
+            .map_err(|_| SkillTrainingRejection::SpecializationCap)?;
+        let cap_cost = training
+            .rules
+            .cap_cost(skill)
+            .ok_or(SkillTrainingRejection::UnknownSkill)?;
+        if total.checked_add(cap_cost).is_none_or(|sum| sum > 70) {
+            return Err(SkillTrainingRejection::SpecializationCap);
         }
         let before = self.projection(target).expect("existing trait");
         entry.progress.advancement = SkillAdvancement::Specialized;

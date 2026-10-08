@@ -9,6 +9,15 @@ pub(crate) struct Studio {
     editor: crate::editor::Editor,
     import_tab: bool,
     pack_tab: bool,
+    loot_tab: bool,
+    clothing_tab: bool,
+    offline_tab: bool,
+    offline: crate::offline_workspace_ui::OfflineWorkspaceUi,
+    sandbox_tab: bool,
+    sandbox: crate::world_sandbox::WorldSandbox,
+    clothing: crate::clothing_editor::ClothingEditor,
+    loot: crate::loot_editor::LootEditor,
+    loot_close: bool,
     pack_builder: crate::pack_builder::PackBuilder,
     files: Vec<PathBuf>,
     output: Option<PathBuf>,
@@ -224,6 +233,8 @@ impl Studio {
             self.editor.open(path, ui.ctx());
             self.import_tab = false;
             self.pack_tab = false;
+            self.loot_tab = false;
+            self.clothing_tab = false;
         }
     }
 }
@@ -231,9 +242,43 @@ impl Studio {
 impl eframe::App for Studio {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
+        self.clothing.poll(&ctx);
+        self.clothing.guard_close(&ctx);
+        self.loot.poll(&ctx);
+        if ctx.input(|i| i.viewport().close_requested()) && (self.loot.dirty() || self.loot.busy())
+        {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            self.loot_close = true;
+        }
+        if self.loot_close {
+            egui::Window::new("Unsaved loot profile")
+                .collapsible(false)
+                .resizable(false)
+                .show(&ctx, |ui| {
+                    ui.label("Save the profile before closing, or discard your changes.");
+                    if ui.button("Keep editing").clicked() {
+                        self.loot_close = false;
+                        self.loot_tab = true;
+                    }
+                    if ui
+                        .add_enabled(!self.loot.busy(), egui::Button::new("Discard and close"))
+                        .clicked()
+                    {
+                        self.loot.discard();
+                        self.loot_close = false;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                    }
+                });
+        }
         self.editor.poll(&ctx);
         self.editor.guard_close(&ctx);
         self.pack_builder.poll(&ctx);
+        self.offline.poll(&ctx);
+        self.offline.guard_close(&ctx);
+        self.sandbox.poll(&ctx);
+        if self.offline.busy() && ctx.input(|i| i.viewport().close_requested()) {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+        }
         self.poll(&ctx);
         if ctx.input(|i| i.viewport().close_requested())
             && let Some(worker) = &self.worker
@@ -276,11 +321,27 @@ impl eframe::App for Studio {
                 );
                 ui.add_space(35.0);
                 crate::theme::eyebrow(ui, "WORKSPACE");
-                for (index, label) in ["Weenie editor", "Legacy import", "Pack builder"]
-                    .iter()
-                    .enumerate()
+                for (index, label) in [
+                    "Weenie editor",
+                    "Legacy import",
+                    "Pack builder",
+                    "Loot profiles",
+                    "ClothingBases",
+                    "Offline workspace",
+                    "World sandbox",
+                ]
+                .iter()
+                .enumerate()
                 {
-                    let selected = if self.pack_tab {
+                    let selected = if self.sandbox_tab {
+                        6
+                    } else if self.offline_tab {
+                        5
+                    } else if self.clothing_tab {
+                        4
+                    } else if self.loot_tab {
+                        3
+                    } else if self.pack_tab {
                         2
                     } else {
                         usize::from(self.import_tab)
@@ -294,6 +355,10 @@ impl eframe::App for Studio {
                     {
                         self.import_tab = index == 1;
                         self.pack_tab = index == 2;
+                        self.loot_tab = index == 3;
+                        self.clothing_tab = index == 4;
+                        self.offline_tab = index == 5;
+                        self.sandbox_tab = index == 6;
                     }
                 }
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
@@ -311,13 +376,18 @@ impl eframe::App for Studio {
             .frame(egui::Frame::new().fill(crate::theme::BG).inner_margin(24))
             .show(ui, |ui| {
                 crate::theme::eyebrow(ui, "BETTERACE  /  CONTENT");
-                ui.heading(if self.pack_tab {"Pack builder"} else if self.import_tab {"Legacy import"} else {"Weenie editor"});
+                ui.heading(if self.sandbox_tab {"World sandbox"} else if self.offline_tab {"Offline workspace"} else if self.clothing_tab {"ClothingBases"} else if self.loot_tab {"Loot profiles"} else if self.pack_tab {"Pack builder"} else if self.import_tab {"Legacy import"} else {"Weenie editor"});
                 ui.add_space(12.0);
-                if !self.pack_tab && !self.import_tab {
-                    self.editor.ui(ui);
+                if !self.sandbox_tab && !self.offline_tab && !self.clothing_tab && !self.loot_tab && !self.pack_tab && !self.import_tab {
+                    if self.clothing.source_pending(){ui.label("ClothingBase TOML draft is unapplied; weenie preview uses the last applied structured changes.");}
+                    self.editor.ui(ui,self.clothing.patch());
                     return;
                 }
             egui::ScrollArea::vertical().id_salt("workflow").show(ui, |ui| {
+                if self.sandbox_tab {self.sandbox.ui(ui);return;}
+                if self.offline_tab {self.offline.ui(ui);return;}
+                if self.clothing_tab {self.clothing.ui(ui);return;}
+                if self.loot_tab {self.loot.ui(ui);return;}
                 if self.pack_tab {self.pack_builder.ui(ui);return;}
                 ui.label("Convert legacy weenie content into editable native TOML.");
                 ui.add_space(16.0);

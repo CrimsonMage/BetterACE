@@ -11,3 +11,5 @@ description = "Attacks, damage, defenses and PvP rules"
 workspace = true
 
 [dependencies]
+bace-content.workspace = true
+bace-gameplay-api.workspace = true

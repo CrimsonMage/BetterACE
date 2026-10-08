@@ -1,0 +1,6 @@
+# template size,max,value,burden,unitburden,unitvalue,result unitburden,unitvalue,size,burden,value
+10,100,30,20,2,3,2,3,3,6,9
+10,100,37,29,-,-,2,3,3,6,9
+1,100,17,13,-,-,13,17,3,39,51
+-,100,-,-,-,-,0,0,3,0,0
+5,100,999,999,7,11,7,11,3,21,33

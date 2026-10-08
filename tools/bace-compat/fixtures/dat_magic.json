@@ -1,0 +1,413 @@
+{
+  "repository": "https://github.com/ACEmulator/ACE",
+  "commit": "47edade3bd3f6044b676d4eb877c4965c7eda62b",
+  "source_sha256": {
+    "Source/ACE.DatLoader/IUnpackable.cs": "de0d0b462e450b7cfbbe01e57205aa3ce765c6a8eb9db659d93868da883eafd7",
+    "Source/ACE.DatLoader/BinaryReaderExtensions.cs": "c8aacc633f15f29329f963c6cc3222322291d926dd66cde9e31fbd4f4966adb1",
+    "Source/ACE.DatLoader/UnpackableExtensions.cs": "13f137cf709de76f27a27189fda48ebb7da64b1948c7a6666cd591309453c354",
+    "Source/ACE.DatLoader/DatFileType.cs": "377114eb1a7707309b85a1dd2526aff8bab9e2be371e812fff2e6b91fb73835a",
+    "Source/ACE.DatLoader/DatFileTypeAttribute.cs": "568f7432af38762d1b72d05d910d379dfb9a2b2c56acb53fd5440ed640a8488c",
+    "Source/ACE.DatLoader/DatDatabaseType.cs": "096c584d94d491b724f15b584c155102a6ca1c4a286c5f559456266dd6f25224",
+    "Source/ACE.DatLoader/DatDatabaseTypeAttribute.cs": "ef84e7062727f050d4beffceed0f55d908526cc7970226c99bbce382fe71d2e0",
+    "Source/ACE.DatLoader/DatFileTypeExtensionAttribute.cs": "4ff225e1e29fea9ee2b9308299fb56de007588805651219d7b35fbb78549b233",
+    "Source/ACE.DatLoader/DatFileTypeIdRangeAttribute.cs": "002652e46a6128fb10ec092c795ff5a6c650b4301e06771245b33be90c3324d5",
+    "Source/ACE.DatLoader/FileTypes/FileType.cs": "6f94f96626381dd574e45c778fc80aacfbf439b9b8138c2885ebdbca7c3d8665",
+    "Source/ACE.DatLoader/FileTypes/SpellTable.cs": "52de726909301d28526856df5582511d49ba34f4701a07c86ae082f0da2a93e6",
+    "Source/ACE.DatLoader/FileTypes/SpellComponentsTable.cs": "91108eb825897ad6b46f65040e2bec01f8538968343ae3bc508fc46a4827e98d",
+    "Source/ACE.DatLoader/Entity/SpellBase.cs": "a12358353f27edd200b2abf8283562416b8075d2e257374c5c8b3a041ff3c3b4",
+    "Source/ACE.DatLoader/Entity/SpellComponentBase.cs": "829a0a2f097fb63912dbddc4acaa1cf77059ce1d1fa2074849cc8de476d18049",
+    "Source/ACE.DatLoader/Entity/SpellSet.cs": "bd256bf6c1429ec73c190ef43b3ecbd5b73fd104ee36fcf3e383700b815fb72e",
+    "Source/ACE.DatLoader/Entity/SpellSetTiers.cs": "46a94049afa502183ad095d528168eb62310d2754da6411e00b23ba844bad193",
+    "Source/ACE.Entity/Enum/MagicSchool.cs": "82fb2f63ee5ff4c352f4d7b742b24ca13da4bbc42975fa47a94836f70c57cc18",
+    "Source/ACE.Entity/Enum/SpellCategory.cs": "e1503cd4ed3e1c689dac7cf2eeb38c0a630cf2459392a4dd9e0a426fbb8e7f5e",
+    "Source/ACE.Entity/Enum/SpellType.cs": "4b6dc44e1717c774826b6ca1285ea28806b51ec925aa899c79331657aaf194ff"
+  },
+  "harness": "Unmodified pinned parsers, signed-byte CP1252 hash, formula decryption/account substitution and sparse set tiers. Synthetic BinaryWriter input only.",
+  "vectors": {
+    "table": {
+      "bytes": "0e00000e04002000640000000c003416669e02690264c616d65600000f003597e647865647963602370756c6c6000000010000000100000625000000004000000a0000000000f041cdcccc3d640000000000003f000000000000803e0300000064000000826ab10dc06ab10d8b6ab10dc16ab10d956ab10d9f6ab10dc26ab10da96ab10d010000000200000000000000000000000000000000000000000000001000000002000000650000000700350756c6c602130000000f003597e647865647963602370756c6c6000000020000000100000625000000004000000a0000000000f041cdcccc3d640000000000003f010000000000803e01000000650000000000000000205e400000803e008026c43e2a410b7c2a410b472a410b7d2a410b512a410b5b2a410b7e2a410b652a410b010000000200000000000000000000000000000000000000010000001000000002000000660000000700350756c6c602230000000f003597e647865647963602370756c6c6000000030000000100000625000000004000000a0000000000f041cdcccc3d640000000000003f020000000000803e0c000000660000000000000000205e400000803e008026c43f2a410b7d2a410b482a410b7e2a410b522a410b5c2a410b7f2a410b662a410b010000000200000000000000000000000000000000000000020000001000000002000000670000000700350756c6c602330000000f003597e647865647963602370756c6c6000000040000000100000625000000004000000a0000000000f041cdcccc3d640000000000003f030000000000803e07000000670000000000000000004e40402a410b7e2a410b492a410b7f2a410b532a410b5d2a410b802a410b672a410b01000000020000000000000000000000000000000000000003000000100000000200000001001000070000000200080001000000020000006400000065000000030000000100000066000000",
+      "spells": {
+        "100": {
+          "Name": "Caf\u00e9 \u2013 Flame",
+          "Desc": "Synthetic spell",
+          "School": 1,
+          "Icon": 100663297,
+          "Category": 37,
+          "Bitfield": 16384,
+          "BaseMana": 10,
+          "BaseRangeConstant": 30,
+          "BaseRangeMod": 0.1,
+          "Power": 100,
+          "SpellEconomyMod": 0.5,
+          "FormulaVersion": 0,
+          "ComponentLoss": 0.25,
+          "MetaSpellType": 3,
+          "MetaSpellId": 100,
+          "Duration": 0,
+          "DegradeModifier": 0,
+          "DegradeLimit": 0,
+          "PortalLifetime": 0,
+          "Formula": [
+            1,
+            63,
+            10,
+            64,
+            20,
+            30,
+            65,
+            40
+          ],
+          "CasterEffect": 1,
+          "TargetEffect": 2,
+          "FizzleEffect": 0,
+          "RecoveryInterval": 0,
+          "RecoveryAmount": 0,
+          "DisplayOrder": 0,
+          "NonComponentTargetType": 16,
+          "ManaMod": 2
+        },
+        "101": {
+          "Name": "Spell 1",
+          "Desc": "Synthetic spell",
+          "School": 2,
+          "Icon": 100663297,
+          "Category": 37,
+          "Bitfield": 16384,
+          "BaseMana": 10,
+          "BaseRangeConstant": 30,
+          "BaseRangeMod": 0.1,
+          "Power": 100,
+          "SpellEconomyMod": 0.5,
+          "FormulaVersion": 1,
+          "ComponentLoss": 0.25,
+          "MetaSpellType": 1,
+          "MetaSpellId": 101,
+          "Duration": 120.5,
+          "DegradeModifier": 0.25,
+          "DegradeLimit": -666,
+          "PortalLifetime": 0,
+          "Formula": [
+            1,
+            63,
+            10,
+            64,
+            20,
+            30,
+            65,
+            40
+          ],
+          "CasterEffect": 1,
+          "TargetEffect": 2,
+          "FizzleEffect": 0,
+          "RecoveryInterval": 0,
+          "RecoveryAmount": 0,
+          "DisplayOrder": 1,
+          "NonComponentTargetType": 16,
+          "ManaMod": 2
+        },
+        "102": {
+          "Name": "Spell 2",
+          "Desc": "Synthetic spell",
+          "School": 3,
+          "Icon": 100663297,
+          "Category": 37,
+          "Bitfield": 16384,
+          "BaseMana": 10,
+          "BaseRangeConstant": 30,
+          "BaseRangeMod": 0.1,
+          "Power": 100,
+          "SpellEconomyMod": 0.5,
+          "FormulaVersion": 2,
+          "ComponentLoss": 0.25,
+          "MetaSpellType": 12,
+          "MetaSpellId": 102,
+          "Duration": 120.5,
+          "DegradeModifier": 0.25,
+          "DegradeLimit": -666,
+          "PortalLifetime": 0,
+          "Formula": [
+            1,
+            63,
+            10,
+            64,
+            20,
+            30,
+            65,
+            40
+          ],
+          "CasterEffect": 1,
+          "TargetEffect": 2,
+          "FizzleEffect": 0,
+          "RecoveryInterval": 0,
+          "RecoveryAmount": 0,
+          "DisplayOrder": 2,
+          "NonComponentTargetType": 16,
+          "ManaMod": 2
+        },
+        "103": {
+          "Name": "Spell 3",
+          "Desc": "Synthetic spell",
+          "School": 4,
+          "Icon": 100663297,
+          "Category": 37,
+          "Bitfield": 16384,
+          "BaseMana": 10,
+          "BaseRangeConstant": 30,
+          "BaseRangeMod": 0.1,
+          "Power": 100,
+          "SpellEconomyMod": 0.5,
+          "FormulaVersion": 3,
+          "ComponentLoss": 0.25,
+          "MetaSpellType": 7,
+          "MetaSpellId": 103,
+          "Duration": 0,
+          "DegradeModifier": 0,
+          "DegradeLimit": 0,
+          "PortalLifetime": 60,
+          "Formula": [
+            1,
+            63,
+            10,
+            64,
+            20,
+            30,
+            65,
+            40
+          ],
+          "CasterEffect": 1,
+          "TargetEffect": 2,
+          "FizzleEffect": 0,
+          "RecoveryInterval": 0,
+          "RecoveryAmount": 0,
+          "DisplayOrder": 3,
+          "NonComponentTargetType": 16,
+          "ManaMod": 2
+        }
+      },
+      "sets": {
+        "7": {
+          "1": [
+            100,
+            101
+          ],
+          "3": [
+            102
+          ]
+        }
+      }
+    },
+    "components": {
+      "bytes": "0f00000e02000000010000000600353616271626010000001000000601000000000000800000c03f090094e63616e647162756000000003f0200000008004516c69637d616e60000020000001100000602000000320100130000c03f050064c616d656000000003f",
+      "entries": {
+        "1": {
+          "Name": "Scarab",
+          "Category": 1,
+          "Icon": 100663312,
+          "Type": 1,
+          "Gesture": 2147483648,
+          "Time": 1.5,
+          "Text": "Incantare",
+          "CDM": 0.5
+        },
+        "2": {
+          "Name": "Talisman",
+          "Category": 2,
+          "Icon": 100663313,
+          "Type": 2,
+          "Gesture": 318767410,
+          "Time": 1.5,
+          "Text": "Flame",
+          "CDM": 0.5
+        }
+      }
+    },
+    "formulas": [
+      {
+        "account": "Alpha",
+        "spell": 100,
+        "formula": [
+          1,
+          63,
+          10,
+          64,
+          20,
+          30,
+          65,
+          40
+        ]
+      },
+      {
+        "account": "Alpha",
+        "spell": 101,
+        "formula": [
+          1,
+          66,
+          10,
+          67,
+          20,
+          30,
+          63,
+          40
+        ]
+      },
+      {
+        "account": "Alpha",
+        "spell": 102,
+        "formula": [
+          1,
+          63,
+          10,
+          71,
+          20,
+          30,
+          69,
+          40
+        ]
+      },
+      {
+        "account": "Alpha",
+        "spell": 103,
+        "formula": [
+          1,
+          63,
+          10,
+          70,
+          20,
+          30,
+          68,
+          40
+        ]
+      },
+      {
+        "account": "Beta",
+        "spell": 100,
+        "formula": [
+          1,
+          63,
+          10,
+          64,
+          20,
+          30,
+          65,
+          40
+        ]
+      },
+      {
+        "account": "Beta",
+        "spell": 101,
+        "formula": [
+          1,
+          66,
+          10,
+          70,
+          20,
+          30,
+          66,
+          40
+        ]
+      },
+      {
+        "account": "Beta",
+        "spell": 102,
+        "formula": [
+          1,
+          63,
+          10,
+          71,
+          20,
+          30,
+          63,
+          40
+        ]
+      },
+      {
+        "account": "Beta",
+        "spell": 103,
+        "formula": [
+          1,
+          63,
+          10,
+          71,
+          20,
+          30,
+          64,
+          40
+        ]
+      },
+      {
+        "account": "Caf\u00e9",
+        "spell": 100,
+        "formula": [
+          1,
+          63,
+          10,
+          64,
+          20,
+          30,
+          65,
+          40
+        ]
+      },
+      {
+        "account": "Caf\u00e9",
+        "spell": 101,
+        "formula": [
+          1,
+          66,
+          10,
+          64,
+          20,
+          30,
+          69,
+          40
+        ]
+      },
+      {
+        "account": "Caf\u00e9",
+        "spell": 102,
+        "formula": [
+          1,
+          63,
+          10,
+          71,
+          20,
+          30,
+          69,
+          40
+        ]
+      },
+      {
+        "account": "Caf\u00e9",
+        "spell": 103,
+        "formula": [
+          1,
+          63,
+          10,
+          67,
+          20,
+          30,
+          64,
+          40
+        ]
+      }
+    ],
+    "hashes": [
+      {
+        "text": "Alpha",
+        "value": 4732641
+      },
+      {
+        "text": "Caf\u00e9",
+        "value": 300873
+      },
+      {
+        "text": "\u2013 \u20ac",
+        "value": 268396144
+      },
+      {
+        "text": "",
+        "value": 0
+      }
+    ]
+  }
+}

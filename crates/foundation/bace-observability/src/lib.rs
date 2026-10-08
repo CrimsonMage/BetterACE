@@ -3,4 +3,4 @@
 //! See ARCHITECTURE.md for dependency and implementation contracts.
 
 mod logs;
-pub use logs::{LogBatch, LogRecord, LogStore};
+pub use logs::{ExactLogError, ExactLogErrorKind, LogBatch, LogRecord, LogStore};

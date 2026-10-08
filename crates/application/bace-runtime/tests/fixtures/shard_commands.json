@@ -1,0 +1,5318 @@
+{
+  "cases": [
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "0"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 0 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 0"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 0."
+        }
+      ],
+      "boots": [],
+      "interval": 0,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "1"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 1 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 1"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 1."
+        }
+      ],
+      "boots": [],
+      "interval": 1,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "60"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 60 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 60"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 60."
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "99999"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 99999 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 99999"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 99999."
+        }
+      ],
+      "boots": [],
+      "interval": 99999,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "100000"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 10000 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 10000"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 10000."
+        }
+      ],
+      "boots": [],
+      "interval": 10000,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "12345junk"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 12345 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 12345"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 12345."
+        }
+      ],
+      "boots": [],
+      "interval": 12345,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "+12345"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 1234 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 1234"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 1234."
+        }
+      ],
+      "boots": [],
+      "interval": 1234,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "-00000"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 0 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 0"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 0."
+        }
+      ],
+      "boots": [],
+      "interval": 0,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "-0001"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          " 12345"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 1234 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 1234"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 1234."
+        }
+      ],
+      "boots": [],
+      "interval": 1234,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "123 4"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "\t42\n"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 42 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 42"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 42."
+        }
+      ],
+      "boots": [],
+      "interval": 42,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "\u00a042"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "\uff11\uff12\uff13"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "\u0661\u0662"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "\ud83d\udca1123"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "1234\ud83d\udca1"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          ""
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "+"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "4294967295"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 42949 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 42949"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 42949."
+        }
+      ],
+      "boots": [],
+      "interval": 42949,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "12\u0000"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 12 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 12"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 12."
+        }
+      ],
+      "boots": [],
+      "interval": 12,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "12\u0000 "
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "12 \u0000"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 12 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 12"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 12."
+        }
+      ],
+      "boots": [],
+      "interval": 12,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "\u0000"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "12\u0000\u0000"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the shut down interval be changed from 60 seconds to 12 seconds."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 12"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown Interval (seconds to shutdown server) has been set to 12."
+        }
+      ],
+      "boots": [],
+      "interval": 12,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "1_2"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "set-shutdown-interval",
+        "args": [
+          "1,000"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Usage: /set-shutdown-interval <00000>"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 0,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 0 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "boots": [],
+      "interval": 0,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 0,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 0 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "boots": [],
+      "interval": 0,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 0,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 0 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "boots": [],
+      "interval": 0,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 0,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 0 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "boots": [],
+      "interval": 0,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 1,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 second! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 1,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 1,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 second! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 1,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 1,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 second! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 1,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 1,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> WARNING - This Asheron's Call Server will be shutting down in 1 second! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 1,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 59,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 59 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 59 seconds! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 59,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 59,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 59 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> WARNING - This Asheron's Call Server will be shutting down in 59 seconds! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 59,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 59,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 59 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 59 seconds! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 59,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 59,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 59 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> WARNING - This Asheron's Call Server will be shutting down in 59 seconds! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 59,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 60 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 60 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 60 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 60 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> WARNING - This Asheron's Call Server will be shutting down in 1 minute! Please log out!"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 61,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 61 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute and 1 second. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 61,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 61,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 61 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute and 1 second. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 61,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 61,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 61 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute and 1 second. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 61,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 61,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 61 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> WARNING - This Asheron's Call Server will be shutting down in 1 minute and 1 second. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 61,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 90,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 90 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute and 30 seconds. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 90,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 90,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 90 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute and 30 seconds. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 90,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 90,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 90 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute and 30 seconds. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 90,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 90,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 90 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> WARNING - This Asheron's Call Server will be shutting down in 1 minute and 30 seconds. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 90,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 91,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 91 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 minute and 31 seconds. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 91,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 91,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 91 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 minute and 31 seconds. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 91,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 91,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 91 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 minute and 31 seconds. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 91,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 91,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 91 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server will be shutting down in 1 minute and 31 seconds. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 91,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 120,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 120 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 120,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 120,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 120 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 120,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 120,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 120 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 120,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 120,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 120 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 120,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 121,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 2 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes and 1 second. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 121,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 121,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 2 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes and 1 second. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 121,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 121,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 2 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes and 1 second. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 121,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 121,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 2 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes and 1 second. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 121,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 180,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 3 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 3 minutes. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 180,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 180,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 3 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 3 minutes. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 180,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 180,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 3 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 3 minutes. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 180,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 180,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 3 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server will be shutting down in 3 minutes. Please log out."
+        }
+      ],
+      "boots": [],
+      "interval": 180,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 181,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 3 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 3 minutes and 1 second."
+        }
+      ],
+      "boots": [],
+      "interval": 181,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 181,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 3 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 3 minutes and 1 second."
+        }
+      ],
+      "boots": [],
+      "interval": 181,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 181,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 3 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 3 minutes and 1 second."
+        }
+      ],
+      "boots": [],
+      "interval": 181,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 181,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 3 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server will be shutting down in 3 minutes and 1 second."
+        }
+      ],
+      "boots": [],
+      "interval": 181,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 3600,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 60 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour."
+        }
+      ],
+      "boots": [],
+      "interval": 3600,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 3600,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 60 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour."
+        }
+      ],
+      "boots": [],
+      "interval": 3600,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 3600,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 60 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour."
+        }
+      ],
+      "boots": [],
+      "interval": 3600,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 3600,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 60 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour."
+        }
+      ],
+      "boots": [],
+      "interval": 3600,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 7200,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 120 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 hours."
+        }
+      ],
+      "boots": [],
+      "interval": 7200,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 7200,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 120 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 hours."
+        }
+      ],
+      "boots": [],
+      "interval": 7200,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 7200,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 120 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 hours."
+        }
+      ],
+      "boots": [],
+      "interval": 7200,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 7200,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 120 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server will be shutting down in 2 hours."
+        }
+      ],
+      "boots": [],
+      "interval": 7200,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 86400,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1440 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in ."
+        }
+      ],
+      "boots": [],
+      "interval": 86400,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 86400,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1440 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in ."
+        }
+      ],
+      "boots": [],
+      "interval": 86400,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 86400,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1440 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in ."
+        }
+      ],
+      "boots": [],
+      "interval": 86400,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 86400,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1440 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server will be shutting down in ."
+        }
+      ],
+      "boots": [],
+      "interval": 86400,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 90061,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1501 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour, 1 minute and 1 second."
+        }
+      ],
+      "boots": [],
+      "interval": 90061,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 90061,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1501 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour, 1 minute and 1 second."
+        }
+      ],
+      "boots": [],
+      "interval": 90061,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 90061,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1501 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour, 1 minute and 1 second."
+        }
+      ],
+      "boots": [],
+      "interval": 90061,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 90061,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1501 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour, 1 minute and 1 second."
+        }
+      ],
+      "boots": [],
+      "interval": 90061,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 99999,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1666 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 3 hours, 46 minutes and 39 seconds."
+        }
+      ],
+      "boots": [],
+      "interval": 99999,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Maintenance",
+          "now"
+        ],
+        "interval": 99999,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1666 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Maintenance now"
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE sent the following message for the shutdown: Maintenance now"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> Maintenance now\nBroadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 3 hours, 46 minutes and 39 seconds."
+        }
+      ],
+      "boots": [],
+      "interval": 99999,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [],
+        "interval": 99999,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1666 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 3 hours, 46 minutes and 39 seconds."
+        }
+      ],
+      "boots": [],
+      "interval": 99999,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "Restart",
+          "please"
+        ],
+        "interval": 99999,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 1666 minutes."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Restart please"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Restart please"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Restart please\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server will be shutting down in 3 hours, 46 minutes and 39 seconds."
+        }
+      ],
+      "boots": [],
+      "interval": 99999,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "shutdown",
+        "args": [
+          "ignored"
+        ],
+        "interval": 60,
+        "pending": true,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown is already in progress."
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "stop-now",
+        "args": [
+          "Emergency"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has initiated an immediate server shut down."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 0"
+        },
+        {
+          "kind": "Log",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "The server will shut down in 0 seconds."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa initiated a complete server shutdown @ 2024-10-09 12:00:00 AM (2024-10-09 12:00:00 AM UTC)"
+        },
+        {
+          "kind": "Log",
+          "text": "Admin message: Emergency"
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa sent the following message for the shutdown: Emergency"
+        },
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from Alyssa> Emergency\nBroadcast from Alyssa> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "boots": [],
+      "interval": 0,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "stop-now",
+        "args": [
+          "ignored"
+        ],
+        "interval": 60,
+        "pending": true,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Audit",
+          "text": "Alyssa has initiated an immediate server shut down."
+        },
+        {
+          "kind": "Log",
+          "text": "Server shutdown interval reset: 0"
+        },
+        {
+          "kind": "ReplyBroadcast",
+          "text": "Shutdown is already in progress."
+        }
+      ],
+      "boots": [],
+      "interval": 0,
+      "pending": true,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "cancel-shutdown",
+        "args": [],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": null
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "CONSOLE has requested the pending shut down @ 0001-01-01 12:00:00 AM (0001-01-01 12:00:00 AM UTC) be cancelled."
+        },
+        {
+          "kind": "Audit",
+          "text": "CONSOLE has requested the pending shut down @ 0001-01-01 12:00:00 AM (0001-01-01 12:00:00 AM UTC) be cancelled."
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "cancel-shutdown",
+        "args": [],
+        "interval": 60,
+        "pending": true,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "Log",
+          "text": "Alyssa has requested the pending shut down @ 2024-10-09 12:01:00 AM (2024-10-09 12:01:00 AM UTC) be cancelled."
+        },
+        {
+          "kind": "Audit",
+          "text": "Alyssa has requested the pending shut down @ 2024-10-09 12:01:00 AM (2024-10-09 12:01:00 AM UTC) be cancelled."
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "World is currently Closed\nPlease specify state to change\n@world [open | close] <boot>\nIf closing world, using @world close boot will force players to logoff immediately"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "invalid"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "World is currently Closed\nPlease specify state to change\n@world [open | close] <boot>\nIf closing world, using @world close boot will force players to logoff immediately"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "OPEN"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "Opening world to players..."
+        },
+        {
+          "kind": "Audit",
+          "text": "World is now open"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": true
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "close"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "World is already closed."
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "close",
+          "BOOT"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "World is already closed."
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "close",
+          "other"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "World is already closed."
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "open",
+          "boot",
+          "ignored"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": false,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "Opening world to players..."
+        },
+        {
+          "kind": "Audit",
+          "text": "World is now open"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": true
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [],
+        "interval": 60,
+        "pending": false,
+        "opened": true,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "World is currently Open\nPlease specify state to change\n@world [open | close] <boot>\nIf closing world, using @world close boot will force players to logoff immediately"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": true
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "invalid"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": true,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "World is currently Open\nPlease specify state to change\n@world [open | close] <boot>\nIf closing world, using @world close boot will force players to logoff immediately"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": true
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "OPEN"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": true,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "World is already open."
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": true
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "close"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": true,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "Closing world..."
+        },
+        {
+          "kind": "Audit",
+          "text": "World is now closed"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "close",
+          "BOOT"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": true,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "Closing world, and booting all online players."
+        },
+        {
+          "kind": "Audit",
+          "text": "World is now closed, and booting all online players."
+        }
+      ],
+      "boots": [
+        "Player| because the world is now closed|The world is now closed"
+      ],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "close",
+          "other"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": true,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "Closing world..."
+        },
+        {
+          "kind": "Audit",
+          "text": "World is now closed"
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": false
+    },
+    {
+      "input": {
+        "command": "world",
+        "args": [
+          "open",
+          "boot",
+          "ignored"
+        ],
+        "interval": 60,
+        "pending": false,
+        "opened": true,
+        "name": "Alyssa"
+      },
+      "events": [
+        {
+          "kind": "ReplyWorldBroadcast",
+          "text": "World is already open."
+        }
+      ],
+      "boots": [],
+      "interval": 60,
+      "pending": false,
+      "opened": true
+    }
+  ],
+  "notices": [
+    {
+      "input": {
+        "remaining": 7200000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 7200000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 hours."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 7200000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 hours."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 7200001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 7200001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 hours."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 7200001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 hours."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 7200999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 7200999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 hours."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 7200999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 hours."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 3600000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3600000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 3600000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 3600001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3600001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 3600001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 3600999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3600999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 3600999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 hour."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 2700000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 2700000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 45 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 2700000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 45 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 2700001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 2700001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 45 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 2700001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 45 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 2700999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 2700999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 45 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 2700999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 45 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 1800000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 1800000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 30 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 1800000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 30 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 1800001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 1800001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 30 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 1800001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 30 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 1800999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 1800999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 30 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 1800999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 30 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 900000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 900000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 15 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 900000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 15 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 900001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 900001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 15 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 900001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 15 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 900999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 900999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 15 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 900999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 15 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 600000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 600000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 10 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 600000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 10 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 600001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 600001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 10 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 600001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 10 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 600999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 600999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 10 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 600999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 10 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 300000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 300000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 300000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 300001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 300001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 300001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 300999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 300999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 300999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 minutes."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 120000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 120000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 120000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 120001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 120001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 120001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 120999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 120999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 120999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 2 minutes. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 90000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 90000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute and 30 seconds. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 90000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute and 30 seconds. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 90001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 90001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 minute and 30 seconds. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 90001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 minute and 30 seconds. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 90999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 90999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 minute and 30 seconds. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 90999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 1 minute and 30 seconds. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 60000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 60000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 60000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 60001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 60001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 60001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 60999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 60999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 60999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 1 minute. Please log out."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 30000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 30000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 30 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 30000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 30 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 30001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 30001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 30 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 30001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 30 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 30999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 30999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 30 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 30999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 30 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 15000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 15000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 15 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 15000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 15 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 15001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 15001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 15 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 15001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 15 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 15999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 15999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 15 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 15999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 15 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 10000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 10000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 10000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 10001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 10001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 10 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 10001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 10 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 10999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 10999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 10 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 10999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> WARNING - This Asheron's Call Server will be shutting down in 10 seconds! Please log out!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 5000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 5000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 5000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 5001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 5001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 5001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 5999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 5999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 5999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!"
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 4000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 4000,
+        "elapsed": 2001
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 4000,
+        "elapsed": 4000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 4001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 4001,
+        "elapsed": 2001
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 4001,
+        "elapsed": 4000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 4999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 4999,
+        "elapsed": 2001
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 4999,
+        "elapsed": 4000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3601000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3601000,
+        "elapsed": 2001
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3601000,
+        "elapsed": 4000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3601001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3601001,
+        "elapsed": 2001
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3601001,
+        "elapsed": 4000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3601999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3601999,
+        "elapsed": 2001
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 3601999,
+        "elapsed": 4000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 86405000,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 86405000,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 seconds."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 86405000,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 seconds."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 86405001,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 86405001,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 seconds."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 86405001,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 seconds."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 86405999,
+        "elapsed": 2000
+      },
+      "events": [],
+      "updated": false
+    },
+    {
+      "input": {
+        "remaining": 86405999,
+        "elapsed": 2001
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 seconds."
+        }
+      ],
+      "updated": true
+    },
+    {
+      "input": {
+        "remaining": 86405999,
+        "elapsed": 4000
+      },
+      "events": [
+        {
+          "kind": "Broadcast",
+          "text": "Broadcast from System> ATTENTION - This Asheron's Call Server will be shutting down in 5 seconds."
+        }
+      ],
+      "updated": true
+    }
+  ],
+  "dates": [
+    {
+      "unix": -62135596800000,
+      "text": "0001-01-01 12:00:00 AM"
+    },
+    {
+      "unix": -2208988800000,
+      "text": "1900-01-01 12:00:00 AM"
+    },
+    {
+      "unix": -1,
+      "text": "1969-12-31 11:59:59 PM"
+    },
+    {
+      "unix": 0,
+      "text": "1970-01-01 12:00:00 AM"
+    },
+    {
+      "unix": 1,
+      "text": "1970-01-01 12:00:00 AM"
+    },
+    {
+      "unix": 951782400000,
+      "text": "2000-02-29 12:00:00 AM"
+    },
+    {
+      "unix": 1709251199000,
+      "text": "2024-02-29 11:59:59 PM"
+    },
+    {
+      "unix": 1728432000000,
+      "text": "2024-10-09 12:00:00 AM"
+    },
+    {
+      "unix": 253402300799999,
+      "text": "9999-12-31 11:59:59 PM"
+    }
+  ],
+  "provenance": {
+    "ACE.Server/Command/Handlers/AdminShardCommands.cs": "b34996bb2d36be90fe839b94836fe0f3b721f3c3acd87e402e1390764826379d",
+    "ACE.Server/Command/CommandHandlerAttribute.cs": "9d2663b346041f206e182417bfb902ccd4a7860b935bdc113d7618b225eb1d23",
+    "ACE.Server/Command/CommandHandlerFlag.cs": "854683b24b39ede054d75cb94358f3c39c3ff51b3a4d1784428ffee4e9b52dab",
+    "ACE.Entity/Enum/AccessLevel.cs": "4543283acf5a40024bd60a9904221ddff1b10fb47265c24eaccb969e20987212",
+    "ACE.Common/Extensions/DateTimeExtensions.cs": "a6e5d2b984f865a9a66349fc88d1cf9d55d1fd248569a374985d4e1d2518d0d7",
+    "ACE.Server/Managers/ServerManager.cs": "cf48511b9de0ed6570454c030e2f184a37dd9f44a8734ebbf4faa99931554410",
+    "ACE.Server/Managers/WorldManager.cs": "4df3a1f16b3060155959ed91c5432fa40fab24343a3ceef61fdc62cc19924e62",
+    "ACE.Server/Managers/PlayerManager.cs": "2c8599e4069e96904c8fe988fc64036a4c086cdd08dad6b47b62382954c282b6"
+  }
+}

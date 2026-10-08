@@ -1,0 +1,87 @@
+
+# World policy changes take effect only after a clean server restart.
+# Omitted zone lists retain official ACE defaults; [] explicitly clears a list.
+[world.zones]
+# no_relog = []
+# no_death_item_drop = []
+# no_kill_experience = []
+
+[world.preloading]
+enabled = true
+max_resident_regions = 1024
+
+[[world.preloading.entries]]
+landblock = 0xE74E
+description = "Hebian-To (Global Events)"
+enabled = true
+permanent = true
+include_adjacent = false
+
+[[world.preloading.entries]]
+landblock = 0xA9B4
+description = "Holtburg"
+enabled = false
+permanent = true
+include_adjacent = true
+
+[[world.preloading.entries]]
+landblock = 0xDA55
+description = "Shoushi"
+enabled = false
+permanent = true
+include_adjacent = true
+
+[[world.preloading.entries]]
+landblock = 0x7D64
+description = "Yaraq"
+enabled = false
+permanent = true
+include_adjacent = true
+
+[[world.preloading.entries]]
+landblock = 0x0007
+description = "Town Network"
+enabled = false
+permanent = true
+include_adjacent = false
+
+[[world.preloading.entries]]
+apartment_group = true
+description = "Apartment Landblocks"
+enabled = false
+permanent = true
+include_adjacent = false
+
+[world.recalls]
+lifestone = true
+house = true
+marketplace = true
+allegiance_hometown = true
+allegiance_housing = true
+pk_arena = true
+pkl_arena = true
+spell_recalls = true
+lifestone_binding = true
+allegiance_binding = true
+pk_timer_seconds = 20
+
+[world.death]
+vitae_penalty = 0.05
+vitae_penalty_max = 0.40
+destroy_pyreals = true
+lifestone_broadcast = true
+pk_respite_seconds = 300
+pk_server = false
+pkl_server = false
+safe_training_academy = false
+creatures_drop_createlist_wield = false
+
+[chat_api]
+enabled = false
+bind_address = "127.0.0.1:8081"
+credentials_file = "state/chat-api/bots.toml"
+events_per_channel = 4096
+bytes_per_channel = 8388608
+max_batch = 128
+max_requests = 32
+publication_capacity = 4096
