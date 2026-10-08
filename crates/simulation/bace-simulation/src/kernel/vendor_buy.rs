@@ -26,6 +26,7 @@ pub struct VendorBuySource {
 pub struct VendorBuyReservation {
     pub vendor: EntityId,
     pub marker: EntityId,
+    pub actor_revision: u64,
     pub marker_expected_version: i64,
     pub marker_stock_revision: u64,
     pub vendor_expected_version: i64,
@@ -183,19 +184,34 @@ impl Kernel {
                 inventory.reserve(context.actor, proposal)
             })
             .map_err(VendorBuyError::Inventory)?;
+        let actor_revision = match self.characters.reserve_vendor_buy(context.actor, operation) {
+            Ok(revision) => revision,
+            Err(()) => {
+                self.reject_inventory_inner(operation)
+                    .map_err(VendorBuyError::Inventory)?;
+                return Err(VendorBuyError::Busy);
+            }
+        };
         if let Err(error) = self.inventory.claim(operation) {
             self.reject_inventory_inner(operation)
                 .map_err(VendorBuyError::Inventory)?;
+            self.characters
+                .finish_vendor_buy(context.actor, operation, actor_revision, false)
+                .map_err(|()| VendorBuyError::Stale)?;
             return Err(VendorBuyError::Inventory(error));
         }
         let Some(inventory) = self.inventory.pending_ticket(operation).cloned() else {
             self.reject_inventory_inner(operation)
                 .map_err(VendorBuyError::Inventory)?;
+            self.characters
+                .finish_vendor_buy(context.actor, operation, actor_revision, false)
+                .map_err(|()| VendorBuyError::Stale)?;
             return Err(VendorBuyError::Stale);
         };
         let ticket = VendorBuyReservation {
             vendor,
             marker,
+            actor_revision,
             marker_expected_version,
             marker_stock_revision,
             vendor_expected_version: source.vendor_expected_version,
@@ -208,10 +224,32 @@ impl Kernel {
         let Some(owner) = self.generated_vendors.get_mut(&vendor) else {
             self.reject_inventory_inner(operation)
                 .map_err(VendorBuyError::Inventory)?;
+            self.characters
+                .finish_vendor_buy(context.actor, operation, actor_revision, false)
+                .map_err(|()| VendorBuyError::Stale)?;
             return Err(VendorBuyError::Stale);
         };
         owner.pending_buy = Some(Box::new(ticket.clone()));
         Ok(ticket)
+    }
+
+    pub(super) fn validate_vendor_buy_snapshot(
+        &self,
+        binding: bace_gameplay_api::CharacterBinding,
+        operation: u64,
+        revision: u64,
+    ) -> bool {
+        operation != 0
+            && self.generated_vendors.values().any(|vendor| {
+                vendor.pending_buy.as_ref().is_some_and(|buy| {
+                    buy.inventory.operation == operation
+                        && buy.inventory.actor == binding.actor
+                        && buy.actor_revision == revision
+                        && self.characters.vendor_buy_operation(binding.actor) == Some(operation)
+                        && self.inventory.pending_ticket(operation) == Some(&buy.inventory)
+                        && self.inventory.reserved(binding.actor)
+                })
+            })
     }
 
     /// Only a definite durable rejection may release this joint reservation.
@@ -230,6 +268,14 @@ impl Kernel {
         }
         self.reject_inventory_inner(ticket.inventory.operation)
             .map_err(VendorBuyError::Inventory)?;
+        self.characters
+            .finish_vendor_buy(
+                ticket.inventory.actor,
+                ticket.inventory.operation,
+                ticket.actor_revision,
+                false,
+            )
+            .map_err(|()| VendorBuyError::Stale)?;
         self.generated_vendors
             .get_mut(&ticket.vendor)
             .ok_or(VendorBuyError::Stale)?
@@ -258,12 +304,26 @@ impl Kernel {
             || Some(receipt.marker_version) != ticket.marker_expected_version.checked_add(1)
             || Some(receipt.marker_stock_revision) != ticket.marker_stock_revision.checked_add(1)
             || receipt.inventory.operation != ticket.inventory.operation
+            || self.characters.vendor_buy_operation(ticket.inventory.actor)
+                != Some(ticket.inventory.operation)
+            || self
+                .characters
+                .get(ticket.inventory.actor)
+                .is_none_or(|character| character.revision() != ticket.actor_revision)
         {
             return Err(VendorBuyError::Stale);
         }
         let adopted = self
             .confirm_inventory_committed_inner(&receipt.inventory)
             .map_err(VendorBuyError::Inventory)?;
+        self.characters
+            .finish_vendor_buy(
+                ticket.inventory.actor,
+                ticket.inventory.operation,
+                ticket.actor_revision,
+                true,
+            )
+            .map_err(|()| VendorBuyError::Stale)?;
         let owner = self
             .generated_vendors
             .get_mut(&ticket.vendor)

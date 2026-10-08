@@ -71,9 +71,7 @@ impl GameRuntime {
                     DeathDropOrigin::Wield | DeathDropOrigin::SlipperyWield
                 )
         }) {
-            // Destruction and dequip require their own ordered visibility and
-            // gear-vital handoff; do not publish a private prefix here.
-            return Ok(false);
+            return self.project_equipped_corpse_completion(operation);
         }
         let actor = ticket.actor;
         let binding = completion.work.binding;
@@ -728,7 +726,7 @@ fn validate_destroyed_coin_receipt(
     Ok(())
 }
 
-fn source_drop_message(
+pub(super) fn source_drop_message(
     transcript: &bace_simulation::DeathInventoryTranscript,
     destroyed_amounts: &BTreeMap<EntityId, u32>,
     names: &BTreeMap<EntityId, (String, Option<String>)>,

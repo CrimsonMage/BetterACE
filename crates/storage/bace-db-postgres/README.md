@@ -183,6 +183,11 @@ generated equipment identities instead of ACE cold NPC equipment rerolls.
 The relational graph verifies direct equipped membership and every death-roster
 parent. It does not encode the source's equipment pass ordinal; the frozen V5
 companion retains that order, and exact operation replay fingerprints its bytes.
+For a nested constructed Creature/Cow, the outer death roster may include the
+physically contained creature root, while inner equipment and its death roster
+belong only to that inner owner. Both descendant bounds and the exact frozen
+companions are checked before the atomic receipt; PostgreSQL positive and
+wrong-owner tests cover this boundary.
 
 Migration 0023 retains pinned ACE account-ban start, expiry, issuer and reason
 beside the account's CAS revision. `apply_account_ban` journals the exact

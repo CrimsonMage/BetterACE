@@ -3,6 +3,7 @@
 use super::*;
 mod completed;
 mod corpse_location;
+mod equipped_corpse;
 mod equipped_no_corpse;
 use bace_replication::InventoryProjection as P;
 use bace_replication::{BatchLimits, ReplicationMessage, SessionBatch};

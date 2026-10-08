@@ -723,6 +723,83 @@ fn expired_vital_buff_refreshes_world_maximum_and_clamps_current_without_healing
     assert!(kernel.player_world_dirty_since(actor).is_some());
 }
 
+#[test]
+fn endurance_rank_follow_up_freezes_world_current_instead_of_stale_trait_current() {
+    let (mut kernel, mut input) = fixture();
+    let traits: Vec<_> = input
+        .state
+        .character
+        .progression
+        .trait_states()
+        .map(|(progress, details)| TraitState {
+            progress,
+            details: match (progress.target, details.unwrap()) {
+                (
+                    ProgressionTarget::Vital(VitalId::MaxHealth),
+                    TraitDetails::Vital { starting_value, .. },
+                ) => TraitDetails::Vital {
+                    starting_value,
+                    current: 90,
+                },
+                (_, details) => details,
+            },
+        })
+        .collect();
+    let ranks = RankTable::new(&[0, 10, 100]).unwrap();
+    input.state.character.progression = CharacterProgression::with_state(
+        &traits,
+        Arc::new(ProgressionTables {
+            attributes: ranks.clone(),
+            vitals: ranks.clone(),
+            trained_skills: ranks.clone(),
+            specialized_skills: ranks,
+        }),
+        100,
+        4,
+    )
+    .unwrap();
+    let binding = input.binding;
+    assert!(kernel.admit_player(input).is_ok());
+    kernel
+        .enqueue(Command::RaiseProgression {
+            context: ActionContext {
+                actor: binding.actor,
+                account: binding.account,
+                session: binding.session,
+                sequence: 1,
+            },
+            request: RaiseProgression {
+                target: ProgressionTarget::Attribute(AttributeId::Endurance),
+                amount: 10,
+            },
+        })
+        .unwrap();
+    kernel.step().unwrap();
+    let change = kernel.take_progression_outcome().unwrap().result.unwrap();
+    assert_eq!(change.revision, 5);
+    assert_eq!(change.after.ranks, 1);
+    let health = change.follow_up_vital.unwrap();
+    assert_eq!(health.target, ProgressionTarget::Vital(VitalId::MaxHealth));
+    assert_eq!(
+        health.details,
+        Some(TraitDetails::Vital {
+            starting_value: 100,
+            current: kernel
+                .world()
+                .vital(binding.actor, EntityVital::Health)
+                .unwrap()
+                .current,
+        })
+    );
+    assert_ne!(
+        health.details,
+        Some(TraitDetails::Vital {
+            starting_value: 100,
+            current: 90,
+        })
+    );
+}
+
 /// Explicit trusted synthetic death cursor; real admission prepares DAT links.
 fn fixture_death_motions() -> Vec<bace_motion::PreparedDeathMotion> {
     use bace_motion::{

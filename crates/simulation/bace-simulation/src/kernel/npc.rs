@@ -1,5 +1,6 @@
 //! Single-owner kernel npc operations.
 mod admission;
+mod appraisal;
 mod casting;
 mod commands;
 mod death;

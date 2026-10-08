@@ -217,6 +217,103 @@ fn restored_constructed_creature_keeps_exact_children_and_blocks_unreceipted_pro
     assert!(!k.has_constructed_creature(actor));
 }
 #[test]
+fn restored_nested_creatures_keep_exclusive_equipment_and_evict_together() {
+    let (mut k, key, prepared) = prepared();
+    let outer = prepared.root.id;
+    let inner = prepared.loadout.items[0].id;
+    let gear = prepared.loadout.items[1].id;
+    let request = k.generators.requests.get(&key).unwrap().clone();
+    let mut items = vec![prepared.root];
+    items.extend(prepared.loadout.items);
+    items[1].is_container = true;
+    items[1].place = ItemPlace::Contained {
+        container: outer,
+        slot: 0,
+        equipped: 0,
+    };
+    items[2].place = ItemPlace::Contained {
+        container: inner,
+        slot: 0,
+        equipped: 1,
+    };
+    let mut outer_template = k
+        .generators
+        .templates
+        .get(&(key.generator.content_revision, items[0].template))
+        .unwrap()
+        .clone();
+    let mut outer_profile = prepared.loadout.profile.as_ref().clone();
+    outer_profile.equipment.clear();
+    outer_template.physical = Some(Arc::new(outer_profile));
+    let mut inner_template = outer_template.clone();
+    let mut inner_profile = prepared.loadout.profile.as_ref().clone();
+    inner_profile.equipment[0].entity = gear.0;
+    inner_profile.equipment[0].location = 1;
+    inner_template.physical = Some(Arc::new(inner_profile));
+    let outer_entry = crate::kernel::constructed_creatures::PreparedRestoredConstructedCreature {
+        actor: outer,
+        landblock: request.landblock,
+        intent: request.intent.clone(),
+        template: outer_template,
+        children: vec![inner, gear],
+    };
+    let inner_entry = crate::kernel::constructed_creatures::PreparedRestoredConstructedCreature {
+        actor: inner,
+        landblock: request.landblock,
+        intent: request.intent,
+        template: inner_template,
+        children: vec![gear],
+    };
+    let entries = vec![outer_entry, inner_entry];
+    k.validate_restored_constructed_creatures(request.landblock, &entries, &items)
+        .unwrap();
+    let mut missing_inner = entries.clone();
+    missing_inner.pop();
+    assert_eq!(
+        k.validate_restored_constructed_creatures(request.landblock, &missing_inner, &items),
+        Err(G::Invalid)
+    );
+    let mut containers = prepared.loadout.containers;
+    containers.push(container(inner));
+    let graph = k
+        .inventory
+        .prepare_contained_forest(&[outer], &items, &containers)
+        .unwrap();
+    k.inventory.adopt_region_admission(graph);
+    k.adopt_restored_constructed_creatures(entries);
+    assert!(k.has_constructed_creature(outer));
+    assert!(k.has_constructed_creature(inner));
+    assert!(!k.world.contains_identity(inner));
+    assert_eq!(k.inventory.equipped_items(inner).count(), 1);
+    assert_eq!(k.inventory.equipped_items(outer).count(), 0);
+    let saved: std::collections::BTreeSet<_> = items.iter().map(|item| item.id).collect();
+    assert_eq!(
+        k.preflight_restored_constructed_unload(request.landblock, &saved),
+        Ok(())
+    );
+    assert_eq!(
+        k.preflight_restored_constructed_unload(
+            request.landblock,
+            &std::collections::BTreeSet::from([outer, inner]),
+        ),
+        Err(G::Busy)
+    );
+    let ids: Vec<_> = items.iter().map(|item| item.id).collect();
+    k.inventory.hold_region_items(&ids, 9).unwrap();
+    k.inventory
+        .evict_region_items(
+            &items
+                .iter()
+                .map(|item| (item.id, item.revision))
+                .collect::<Vec<_>>(),
+            9,
+        )
+        .unwrap();
+    k.retire_restored_constructed_region(request.landblock);
+    assert!(!k.has_constructed_creature(outer));
+    assert!(!k.has_constructed_creature(inner));
+}
+#[test]
 fn malformed_or_specialized_construction_retains_request_and_generic_transfer_is_rejected() {
     let (mut k, key, prepared) = prepared();
     let actor = prepared.root.id;
@@ -392,6 +489,11 @@ fn nested_creature_retains_its_own_constructed_owner_below_container_root() {
     assert!(kernel.has_constructed_creature(actor));
     assert!(!kernel.has_constructed_creature(parent_id));
     assert!(!kernel.world.contains_identity(actor));
+    assert_eq!(kernel.inventory.equipped_items(actor).count(), 1);
+    assert_eq!(kernel.inventory.equipped_items(parent_id).count(), 0);
+    assert!(kernel.magic.registry(actor).is_none());
+    kernel.step_generated_enchantments(kernel.tick + 3).unwrap();
+    assert_eq!(kernel.magic.registry(actor).unwrap().entries().len(), 1);
 }
 
 #[test]

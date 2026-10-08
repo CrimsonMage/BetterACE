@@ -52,10 +52,13 @@ peer polling or closes the unrecoverable peer on partial failure.
 
 The existing official message/counter fixtures establish the constituent bytes;
 `bace-runtime/tests/progression_flow.rs` exercises UDP → typed dispatch → single
-simulation owner → primary projection → reliable UDP. Rank-up sounds/chat, derived
-vital/run-rate effects and durable character saves are still separate work. A
-primary packet batch does not assert that the complete ACE action handler or save
-transaction has been implemented.
+simulation owner → primary projection → reliable UDP. Rank-up sound/chat and
+the max-rank observer effect have separate source-backed output. Ranked
+Endurance now reserves XP, Attribute and Vital counters atomically and encodes
+the full private Health follow-up after that rank announcement; a rejected
+projection advances none of those counters. Other derived vital/run-rate
+effects and stock-client playback remain unqualified. A primary packet batch
+alone does not establish the complete ACE action or save transaction.
 
 `EventSequencer` now owns the shared per-session event counter across initial
 login and combat notifications. It encodes and bounds a complete batch before
@@ -152,3 +155,14 @@ Target-query output uses the existing canonical EventSequencer and UI queue9.
 Clears/missing targets produce no packet and consume no sequence. The projector
 commits the event sequence only after the complete bounded packet batch encodes;
 wrong-session and pressure regressions preserve the previous counter.
+
+AppraisalProfile now has a separate bounded queue-9 projector using the same
+authenticated session event counter. A failed codec or batch preflight leaves
+that counter untouched. This is a packet boundary only: live Identify and NPC
+wake/output composition remain unsupported.
+
+The inventory projector now encodes a private `ApproachVendor` listing inside
+the same bounded batch as pickup sound and UseDone. Its queue-9 listing consumes
+the canonical session event sequence before UseDone. Focused tests verify order,
+exact bytes against the independently qualified listing codec, and rejection
+without counter advance. Live Buy still needs its joined durable/output owner.

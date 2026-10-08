@@ -17,10 +17,11 @@ stock is lazy-loaded. It quotes pinned source terms, selects coin stacks in ACE
 inventory order, and holds one inventory proposal behind source, stock and
 marker fences. The exact joint receipt confirms it; a definite rejection
 releases it. Generic inventory retry, rejection and confirmation cannot bypass
-this owner. Runtime Buy stays unsupported until one durable operation joins
-player currency, item placements and vendor marker updates, and its retained
-output and later-marker cold restore are connected. Focused synthetic owner
-tests establish this boundary without a client playback claim.
+this owner. A character revision hold now fences the matching player snapshot
+until the same exact joint receipt or definite rejection. Runtime Buy remains
+unsupported while joined capture, fresh grant preparation, baseline adoption
+and retained output are incomplete. Focused synthetic owner tests establish
+this boundary without a client playback claim.
 
 `StaffAction::Audit` admits a bounded Audit chat event through the social owner
 after live Sentinel authorization. It records the authenticated sender and
@@ -456,12 +457,16 @@ geometry and physical profile, then moves that same identity into the existing N
 owner. Placement failure preserves construction. Exact registry rows and the
 remaining spell deadline survive promotion; they are not recreated.
 
-This increment deliberately rejects valuable transfer of constructed roots or
-children until a subtype-aware durable save/restore companion exists. Promotion
-also waits if source slot compaction needs a separate companion. Generator teardown
+First valuable transfer of constructed Creature/Cow roots now uses a dedicated
+world-fenced graph promotion receipt and subtype-aware V4 construction companion;
+ordinary item placement cannot create a fresh constructed creature. Nested
+creature-valued Contain trees retain each creature as a distinct cold simulation
+owner with its exact equipment order, enchantments and death roster. Promotion
+still waits if source slot compaction needs a separate companion. Generator teardown
 removes the retained construction; a detach-only unload stays visibly blocked
 instead of serializing an incomplete generic item. Specialized Creature subtypes,
-Shop creatures and nested creature construction/generators remain unsupported.
+Shop commerce, nested generators and DAT-backed composed recursive admission
+remain unsupported or unqualified as documented in the runtime README.
 Multiple mixed Creature/Cow and item Contain roots now preflight and adopt one
 complete forest with one source-ordered receipt; rejected roots leave the whole
 occurrence and immutable inputs available for retry. `oracle/generator_destinations.py` compiles the unchanged ACE
@@ -480,6 +485,14 @@ original Player query and Creature subscription/callback methods: 84 query cases
 intermediate callback outputs. Zero-health-maximum objects remain inadmissible;
 the wire oracle separately preserves source IEEE-754 payloads. This does not
 implement appraisal/IdentifyObject or claim complete selected-command coverage.
+
+The NPC population owner now freezes authored Tolerance Int67 at admission.
+An Idle creature that permits Appraise wake can preview then adopt one
+examiner-targeted wake, retaining source Scream and NewEnemy obligations in
+order and the examiner target across the next AI scan. Focused owner tests
+cover tolerance exclusion, single wake and target retention. Live Identify
+remains unsupported until its filtered profile, friendly alerts, authored
+emotes and reliable publication form one retained action.
 
 Creature-origin mana is charged once before its first motion when AIUsesMana
 permits it; otherwise neither phase charges. The pinned GDLE

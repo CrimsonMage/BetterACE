@@ -10,16 +10,33 @@ use bace_loot::{PreparedContainerItem, PreparedCreatureEquipment};
 pub(super) enum Materialized {
     Mixed(Vec<Materialized>),
     Items(Vec<PreparedContainerItem>),
+    NestedItems {
+        items: Vec<PreparedContainerItem>,
+        creatures: Vec<NestedCreatureMaterialization>,
+    },
     Creature {
         source: Arc<WeenieV1>,
         gear: Vec<PreparedCreatureEquipment>,
     },
+}
+pub(super) struct NestedCreatureMaterialization {
+    pub root_index: usize,
+    pub gear_start: usize,
+    pub source: WeenieV1,
+    pub gear: Vec<PreparedCreatureEquipment>,
 }
 impl Materialized {
     pub fn count(&self) -> usize {
         match self {
             Self::Mixed(roots) => roots.iter().map(Self::count).sum(),
             Self::Items(items) => items.len(),
+            Self::NestedItems { items, creatures } => {
+                items.len()
+                    + creatures
+                        .iter()
+                        .map(|creature| creature.gear.len())
+                        .sum::<usize>()
+            }
             Self::Creature { gear, .. } => gear.len() + 1,
         }
     }
@@ -35,6 +52,13 @@ impl Materialized {
         let items: Box<dyn Iterator<Item = &WeenieV1> + '_> = match self {
             Self::Mixed(_) => return Err("nested mixed materialization".into()),
             Self::Items(items) => Box::new(items.iter().map(|i| &i.source)),
+            Self::NestedItems { items, creatures } => Box::new(
+                items.iter().map(|item| &item.source).chain(
+                    creatures
+                        .iter()
+                        .flat_map(|creature| creature.gear.iter().map(|item| &item.source)),
+                ),
+            ),
             Self::Creature { source, gear } => {
                 Box::new(std::iter::once(source.as_ref()).chain(gear.iter().map(|i| &i.source)))
             }
@@ -249,6 +273,17 @@ pub(super) fn bind(
                     .and_then(|a| a.prepare_world_item_shape(source))
             })
         }
+        Materialized::NestedItems { items, .. } => {
+            let mut part = request.clone();
+            part.entities.truncate(items.len());
+            let mut assets = assets;
+            bind_items(&part, items, |source| {
+                assets
+                    .as_mut()
+                    .map_err(|e| e.clone())
+                    .and_then(|a| a.prepare_world_item_shape(source))
+            })
+        }
     }
 }
 pub(super) fn bind_items(
@@ -336,7 +371,7 @@ pub(super) fn bind_items(
         sources,
     })
 }
-fn source_for(
+pub(super) fn source_for(
     item: &bace_inventory::InventoryItem,
     source: WeenieV1,
     revision: u64,
@@ -373,7 +408,7 @@ fn source_for(
         corpse: None,
     }
 }
-fn set<T>(values: &mut Vec<Property<T>>, id: u32, value: T) {
+pub(super) fn set<T>(values: &mut Vec<Property<T>>, id: u32, value: T) {
     if let Some(p) = values.iter_mut().find(|p| p.id == id) {
         p.value = value;
     } else {

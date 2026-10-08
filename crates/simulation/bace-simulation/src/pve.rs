@@ -2,6 +2,7 @@
 //! must be prepared off-thread; production AC geometry/content remains gated.
 mod ace;
 mod admission;
+mod appraisal;
 mod corpse_expiry;
 mod death_lifecycle;
 mod native;
@@ -12,6 +13,7 @@ mod shared_rewards;
 use crate::characters::Characters;
 use crate::combat::{Combat, CombatEvent};
 pub use ace::AceCreatureLootPolicy;
+pub use appraisal::AppraisalWake;
 use bace_ai::{Awareness, MonsterLeash, ReturnHome, TargetCandidate};
 use bace_character::ExperienceCredit;
 use bace_combat::{DamageShare, kill_rewards};
@@ -140,6 +142,10 @@ struct Npc {
     /// Source IsNPC suppresses automatic combat acquisition; interaction/emote
     /// movement remains with its existing owner.
     combat_ai: bool,
+    /// Pinned ACE PropertyInt.Tolerance (67). The Appraise bit prevents spawn
+    /// acquisition until an accepted appraisal wakes this creature.
+    tolerance: u32,
+    awake: bool,
     geometry: Option<PreparedNpcGeometry>,
     origin: Option<GeneratedNpcOrigin>,
     blueprint: NpcBlueprint,
@@ -358,6 +364,8 @@ impl Population {
             actor,
             Npc {
                 combat_ai: true,
+                tolerance: 0,
+                awake: false,
                 geometry,
                 origin,
                 blueprint,
@@ -397,6 +405,7 @@ impl Population {
         self.melee_candidates.clear();
         for (&actor, npc) in &mut self.npcs {
             if !npc.combat_ai
+                || (!npc.awake && npc.tolerance & (1 | 2 | 8 | 64) != 0)
                 || world.actor_region_dormant(actor)
                 || tick < npc.next_think
                 || world.combatant(actor).is_none_or(|c| c.health() == 0)
@@ -446,6 +455,7 @@ impl Population {
                 match decision {
                     ReturnHome::Arrived => {
                         npc.returning_since = None;
+                        npc.awake = false;
                     }
                     ReturnHome::Travel => {
                         if cell == home_cell {
@@ -489,12 +499,21 @@ impl Population {
                         player_or_combat_pet: true,
                     })
                     .unwrap_or(false);
-                if eligible && nearest.is_none_or(|(_, old)| distance < old) {
+                if eligible
+                    && (npc.target == Some(candidate)
+                        || nearest.is_none_or(|(_, old)| distance < old))
+                {
                     nearest = Some((candidate, distance));
+                    if npc.target == Some(candidate) {
+                        break;
+                    }
                 }
             }
             let mut direction = Vec3::ZERO;
             npc.target = nearest.map(|(target, _)| target);
+            if npc.target.is_some() {
+                npc.awake = true;
+            }
             if let Some((target, _)) = nearest {
                 let range = combat
                     .physical_profile(actor)

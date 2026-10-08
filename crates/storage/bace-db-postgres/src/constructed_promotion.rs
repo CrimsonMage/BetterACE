@@ -158,7 +158,12 @@ pub(crate) async fn validate_committed_forest(
             .copied()
             .filter(|id| belongs_to(*id, *root, &root_set, &members))
             .collect();
-        if owned.len() > 1023 {
+        let physical: BTreeSet<u32> = members
+            .keys()
+            .copied()
+            .filter(|id| physical_descendant(*id, *root, &members))
+            .collect();
+        if owned.len() > 1023 || physical.len() > 1023 {
             return Err(StoreError::Invalid("promotion creature capacity"));
         }
         let actual_equipment: BTreeSet<_> = owned
@@ -179,7 +184,14 @@ pub(crate) async fn validate_committed_forest(
         if actual_equipment != ordered_equipment
             || misplaced_equipment
             || construction.death_roster.iter().any(|row| {
-                !owned.contains(&row.entity)
+                // The outer creature may drop a contained Creature root as
+                // one source-selected child. Its nested equipment still has
+                // the inner creature's exclusive construction owner.
+                !(owned.contains(&row.entity)
+                    || root_set.contains(&row.entity)
+                        && members.get(&row.entity).is_some_and(|(parent, _)| {
+                            *parent == *root || belongs_to(*parent, *root, &root_set, &members)
+                        }))
                     || members.get(&row.entity).map(|(parent, _)| *parent)
                         != Some(row.parent.unwrap_or(*root))
             })
@@ -190,6 +202,20 @@ pub(crate) async fn validate_committed_forest(
         }
     }
     Ok(())
+}
+
+fn physical_descendant(id: u32, root: u32, members: &BTreeMap<u32, (u32, u32)>) -> bool {
+    let mut current = id;
+    for _ in 0..64 {
+        if current == root {
+            return id != root;
+        }
+        let Some((parent, _)) = members.get(&current) else {
+            return false;
+        };
+        current = *parent;
+    }
+    false
 }
 
 fn belongs_to(

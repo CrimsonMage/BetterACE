@@ -122,6 +122,17 @@ pub trait SaveBackend: Send + Sync + 'static {
             })
         }
     }
+    fn vendor_stock(
+        &self,
+        _operation: &bace_persistence::VendorStockOperation,
+    ) -> impl Future<Output = Result<OperationOutcome, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "vendor stock backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
     fn constructed_creature_promotion(
         &self,
         _operation: &bace_persistence::ConstructedCreaturePromotionOperation,
@@ -260,6 +271,14 @@ impl SaveBackend for PgStore {
         operation: &WorldPlacementOperation,
     ) -> Result<OperationOutcome, SaveFailure> {
         PgStore::world_placement_operation(self, operation)
+            .await
+            .map_err(storage_failure)
+    }
+    async fn vendor_stock(
+        &self,
+        operation: &bace_persistence::VendorStockOperation,
+    ) -> Result<OperationOutcome, SaveFailure> {
+        PgStore::vendor_stock_operation(self, operation)
             .await
             .map_err(storage_failure)
     }
@@ -712,6 +731,9 @@ async fn run<B: SaveBackend>(
                         GameplayWrite::Placement(operation) => backend.placement(operation).await,
                         GameplayWrite::WorldPlacement(operation) => {
                             backend.world_placement(operation).await
+                        }
+                        GameplayWrite::VendorStock(operation) => {
+                            backend.vendor_stock(operation).await
                         }
                         GameplayWrite::ConstructedCreaturePromotion(operation) => {
                             backend.constructed_creature_promotion(operation).await

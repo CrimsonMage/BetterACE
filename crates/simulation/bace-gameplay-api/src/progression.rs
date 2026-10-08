@@ -127,6 +127,10 @@ pub struct ProgressionChange {
     /// rank announcement must use the accepted base, including formulas and
     /// bonuses, rather than infer it from the trait update's rank field.
     pub rank_effect: Option<RankEffect>,
+    /// Pinned ACE sends a second full private vital update after the rank
+    /// announcement for Endurance. The simulation freezes this from its
+    /// accepted character and World owners; a missing value remains explicit.
+    pub follow_up_vital: Option<ProgressionProjection>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

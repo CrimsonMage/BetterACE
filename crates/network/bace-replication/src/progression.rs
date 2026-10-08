@@ -1,7 +1,7 @@
 //! Primary progression messages from immutable committed domain projections.
 //! Player_Xp.SpendXP queues AvailableExperience before the owning trait update.
-//! Rank-up sounds/chat, derived vitals and optional run-rate effects require
-//! separate authoritative effects and are not fabricated by this projector.
+//! Rank-up sound/chat and Endurance's full Health follow-up use frozen
+//! simulation-owned values. Optional run-rate effects remain separate.
 use crate::{
     BatchLimits, ReplicationError, ReplicationMessage, SequenceKind, Sequences,
     SessionProjectionError,
@@ -135,6 +135,9 @@ pub struct ProgressionPackets {
     pub revision: u64,
     pub queue: u16,
     pub messages: [Vec<u8>; 2],
+    /// Full Health update after Endurance's sound/chat. Its Vital sequence is
+    /// reserved atomically with the two primary property sequences.
+    pub follow_up_vital: Option<Vec<u8>>,
     pub rank_changed: bool,
 }
 /// One character/session's primary output sequence state. No mutable gameplay
@@ -202,9 +205,42 @@ impl ProgressionCursor {
             }
             _ => return Err(ProgressionProjectionError::InvalidProjection),
         };
-        let [xp_sequence, trait_sequence] = sequences
-            .advance_batch([(SequenceKind::PropertyInt64, 2), (kind, property)])
-            .map_err(|_| ProgressionProjectionError::Capacity)?;
+        let follow_up = match change.follow_up_vital {
+            Some(projection)
+                if change.after.target
+                    == ProgressionTarget::Attribute(bace_gameplay_api::AttributeId::Endurance)
+                    && change.before.ranks != change.after.ranks
+                    && projection.target
+                        == ProgressionTarget::Vital(bace_gameplay_api::VitalId::MaxHealth)
+                    && projection.advancement == SkillAdvancement::Inactive =>
+            {
+                let Some(TraitDetails::Vital {
+                    starting_value,
+                    current,
+                }) = projection.details
+                else {
+                    return Err(ProgressionProjectionError::InvalidProjection);
+                };
+                Some((projection, starting_value, current))
+            }
+            Some(_) => return Err(ProgressionProjectionError::InvalidProjection),
+            None => None,
+        };
+        let (xp_sequence, trait_sequence, vital_sequence) = if follow_up.is_some() {
+            let [xp, trait_update, vital] = sequences
+                .advance_batch([
+                    (SequenceKind::PropertyInt64, 2),
+                    (kind, property),
+                    (SequenceKind::Vital, 1),
+                ])
+                .map_err(|_| ProgressionProjectionError::Capacity)?;
+            (xp, trait_update, Some(vital))
+        } else {
+            let [xp, trait_update] = sequences
+                .advance_batch([(SequenceKind::PropertyInt64, 2), (kind, property)])
+                .map_err(|_| ProgressionProjectionError::Capacity)?;
+            (xp, trait_update, None)
+        };
         let xp = PropertyUpdate {
             sequence: xp_sequence as u8,
             object_id: None,
@@ -254,11 +290,24 @@ impl ProgressionCursor {
         };
         self.last_revision = change.revision;
         self.last_sequence = Some(context.sequence);
+        let follow_up_vital = follow_up.map(|(projection, starting_value, current)| {
+            VitalUpdate {
+                sequence: vital_sequence.expect("reserved vital sequence") as u8,
+                object_id: None,
+                vital: 1,
+                ranks: projection.ranks.into(),
+                starting_value,
+                experience_spent: projection.experience_spent,
+                current,
+            }
+            .encode()
+        });
         Ok(ProgressionPackets {
             context,
             revision: change.revision,
             queue: 9,
             messages: [xp, update],
+            follow_up_vital,
             rank_changed: change.before.ranks != change.after.ranks,
         })
     }

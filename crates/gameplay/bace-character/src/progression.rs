@@ -258,6 +258,7 @@ impl CharacterProgression {
             available_experience: self.available_experience,
             revision,
             rank_effect: None,
+            follow_up_vital: None,
         })
     }
 }

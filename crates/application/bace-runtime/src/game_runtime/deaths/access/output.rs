@@ -4,6 +4,38 @@ use crate::player_entry::{prepare_entry_object, prepare_item_model};
 use bace_replication::{BatchLimits, InventoryProjection as P, Sequences};
 use bace_storage_codec::{ItemSaveV2, ItemSaveV3, ItemSaveV4};
 use bace_wire::{ContainerEntry, InventoryEvent, ObjectCodecLimits};
+use std::collections::{BTreeMap, BTreeSet};
+
+/// Pinned ACE Container.SendInventory sends CreateObject for every visible
+/// direct child and one nested level on every Open. An already known object
+/// keeps its existing canonical sequence owner; only new IDs need admission.
+fn content_creation_plan(
+    ids: &[EntityId],
+    existing: &BTreeMap<EntityId, Sequences>,
+) -> Result<Vec<(EntityId, bool)>, String> {
+    if ids.len() > 1024 {
+        return Err("corpse open content count".into());
+    }
+    let mut seen = BTreeSet::new();
+    let mut plan = Vec::with_capacity(ids.len());
+    let mut fresh = 0usize;
+    for &id in ids {
+        if id.0 == 0 || !seen.insert(id) {
+            return Err("corpse open content identity".into());
+        }
+        let new = !existing.contains_key(&id);
+        fresh += usize::from(new);
+        plan.push((id, new));
+    }
+    if existing
+        .len()
+        .checked_add(fresh)
+        .is_none_or(|count| count > 1023)
+    {
+        return Err("corpse child canonical sequence capacity".into());
+    }
+    Ok(plan)
+}
 
 impl GameRuntime {
     pub(super) fn project_corpse_access(&mut self, pending: &Pending) -> Result<bool, String> {
@@ -156,9 +188,13 @@ impl GameRuntime {
                 }));
             }
             CorpseAccessDecision::Open { .. } => {
-                if replica.item_properties.len() + visible.len() > 1023 {
-                    return Err("corpse child canonical sequence capacity".into());
-                }
+                let plan = content_creation_plan(
+                    &visible
+                        .iter()
+                        .map(|child| EntityId(child.item.entity.object_id))
+                        .collect::<Vec<_>>(),
+                    &replica.item_properties,
+                )?;
                 if !visible.is_empty() {
                     let appearance = pending
                         .appearance
@@ -169,13 +205,20 @@ impl GameRuntime {
                         .as_ref()
                         .ok_or("corpse child chargen metadata missing")?;
                     let assets = appearance.borrowed(character.char_gen());
-                    for child in &visible {
-                        let id = EntityId(child.item.entity.object_id);
-                        if replica.item_properties.contains_key(&id) {
-                            continue;
-                        }
-                        let sequences =
-                            Sequences::new(256).map_err(|e| format!("corpse sequence: {e:?}"))?;
+                    for (child, &(id, new)) in visible.iter().zip(&plan) {
+                        let fresh = if new {
+                            Some(
+                                Sequences::new(256)
+                                    .map_err(|e| format!("corpse sequence: {e:?}"))?,
+                            )
+                        } else {
+                            None
+                        };
+                        let sequences = replica
+                            .item_properties
+                            .get(&id)
+                            .or(fresh.as_ref())
+                            .ok_or("corpse known sequence owner missing")?;
                         let saved = ItemSaveV4 {
                             previous: ItemSaveV3 {
                                 previous: ItemSaveV2 {
@@ -195,11 +238,13 @@ impl GameRuntime {
                             &saved.entity.state,
                             prepare_item_model(&saved.entity.state, &assets)?,
                             crate::game_runtime::inventory::output::committed_state(
-                                &saved, &sequences,
+                                &saved, sequences,
                             )?,
                         )?;
                         objects.push(object);
-                        new_sequences.push((id, sequences));
+                        if let Some(fresh) = fresh {
+                            new_sequences.push((id, fresh));
+                        }
                     }
                 }
                 steps.push(P::Event(InventoryEvent::ViewContents {
@@ -288,5 +333,26 @@ fn content_entry(child: &RegionItemSource) -> ContainerEntry {
         } else {
             0
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pinned_repeat_open_recreates_known_child_with_same_sequence_owner() {
+        // ACE 47edade Container.SendInventory sends ViewContents for the root
+        // and subcontainers, then CreateObject for every child on each Open.
+        let known = EntityId(0x8000_0001);
+        let nested = EntityId(0x8000_0002);
+        let existing = BTreeMap::from([(known, Sequences::with_instance(256, 17).unwrap())]);
+        let plan = content_creation_plan(&[known, nested], &existing).unwrap();
+        assert_eq!(plan, [(known, false), (nested, true)]);
+        assert_eq!(
+            existing[&known].current(bace_replication::SequenceKind::ObjectInstance, 0),
+            17
+        );
+        assert!(content_creation_plan(&[known, known], &existing).is_err());
     }
 }

@@ -1,4 +1,21 @@
-use bace_wire::{AppraisalCreature, AppraisalLimits, AppraisalProfile, AppraisalWeapon};
+use bace_wire::{
+    AppraisalCreature, AppraisalLimits, AppraisalProfile, AppraisalWeapon, IdentifyObjectRequest,
+};
+
+#[test]
+fn pinned_identify_action_guid_is_exact_little_endian_dword() {
+    // ACE GameActionIdentifyObject reads exactly one UInt32, then Player.cs
+    // treats zero as deselection rather than an appraisal request.
+    assert_eq!(
+        IdentifyObjectRequest::decode(&[0x21, 0x00, 0x00, 0x80]).unwrap(),
+        IdentifyObjectRequest {
+            target: 0x8000_0021
+        }
+    );
+    assert_eq!(IdentifyObjectRequest::decode(&[0; 4]).unwrap().target, 0);
+    assert!(IdentifyObjectRequest::decode(&[1, 2, 3]).is_err());
+    assert!(IdentifyObjectRequest::decode(&[1, 2, 3, 4, 5]).is_err());
+}
 fn limits() -> AppraisalLimits {
     AppraisalLimits {
         table_entries: 4096,

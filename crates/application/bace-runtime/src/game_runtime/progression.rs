@@ -385,6 +385,15 @@ impl GameRuntime {
                 if change.before.ranks != change.after.ranks && change.rank_effect.is_none() {
                     return Err("accepted rank effect has no authoritative base".into());
                 }
+                if change.before.ranks != change.after.ranks
+                    && change.after.target
+                        == bace_gameplay_api::ProgressionTarget::Attribute(
+                            bace_gameplay_api::AttributeId::Endurance,
+                        )
+                    && change.follow_up_vital.is_none()
+                {
+                    return Err("Endurance rank has no accepted Health follow-up".into());
+                }
                 bace_replication::project_rank_effect(
                     pending.context.actor.0,
                     change,
@@ -416,12 +425,16 @@ impl GameRuntime {
                 .cursors
                 .get_mut(&key)
                 .ok_or("progression cursor missing")?;
-            let (queue, messages) = match pending.phase {
+            let (queue, messages, follow_up_vital) = match pending.phase {
                 Phase::Raised(change) => {
                     let packets = cursor
                         .project(&mut replica.properties, pending.context, change)
                         .map_err(|e| format!("progression projection: {e:?}"))?;
-                    (packets.queue, packets.messages.into())
+                    (
+                        packets.queue,
+                        packets.messages.into(),
+                        packets.follow_up_vital,
+                    )
                 }
                 Phase::Trained(ticket) => {
                     let change = ticket.change;
@@ -449,13 +462,12 @@ impl GameRuntime {
                         )
                         .map_err(|e| format!("training projection: {e:?}"))?;
                     packets.messages.push(notice);
-                    (packets.queue, packets.messages)
+                    (packets.queue, packets.messages, None)
                 }
                 _ => unreachable!("selected ready output"),
             };
             if let Some(rank) = rank {
-                let mut ordered = messages.into_iter().map(|m| (queue, m)).collect::<Vec<_>>();
-                ordered.extend(rank.owner.into_iter().map(|m| (m.queue, m.bytes)));
+                let ordered = ordered_rank_messages(queue, messages, rank.owner, follow_up_vital);
                 self.network_output
                     .push_back(NetworkCommand::SendOrderedBatch {
                         key,
@@ -465,6 +477,9 @@ impl GameRuntime {
                     self.retain_observer_messages(vec![(pending.context.actor, rank.observers)])?;
                 }
             } else {
+                if follow_up_vital.is_some() {
+                    return Err("progression vital follow-up has no rank announcement".into());
+                }
                 self.network_output.push_back(NetworkCommand::SendBatch {
                     key,
                     queue,
@@ -475,6 +490,29 @@ impl GameRuntime {
         }
         Ok(())
     }
+}
+
+/// ACE's Endurance Health refresh follows the complete rank announcement.
+/// All packets are already encoded before this ordered batch reaches reliable
+/// admission; the runtime retains the returned batch on output pressure.
+fn ordered_rank_messages(
+    queue: u16,
+    primary: Vec<Vec<u8>>,
+    rank: Vec<bace_replication::ReplicationMessage>,
+    follow_up_vital: Option<Vec<u8>>,
+) -> Vec<(u16, Vec<u8>)> {
+    let mut ordered = primary
+        .into_iter()
+        .map(|bytes| (queue, bytes))
+        .collect::<Vec<_>>();
+    ordered.extend(
+        rank.into_iter()
+            .map(|message| (message.queue, message.bytes)),
+    );
+    if let Some(bytes) = follow_up_vital {
+        ordered.push((9, bytes));
+    }
+    ordered
 }
 /// Outer None is unsupported; inner None is a recognized training action waiting
 /// for the bounded durable lane. Envelope sequence never overrides the reliable

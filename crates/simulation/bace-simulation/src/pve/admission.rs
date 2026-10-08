@@ -109,6 +109,8 @@ impl Population {
                 actor: root.entity,
                 npc: Npc {
                     combat_ai: ace::source_combat_ai(&policy.source),
+                    tolerance: ace::source_tolerance(&policy.source),
+                    awake: false,
                     geometry: Some(geometry),
                     origin: Some(origin),
                     blueprint,

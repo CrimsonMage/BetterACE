@@ -3,8 +3,8 @@ use super::*;
 use bace_content::WeenieV1;
 use bace_gameplay_api::GeneratorDestination;
 use bace_simulation::PreparedMixedGeneratorRoot as Root;
-use materialization::{Materialized, Ready};
-use std::collections::BTreeSet;
+use materialization::{Materialized, NestedCreatureMaterialization, Ready};
+use std::collections::{BTreeSet, VecDeque};
 pub(super) fn materialize(
     region: &PreparedRegionActivation,
     request: &GeneratorHostRequest,
@@ -79,45 +79,47 @@ pub(super) fn materialize(
             if matches!(
                 request.intent.destination,
                 GeneratorDestination::Contain { .. }
-            ) && (!source.properties.generators.is_empty()
-                || gear.iter().any(|item| {
-                    crate::generator_preparation::is_creature_template(item.source.weenie_type)
-                        || !item.source.properties.generators.is_empty()
-                }))
-            {
-                return Err("contained Creature nested construction/generators require their lifecycle companion".into());
-            }
-            Materialized::Creature {
-                source: Arc::new(source),
-                gear,
+            ) {
+                let items = vec![bace_loot::PreparedContainerItem {
+                    source,
+                    source_destination: None,
+                    parent_index: None,
+                    generator_parent_index: None,
+                    inventory_slot: 0,
+                }];
+                let creatures = materialize_nested_creatures(
+                    region,
+                    request,
+                    &items,
+                    Some(gear),
+                    ordinal,
+                    random,
+                    drop_plain_wield,
+                )?;
+                Materialized::NestedItems { items, creatures }
+            } else {
+                Materialized::Creature {
+                    source: Arc::new(source),
+                    gear,
+                }
             }
         } else {
             let items = bace_loot::materialize_container_tree(source, &region.catalog.templates)
                 .map_err(|e| format!("generator container contents: {e:?}"))?;
-            for item in &items {
-                if !crate::generator_preparation::is_creature_template(item.source.weenie_type) {
-                    continue;
-                }
-                let source = &item.source;
-                if !matches!(
-                    request.intent.destination,
-                    GeneratorDestination::Contain { .. }
-                ) || !matches!(source.weenie_type, 10 | 15)
-                    || item.parent_index.is_none()
-                    || !source.properties.create_list.is_empty()
-                    || !source.properties.generators.is_empty()
-                    || source
-                        .properties
-                        .data_ids
-                        .iter()
-                        .any(|p| matches!(p.id, 32 | 33) && p.value != 0)
-                {
-                    return Err(
-                        "nested creature requires its complete subtype/loadout owner".into(),
-                    );
-                }
+            let creatures = materialize_nested_creatures(
+                region,
+                request,
+                &items,
+                None,
+                ordinal,
+                random,
+                drop_plain_wield,
+            )?;
+            if creatures.is_empty() {
+                Materialized::Items(items)
+            } else {
+                Materialized::NestedItems { items, creatures }
             }
-            Materialized::Items(items)
         };
         count = count
             .checked_add(tree.count())
@@ -125,13 +127,9 @@ pub(super) fn materialize(
             .ok_or("generator forest identity capacity")?;
         forest.push(tree);
     }
-    let nested_creature = forest.iter().any(|tree| match tree {
-        Materialized::Items(items) => items.iter().any(|item| {
-            item.parent_index.is_some()
-                && crate::generator_preparation::is_creature_template(item.source.weenie_type)
-        }),
-        _ => false,
-    });
+    let nested_creature = forest
+        .iter()
+        .any(|tree| matches!(tree, Materialized::NestedItems { .. }));
     if !nested_creature && forest.iter().all(|r| matches!(r, Materialized::Items(_))) {
         let mut flat = Vec::new();
         for tree in forest {
@@ -158,6 +156,144 @@ pub(super) fn materialize(
         return forest.pop().ok_or("empty forest".into());
     }
     Ok(Materialized::Mixed(forest))
+}
+fn materialize_nested_creatures(
+    region: &PreparedRegionActivation,
+    request: &GeneratorHostRequest,
+    items: &[bace_loot::PreparedContainerItem],
+    root_gear: Option<Vec<bace_loot::PreparedCreatureEquipment>>,
+    ordinal: usize,
+    random: &bace_random::RandomRoot,
+    drop_plain_wield: bool,
+) -> Result<Vec<NestedCreatureMaterialization>, String> {
+    let mut pending = VecDeque::new();
+    let mut next_index = items.len();
+    let mut creatures = Vec::new();
+    if let Some(gear) = root_gear {
+        let source = items
+            .first()
+            .ok_or("contained Creature root source missing")?
+            .source
+            .clone();
+        if items.len() != 1
+            || !matches!(source.weenie_type, 10 | 15)
+            || !source.properties.generators.is_empty()
+        {
+            return Err("contained Creature root requires its subtype owner".into());
+        }
+        next_index = next_index
+            .checked_add(gear.len())
+            .filter(|count| *count <= 1024)
+            .ok_or("contained Creature gear identity capacity")?;
+        for (index, item) in gear.iter().enumerate() {
+            if !item.source.properties.generators.is_empty() {
+                return Err("constructed Creature child generator requires its owner".into());
+            }
+            if crate::generator_preparation::is_creature_template(item.source.weenie_type) {
+                if item.wielded_location != 0 {
+                    return Err("equipped nested Creature requires its subtype owner".into());
+                }
+                pending.push_back((items.len() + index, item.source.clone(), 1usize));
+            }
+        }
+        creatures.push(NestedCreatureMaterialization {
+            root_index: 0,
+            gear_start: items.len(),
+            source,
+            gear,
+        });
+    } else {
+        for (index, item) in items.iter().enumerate() {
+            if crate::generator_preparation::is_creature_template(item.source.weenie_type) {
+                if item.parent_index.is_none() {
+                    return Err("nested Creature root has no container parent".into());
+                }
+                pending.push_back((index, item.source.clone(), 0usize));
+            }
+        }
+    }
+    if pending.is_empty() && creatures.is_empty() {
+        return Ok(Vec::new());
+    }
+    if !matches!(
+        request.intent.destination,
+        GeneratorDestination::Contain { .. }
+    ) {
+        return Err("nested Creature requires Contain owner".into());
+    }
+    while let Some((root_index, source, depth)) = pending.pop_front() {
+        if depth >= 16
+            || !matches!(source.weenie_type, 10 | 15)
+            || !source.properties.generators.is_empty()
+        {
+            return Err("nested Creature subtype or generator requires its lifecycle owner".into());
+        }
+        let did = |id| {
+            source
+                .properties
+                .data_ids
+                .iter()
+                .find(|property| property.id == id && property.value != 0)
+                .map(|property| property.value)
+        };
+        let wielded = did(32)
+            .and_then(|id| region.catalog.wielded.get(&id))
+            .map_or(&[][..], Vec::as_slice);
+        let inventory = did(33).and_then(|id| region.catalog.treasure.get(&id));
+        let purpose = u32::try_from(ordinal)
+            .ok()
+            .and_then(|ordinal| ordinal.checked_mul(1024))
+            .and_then(|offset| offset.checked_add(u32::try_from(root_index).ok()?))
+            .and_then(|offset| offset.checked_add(0x40000))
+            .ok_or("nested Creature random stream bound")?;
+        let mut intent = request.intent.clone();
+        let mut stream = bace_spawning::generator_event_stream(random, &intent, purpose)
+            .map_err(|e| format!("nested Creature stream: {e:?}"))?;
+        intent.random_identity[..8].copy_from_slice(
+            &stream
+                .next_u64()
+                .map_err(|e| format!("nested Creature stream: {e:?}"))?
+                .to_le_bytes(),
+        );
+        intent.random_identity[8..].copy_from_slice(
+            &stream
+                .next_u64()
+                .map_err(|e| format!("nested Creature stream: {e:?}"))?
+                .to_le_bytes(),
+        );
+        let gear = crate::generator_equipment::materialize_creature_equipment_with_inventory(
+            &source,
+            &region.catalog.templates,
+            wielded,
+            inventory,
+            drop_plain_wield,
+            random,
+            &intent,
+        )?;
+        let end = next_index
+            .checked_add(gear.len())
+            .filter(|end| *end <= 1024)
+            .ok_or("nested Creature identity capacity")?;
+        for (index, item) in gear.iter().enumerate() {
+            if !item.source.properties.generators.is_empty() {
+                return Err("constructed Creature child generator requires its owner".into());
+            }
+            if crate::generator_preparation::is_creature_template(item.source.weenie_type) {
+                if item.wielded_location != 0 {
+                    return Err("equipped nested Creature requires its subtype owner".into());
+                }
+                pending.push_back((next_index + index, item.source.clone(), depth + 1));
+            }
+        }
+        creatures.push(NestedCreatureMaterialization {
+            root_index,
+            gear_start: next_index,
+            source,
+            gear,
+        });
+        next_index = end;
+    }
+    Ok(creatures)
 }
 pub(super) fn bind(
     mut assets: Result<&mut crate::region_activation::VerifiedRegionAssets, String>,

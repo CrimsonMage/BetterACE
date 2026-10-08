@@ -512,13 +512,16 @@ admission without claiming DAT or client qualification. Mixed creature/item trea
 batches use one source-ordered admission: placement failures omit only that root's
 whole tree, while other failures roll back all freshly inserted actors. Vendor
 actors use the same creature owner with source-defined passive combat behavior and
-the vendor stock owner; buying, selling and lazy first-use stock remain separate
-interaction work. Mixed, source-ordered Contain forests now retain ordinary Creature/Cow roots and
+the vendor stock owner; authenticated first-Use lazy stock is connected while
+live buying and selling remain separate interaction work. Mixed, source-ordered Contain forests now retain ordinary Creature/Cow roots and
 ordinary item trees atomically, including prepared delayed effects. Frozen item V4
 companions preserve constructor origin, gear order and death-roster identities through
-generic save paths. Durable constructed-creature reconstruction/promotion, nested
-creature Contain, other specialized subtypes and Shop creatures remain explicitly
-gated until their lifecycle integration is complete. GamePiece
+generic save paths. A dedicated durable constructed-creature promotion and cold
+restore path retains exact Creature/Cow identities; recursive Contain source
+selection now prepares nested Creature/Cow loadouts, equipment, spell assets and
+companions under one reserved-ID forest. Focused synthetic runtime, simulation
+and PostgreSQL checks pass. DAT-backed composed nested bind/admission/cold-reload,
+specialized subtypes and nested generators remain gated. GamePiece
 requires the activity owner and remains unsupported. ACE's factory maps obsolete AI type 16 to GenericObject,
 not Creature. `oracle/factory/generate.py` compiles the unchanged factory switch
 and monster-state method into 75 subtype and six combat-AI golden cases.
@@ -585,7 +588,12 @@ success batch only after durable receipt adoption and online baseline handoff.
 Pre-authorization holds retry the same intent; terminal domain failures do not.
 Training operation entropy is allocated once on the adapter, never the simulation
 thread. Disconnect/logout waits for the admitted action's resolution. Full skill
-device routing and all rank-up effects remain separate integration work.
+device routing remains separate integration work. Rank-up sound/chat and the
+optional max-rank observer effect are connected. Ranked Endurance now appends
+the full private Health update from accepted World current after those effects
+in one retained ordered batch; a same-V6 regression checks the raised attribute
+and Health state survive routine save/reload. Other derived vital/run-rate
+effects and stock-client output remain unqualified.
 
 The live staff lane first captures the current simulation-owned staff registration;
 login-time role flags do not authorize account or shard operations. One retained
@@ -841,7 +849,9 @@ supported canonical packet/visibility output enters its owner. Source death
 announcement, accepted start motion, a bounded ordinary inventory-loss subset,
 corpse visibility and portal-gated respawn vitals are connected. Fully consumed
 non-container pack items with BondedStatus.Destroy now project the source
-private remove and burden update before coin and selected-item effects; equipped,
+private remove and burden update before coin and selected-item effects; one
+whole ordinary equipped corpse item with no spell or set effects now has exact
+V5 receipt, private source dequip and observer appearance output. Other equipped,
 container and coin destruction and dequip retain their obligations. Olthoi death selection
 follows the source Slag/Treasure/Empty branches, preserves victim possessions,
 and freezes the slag timestamp with the checkpoint. Original C# fixtures cover
@@ -879,7 +889,9 @@ cases supplement the owner and freezer tests. Authenticated corpse Use now
 checks authoritative range and access, freezes Open/Close state and defers expiry
 for an active viewer. Open projects direct contents and one nested level under
 each subcontainer in pinned ACE's ViewContents and CreateObject order; deeper
-content requires a later container Use. Permission-origin GameActions and their
+content requires a later container Use. Repeated Open resends CreateObject for
+known direct/nested children with their canonical sequence owners, matching
+the pinned source loop. Permission-origin GameActions and their
 durable updates now route through a simulation-owned recipient grant table with one-hour expiry,
 offline list/removal by the frozen granter name, the source consent option, and
 logout cleanup. A successful durable Open consumes the transient grant and
@@ -981,7 +993,14 @@ reservation, and confirmed private `ApproachVendor` publication gate first Use.
 The marker and item forest can be adopted after restart or viewed again without
 rerolling identities. Empty authored stock still commits a loaded marker. Buy,
 Sell, alternate currency, transient vendor promotion and later stock revisions
-remain unsupported until their full player/item/currency receipt is connected.
+remain unsupported as live actions. Default Buy now has an exact freezer for
+player V6 CoinValue and burden, selected coin V5 debits, fresh source-cloned
+grant V5 rows, vendor Int77/79 counters and marker revision. Vendor stock writes
+enter the bounded critical save lane; a full lane retains the exact operation.
+The canonical inventory sequencer can order a private pickup sound, refreshed
+ApproachVendor and UseDone. Buy ingress still needs fresh grant asset preparation,
+joined snapshot and critical lease, exact submission and baseline adoption, and
+one retained committed output batch before it can report success.
 The focused runtime fixture lacks DAT geometry, so its preparation and output
 tests do not establish a complete authenticated live Use transcript.
 
