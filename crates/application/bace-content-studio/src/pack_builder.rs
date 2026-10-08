@@ -1,3 +1,4 @@
+use crate::theme;
 use eframe::egui;
 use std::path::{Path, PathBuf};
 use std::sync::{
@@ -61,19 +62,31 @@ impl PackBuilder {
         }
     }
     pub fn ui(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Build a mapped weenie pack");
-        ui.label(
-            "Native TOML to validated binary records to immutable .bace pack + generation manifest",
+        theme::subtitle(
+            ui,
+            "Compile a native content folder into an immutable .bace pack and generation manifest.",
         );
-        ui.label("The builder reads one weenie at a time. It stores only a compact ID/offset index in memory; record payloads are spooled to disk.");
         ui.add_space(12.0);
         ui.add_enabled_ui(self.job.is_none(),|ui| {
+            theme::card().show(ui,|ui| {
+            ui.set_min_width(ui.available_width());
+            theme::eyebrow(ui,"01  SOURCE CONTENT");
+            ui.heading("Native TOML folder");
             if ui.button("Choose native TOML folder…").clicked() && let Some(path)=rfd::FileDialog::new().pick_folder() {self.source=Some(path);}
             if let Some(path)=&self.source {ui.label(path.display().to_string());}
             ui.small("Includes TOML in subfolders; skips conversion manifest.toml files. Duplicate weenie IDs reject the build.");
+            });
+            ui.add_space(14.0);
+            theme::card().show(ui,|ui| {
+            ui.set_min_width(ui.available_width());
+            theme::eyebrow(ui,"02  DESTINATION");
+            ui.heading("Build output");
+            ui.label("Each build creates a new folder with a pack and its manifest.");
             if ui.button("Choose pack output folder…").clicked() && let Some(path)=rfd::FileDialog::new().pick_folder() {self.output=Some(path);}
             if let Some(path)=&self.output {ui.label(path.display().to_string());}
-            if ui.add_enabled(self.source.is_some()&&self.output.is_some(),egui::Button::new("Build .bace pack")).clicked()
+            });
+            ui.add_space(18.0);
+            if ui.add_enabled(self.source.is_some()&&self.output.is_some(),theme::primary("Build .bace pack")).clicked()
                 && let (Some(source),Some(output))=(self.source.clone(),self.output.clone()) {
                 let (sender,receiver)=mpsc::sync_channel(1);
                 let cancel=Arc::new(AtomicBool::new(false));let flag=Arc::clone(&cancel);let ctx=ui.ctx().clone();
@@ -93,9 +106,12 @@ impl PackBuilder {
                 self.notice = "Cancelling after the current record…".into();
             }
         }
-        ui.label(&self.notice);
-        ui.separator();
-        ui.label("Runtime status: mmap readers are implemented. The current content-worker still uses an in-memory catalog; pack activation and a bounded gameplay cache remain separate integration work.");
+        theme::notice(ui, &self.notice);
+        ui.add_space(14.0);
+        ui.collapsing("Memory use & runtime status",|ui| {
+            ui.label("The builder reads one weenie at a time. Payloads are spooled to disk; only the compact ID/offset index remains in memory.");
+            ui.label("Runtime mmap readers exist. The content-worker still uses an in-memory catalog; pack activation and a bounded gameplay cache remain separate integration work.");
+        });
     }
 }
 

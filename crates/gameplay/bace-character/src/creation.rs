@@ -25,6 +25,7 @@ pub enum CreationRejection {
     AttributeOutOfRange,
     TooManyAttributeCredits,
     UnknownSkill(u32),
+    LockedSkillMustBeTrained(u32),
     InsufficientTrainingCredits(u32),
     InsufficientSpecializationCredits(u32),
 }
@@ -71,8 +72,9 @@ impl CreationRules {
     }
 
     /// Validate the complete allocation before returning any proposed state.
-    /// Like pinned ACE, unused credits are permitted and inactive skills do not
-    /// require a DAT entry. No retail locked-skill policy is silently added.
+    /// Unused credits are permitted. User-approved retail divergence #36
+    /// requires known locked skills to be at least trained, including when the
+    /// client submits Inactive. Absent definitions remain a preparation concern.
     pub fn validate(
         &self,
         request: &CreationAllocation,
@@ -81,6 +83,12 @@ impl CreationRules {
         let mut credits = self.skill_credits;
         let mut skills = [None; 55];
         for (index, advancement) in request.skills.iter().copied().enumerate() {
+            if self.skills[index].is_some()
+                && crate::is_locked_skill(index as u32)
+                && (advancement as u32) < SkillAdvancement::Trained as u32
+            {
+                return Err(CreationRejection::LockedSkillMustBeTrained(index as u32));
+            }
             if advancement == SkillAdvancement::Inactive {
                 continue;
             }

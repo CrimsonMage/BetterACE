@@ -1,0 +1,15 @@
+[package]
+name = "bace-asset-overlay"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Validated native overlays for decoded BetterACE DAT assets"
+
+[lints]
+workspace = true
+
+[dependencies]
+bace-content.workspace = true
+bace-dat.workspace = true

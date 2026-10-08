@@ -1,0 +1,6 @@
+# GDLE 353cbab52ef7da2b7063bc3e3f008461d8531693 AllegianceTreeNode::UpdateWithWeenie sha256=889703de93cef150aad1796cd25aa83302e2fa94d75de00af0ceeeb1cb78a074
+level,raw_leadership,current_leadership,raw_loyalty,current_loyalty,cached_level,cached_leadership,cached_loyalty,raw_reads
+25,100,101,100,100,25,101,100,0
+25,100,777,100,120,25,777,120,0
+275,291,999,291,999,275,999,999,0
+1,0,0,0,0,1,0,0,0

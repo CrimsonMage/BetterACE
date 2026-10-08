@@ -1,0 +1,3 @@
+# Scalar modifier selection
+
+`extract.py` extracts the unchanged official ACE `GetEnchantmentsTopLayerByStatModType` type/key overload and aura priority set at pin `47edade3bd3f6044b676d4eb877c4965c7eda62b`. Source hashes are in `source.sha256`; AGPL-3.0-only, ACEmulator contributors. The reduced SpellId enum preserves values derived from the original implicit enum sequence. `Program.cs` provides input rows and data-only registry/lock adapters. Run with .NET 8 after extraction; stdout is `../../tests/fixtures/quality_modifiers.tsv`. The 512 cases preserve all inputs and compare output identity/order, including single/multiple flags, vitae exclusion, key filtering, category order, power, aura, set-spell priorities and stable ties.

@@ -57,6 +57,30 @@ impl Backend {
     }
 }
 impl SaveBackend for Backend {
+    async fn owned_batch(
+        &self,
+        batch: &bace_persistence::OwnedSaveBatch,
+    ) -> Result<Vec<SaveAck>, SaveFailure> {
+        Ok(self.write(false, &batch.snapshots).await)
+    }
+    async fn inventory(
+        &self,
+        operation: &bace_persistence::InventoryOperation,
+    ) -> Result<OperationOutcome, SaveFailure> {
+        Ok(OperationOutcome::Committed(
+            self.write(true, &operation.snapshots).await,
+        ))
+    }
+    async fn owned_routine(
+        &self,
+        _lease: bace_persistence::CharacterLease,
+        snapshot: &SaveSnapshot,
+    ) -> Result<SaveAck, SaveFailure> {
+        Ok(self
+            .write(false, std::slice::from_ref(snapshot))
+            .await
+            .remove(0))
+    }
     async fn offline(
         &self,
         event: &bace_persistence::OfflineXpEvent,
@@ -400,4 +424,129 @@ async fn dedicated_persistence_thread_runs_while_caller_runtime_is_not_polled() 
         remaining_clone.try_routine(&[snapshot(2)], Instant::now()),
         Err(SaveSubmitError::Closed)
     ));
+}
+
+#[tokio::test]
+async fn offline_character_snapshot_is_not_starved_by_inventory_transactions() {
+    use bace_persistence::{CharacterLease, InventoryOperation, OwnershipState};
+    let backend = Backend::new(true, None);
+    let worker = spawn_save_worker(backend.clone(), config()).unwrap();
+    let operation = |id| InventoryOperation {
+        operation_id: format!("loot-{id}"),
+        snapshots: vec![snapshot(id)],
+        leases: vec![],
+        transfers: vec![],
+    };
+    let first = worker.handle.try_inventory(&operation(1)).unwrap();
+    backend.entered.acquire().await.unwrap().forget();
+    let old = Instant::now() - Duration::from_secs(6);
+    let offline = worker
+        .handle
+        .try_owned_routine(
+            CharacterLease {
+                character_id: 90,
+                epoch: 3,
+                state: OwnershipState::Offline,
+            },
+            &snapshot(90),
+            old,
+        )
+        .unwrap();
+    let mut critical = vec![first];
+    for id in 2..12 {
+        critical.push(worker.handle.try_inventory(&operation(id)).unwrap());
+    }
+    backend.release.add_permits(1);
+    let report = offline.await.unwrap();
+    assert!(report.result.is_ok());
+    assert_eq!(report.dirty_since, Some(old));
+    for ticket in critical {
+        assert!(ticket.await.unwrap().result.is_ok());
+    }
+    worker.handle.close();
+    let summary = worker.task.await.unwrap();
+    assert_eq!(summary.routine_completed, 1);
+    assert_eq!(summary.valuable_completed, 11);
+    let log = backend.log.lock().unwrap();
+    let position = log.iter().position(|(_, id)| *id == 90).unwrap();
+    assert!(
+        position <= 4,
+        "offline save missed its reserved service after a bounded critical burst: {log:?}"
+    );
+    assert!(matches!(
+        worker.handle.try_inventory(&operation(12)),
+        Err(SaveSubmitError::Closed)
+    ));
+}
+
+#[tokio::test]
+async fn owned_item_batches_keep_original_age_and_reserved_routine_service_under_inventory_pressure()
+ {
+    use bace_persistence::{InventoryOperation, OwnedSaveBatch};
+    let backend = Backend::new(true, None);
+    let worker = spawn_save_worker(backend.clone(), config()).unwrap();
+    let critical = |id| InventoryOperation {
+        operation_id: format!("critical-{id}"),
+        snapshots: vec![snapshot(id)],
+        leases: vec![],
+        transfers: vec![],
+    };
+    let gate = worker.handle.try_inventory(&critical(9000)).unwrap();
+    backend.entered.acquire().await.unwrap().forget();
+    let age = Instant::now() - Duration::from_secs(20);
+    let batch = OwnedSaveBatch {
+        snapshots: vec![
+            SaveSnapshot {
+                expected_version: 1,
+                ..snapshot(7)
+            },
+            SaveSnapshot {
+                expected_version: 1,
+                ..snapshot(8)
+            },
+        ],
+        participants: vec![1, 7, 8],
+        leases: vec![],
+    };
+    let due = worker.handle.try_owned_batch(&batch, age).unwrap();
+    let mut critical_tickets = Vec::new();
+    for id in 10..22 {
+        critical_tickets.push(worker.handle.try_inventory(&critical(id)).unwrap());
+    }
+    let producer = worker.handle.clone();
+    let continued = tokio::spawn(async move {
+        for id in 30..70 {
+            loop {
+                match producer.try_inventory(&critical(id)) {
+                    Ok(ticket) => {
+                        assert!(ticket.await.unwrap().result.is_ok());
+                        break;
+                    }
+                    Err(SaveSubmitError::Full) => tokio::task::yield_now().await,
+                    Err(e) => panic!("{e}"),
+                }
+            }
+        }
+    });
+    backend.release.add_permits(1);
+    let report = tokio::time::timeout(Duration::from_secs(2), due)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(report.dirty_since, Some(age));
+    assert!(report.started_late_by >= Duration::from_secs(15));
+    assert!(matches!(report.result,Ok(WriteOutcome::Routine(ref acks)) if acks.len()==2));
+    assert!(gate.await.unwrap().result.is_ok());
+    for ticket in critical_tickets {
+        assert!(ticket.await.unwrap().result.is_ok())
+    }
+    continued.await.unwrap();
+    let log = backend.log.lock().unwrap().clone();
+    assert!(log.iter().position(|entry| entry.1 == 7).unwrap() <= 4);
+    assert!(!log.iter().find(|entry| entry.1 == 7).unwrap().0);
+    worker.handle.close();
+    drop(worker.handle);
+    let summary = worker.task.await.unwrap();
+    assert_eq!(summary.routine_completed, 1);
+    assert_eq!(summary.failed, 0);
 }

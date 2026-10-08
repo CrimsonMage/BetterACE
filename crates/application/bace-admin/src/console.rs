@@ -38,6 +38,52 @@ pub struct ControlRequest {
     pub reply: oneshot::Sender<Result<u64, String>>,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct ContentChange {
+    pub path: String,
+    pub kind: String,
+    pub id: u64,
+    pub name: String,
+    pub action: String,
+}
+#[derive(Clone, Debug, Serialize)]
+pub struct ContentPreview {
+    pub token: String,
+    pub entries: Vec<ContentChange>,
+    pub total: usize,
+}
+#[derive(Clone, Debug, Serialize)]
+pub struct ContentStatus {
+    pub accepted_revision: i64,
+    pub pending_publications: i64,
+    pub rejected_publications: i64,
+    pub pack_generation: Option<u64>,
+}
+#[derive(Clone, Debug, Serialize)]
+pub struct ContentRevision {
+    pub revision: i64,
+    pub status: String,
+    pub rejection: Option<String>,
+}
+pub enum ContentAction {
+    Status,
+    Revision { revision: i64 },
+    Preview,
+    StageRemoval { kind: String, id: u64 },
+    Publish { token: String },
+}
+pub struct ContentRequest {
+    pub action: ContentAction,
+    pub reply: oneshot::Sender<Result<ContentReply, String>>,
+}
+pub enum ContentReply {
+    Status(ContentStatus),
+    Revision(ContentRevision),
+    Preview(ContentPreview),
+    Staged { path: String },
+    Queued { revision: i64 },
+}
+
 #[derive(Clone)]
 pub struct HostConsole {
     pub(crate) inner: Arc<ConsoleState>,
@@ -54,6 +100,7 @@ pub(crate) struct ConsoleState {
     pub logs: Arc<LogStore>,
     pub status: watch::Receiver<HostStatus>,
     pub control: mpsc::Sender<ControlRequest>,
+    pub content: Option<mpsc::Sender<ContentRequest>>,
 }
 impl HostConsole {
     pub fn new(
@@ -62,6 +109,16 @@ impl HostConsole {
         logs: Arc<LogStore>,
         status: watch::Receiver<HostStatus>,
         control: mpsc::Sender<ControlRequest>,
+    ) -> Result<Self, HostError> {
+        Self::new_with_content(config, password, logs, status, control, None)
+    }
+    pub fn new_with_content(
+        config: HostConfig,
+        password: PasswordHashRecord,
+        logs: Arc<LogStore>,
+        status: watch::Receiver<HostStatus>,
+        control: mpsc::Sender<ControlRequest>,
+        content: Option<mpsc::Sender<ContentRequest>>,
     ) -> Result<Self, HostError> {
         config.validate().map_err(|_| HostError::Credentials)?;
         let authority = config.bind_address.to_string();
@@ -78,6 +135,7 @@ impl HostConsole {
                 logs,
                 status,
                 control,
+                content,
             }),
         })
     }

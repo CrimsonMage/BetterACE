@@ -59,3 +59,52 @@ Registered characters reject unfenced `save_batch` and `valuable` writes. `save_
 `MappedGeneration` stores manifest SHA-256, optional parent hash, base hash, accepted publication revision and bounded binary manifest bytes. `accept_mapped` assumes the caller has validated and durably installed files; it performs no filesystem operations. It atomically checks the active parent, accepts ordered candidate heads and advances the database's active generation. Exact committed retries verify all metadata. Layout-only initialization/compaction keeps the accepted revision unchanged. Once a mapped generation is active, the old decoded-catalog acceptance path refuses further acceptance. Rejection continues to preserve the last accepted generation.
 
 `pending_revision` and bounded `candidate_page` let a compiler process records incrementally; use a one-record page to keep candidate payload memory bounded by one record (17 MiB). The old full-catalog API remains only for transitional harnesses and must not be used as the new runtime catalog. Filesystem durability, mapped views and manifest decoding belong to the pack compiler/runtime owners.
+
+
+## Frozen gameplay saves and ownership
+
+Storage kinds 100/101/102/103, schema 1, are respectively PlayerSaveV1,
+EntitySaveV1 items, CorpseSaveV1 and HouseSaveV1. Their frozen nested WeenieV1
+property representation preserves unknown numeric IDs and absent/zero values;
+character metadata carries non-property hair textures, option masks, titles and
+spell favorites. Quest and house access collections are bounded during decoding.
+Unrecognized schema versions fail explicitly; future changes require migration.
+
+Account/player names and slots, character epochs, item/container slots and housing
+owner identities remain relational. Creation with initial possessions and valuable
+inventory/house changes commit atomically with stable operation receipts. Online
+and offline writes share ownership fencing; a login cannot race an old offline
+snapshot into the database. Routine acknowledgments still use mutation revision
+and database CAS separately and retain newer dirty state.
+
+World templates and source tables are stored in aggregate `.bace` disk packs.
+PostgreSQL records only which immutable manifest is accepted, alongside the existing
+publication journal. The complete world is not copied into PostgreSQL content rows
+by the bootstrap workflow. This division is independent of player/item/housing
+save storage, which remains in PostgreSQL.
+
+## Social, allegiance and durable travel/death checkpoints
+
+Player schema 5 wraps frozen schema 4 and adds schema-1 social preferences;
+explicit migrations retain all earlier player supplements. Allegiance nodes and
+metadata use storage kinds 115 and 116, schema 1, with relational character,
+account, patron, monarch and chat-room identity constraints. Row versions are
+independent of player versions; runtime restoration uses the maximum stored
+mutation revision and verifies the complete forest.
+
+Allegiance writes and player XP snapshots share a receipt journal. The composite
+allegiance-placement operation extends that same transaction to corpse/item
+placement and, when present, the NPC continuation checkpoint. A failed CAS leaves
+all rows and the receipt absent. Reusing an operation ID with changed semantics
+fails; exact retries return the existing durable result. All changed characters
+require current leases, including offline ancestors. A cold forest read bounds
+row count and combined payload bytes before fetching payloads in one repeatable
+snapshot.
+
+Travel checkpoints include the final destination and resource debits. Death
+checkpoints include final respawn state, corpse expiry/owner and item changes.
+An interrupted presentation sequence restores the committed living destination;
+item loss is never replayed separately. Ambiguous outcomes retain reservations
+and the exact frozen request until resolved. Receipt adapters reject mismatched
+acknowledgments and cannot reinterpret a later retry failure as proof that the
+original operation did not commit.

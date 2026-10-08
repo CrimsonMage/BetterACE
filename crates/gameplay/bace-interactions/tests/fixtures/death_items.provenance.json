@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/ACEmulator/ACE",
+  "commit": "47edade3bd3f6044b676d4eb877c4965c7eda62b",
+  "sources": {
+    "Source/ACE.Server/Entity/DeathItem.cs": "b28bd712d2366eb98ca57dc4f37d28a906311311b44ce8338bec5b1368c9e084",
+    "Source/ACE.Entity/Enum/ItemType.cs": "dcc3924f9f72a16ae282c44ab88325321e929b2856510f7f16ef1718d45d028c"
+  },
+  "scope": "unchanged complete DeathItem.cs sorting/category/float variance implementation; random sequence and WorldObject fields are harness inputs"
+}

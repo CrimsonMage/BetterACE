@@ -1,0 +1,52 @@
+version = 1
+scope = "End-of-retail rare structure; supplied Turbine evidence takes precedence over emulator reconstructions."
+source = "Project owner's supplied retail-evidence brief, 2026-10-07"
+mirror = "https://asheron.fandom.com/wiki/Announcements_-_2010/04_-_Shedding_Skin"
+original_forum_recovery = "incomplete; mirrored quotations are distinguished from recovered originals"
+implementation_policy = "Unknown probabilities and timer policies are operator data with explicit uncertainty. No automatic retail preset."
+
+[confirmed_structure]
+separate_from = ["ordinary procedural treasure", "trophies", "quest/special drops"]
+eligibility = "lootable monster death AND (creature.level > credited_player.level OR creature.level >= 100)"
+stages = ["standard occurrence", "separate due real-time opportunity", "one rare at most", "conditional tier", "concrete item"]
+tier_count = 6
+post_2010 = true
+frequency_vs_tier = "April 2010 changed higher-tier selection, not total standard rare frequency."
+real_time = "Random real-time interval, approximately one second to two months; due timer grants additional high-probability opportunity on an eligible kill."
+normal_roll_during_timer = true
+max_rares_per_kill = 1
+exact_timer_initialization = "unconfirmed; explicit profile policy required"
+exact_timer_reset_interaction = "unconfirmed; explicit profile policy required"
+exact_interval_distribution = "unconfirmed; explicit profile policy required"
+
+[tier_categories]
+1 = "Creature Magic consumables"
+2 = "Life/Item Magic consumables, including rare potions"
+3 = "Healing kits and keys; potions removed"
+4 = "Armor"
+5 = "Eternal rares: gems, dyes, salvage and similar items"
+6 = "Weapons"
+
+[standard_probability]
+classification = "RETAIL COMMUNITY ESTIMATE"
+estimate = "approximately 1 / 2500 eligible kills"
+active_default = false
+note = "Not a recovered developer/server constant."
+
+[historical_tier_ratios]
+classification = "RETAIL HISTORICAL EVIDENCE — SOURCE THREAD CURRENTLY UNRECOVERED"
+citation = "11/01/2010 - Turbine Forums - Question about Rare drops"
+relative_to_tier_6 = ["3500", "350", "35", "2.8", "1.16", "1"]
+reported_approximate_per_rare = ["1", "1/10", "1/100", "1/1250", "1/3017", "1/3500"]
+active_default = false
+algorithm_inference = false
+unknown = ["original author", "developer-supplied versus player-derived", "final distribution versus independent rolls versus expected ratios"]
+
+[rejected_as_retail_probability_evidence]
+sources = ["ACE RareChances dictionary", "ACE sequential tier checks", "ACE probability comments", "GDLE/private-server tuning", "pre-release Turbine Nation estimates"]
+reason = "Turbine revised pre-release estimates before launch; emulator reconstructions do not establish retail constants."
+
+[historical_design_telemetry]
+classification = "Historical design context, not a probability derivation"
+monthly_millions = { Darktide = 13.5, Harvestgain = 10.4, Frostfell = 10.1, Wintersebb = 9.2, Leafcull = 8.9, Solclaim = 8.8, Thistledown = 8.8, Morningthaw = 8.4 }
+probability_derivation_permitted = false

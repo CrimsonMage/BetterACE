@@ -201,6 +201,12 @@ fn sixteen_social_action_layouts_match_original_handlers_or_verbatim_reader_pref
             SocialAction::ModifyAccountSquelch { enabled, name } => {
                 json!({"enabled":enabled,"name":name})
             }
+            SocialAction::ClearPlayerConsentList | SocialAction::DisplayPlayerConsentList => {
+                json!({"empty":true})
+            }
+            SocialAction::RemoveFromPlayerConsentList(name)
+            | SocialAction::AddPlayerPermission(name)
+            | SocialAction::RemovePlayerPermission(name) => json!({"name":name}),
         };
         assert_eq!(captured, vector["captured"]);
         let consumed = envelope.payload.len() - request.trailing_bytes;

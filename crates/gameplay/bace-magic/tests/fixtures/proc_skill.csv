@@ -1,0 +1,54 @@
+# GDLE 353cbab52ef7da2b7063bc3e3f008461d8531693; AGPL-3.0-only GDLE contributors
+# sha256 62785bd2a1a890f65bea5fd8cf5f24888e9874a8c7baf81ad0623eef98e7df61 Source/SpellcastingManager.cpp
+# sha256 47aba5fec484b3d4b8c5f4da2974ed267cb77ebf0dacedd8b5e1637517b17196 Source/SpellProjectile.cpp
+# Original DetermineSkillLevelForSpell and cloak Life projectile override; explicit owned item qualities and distinct school projections.
+skill,-1,0,555
+skill,-1,31,333
+skill,-1,32,444
+skill,-1,33,222
+skill,-1,34,111
+skill,-1,43,555
+skill,0,0,0
+skill,0,31,0
+skill,0,32,0
+skill,0,33,0
+skill,0,34,0
+skill,0,43,0
+skill,300,0,300
+skill,300,31,300
+skill,300,32,300
+skill,300,33,300
+skill,300,34,300
+skill,300,43,300
+cloak,100,-1,0,77
+cloak,100,-1,1,77
+cloak,100,0,0,77
+cloak,100,0,1,77
+cloak,100,150,0,77
+cloak,100,150,1,77
+cloak,100,300,0,77
+cloak,100,300,1,77
+cloak,1783,-1,0,77
+cloak,1783,-1,1,150
+cloak,1783,0,0,77
+cloak,1783,0,1,0
+cloak,1783,150,0,77
+cloak,1783,150,1,450
+cloak,1783,300,0,77
+cloak,1783,300,1,900
+cloak,1789,-1,0,77
+cloak,1789,-1,1,150
+cloak,1789,0,0,77
+cloak,1789,0,1,0
+cloak,1789,150,0,77
+cloak,1789,150,1,450
+cloak,1789,300,0,77
+cloak,1789,300,1,900
+cloak,5331,-1,0,77
+cloak,5331,-1,1,150
+cloak,5331,0,0,77
+cloak,5331,0,1,0
+cloak,5331,150,0,77
+cloak,5331,150,1,450
+cloak,5331,300,0,77
+cloak,5331,300,1,900

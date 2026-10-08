@@ -11,3 +11,5 @@ description = "Ownership, rent, permissions, hooks and storage"
 workspace = true
 
 [dependencies]
+bace-types.workspace = true
+bace-gameplay-api.workspace = true

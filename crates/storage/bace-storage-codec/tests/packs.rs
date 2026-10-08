@@ -87,6 +87,10 @@ fn newest_overlay_wins_tombstones_hide_base_and_old_handles_stay_valid() {
     let generation = manifest.open(dir.path(), limits).unwrap();
     assert_eq!(generation.revision(), 42);
     assert_eq!(
+        generation.newest_delta_keys().unwrap(),
+        vec![key(1), key(2), key(3)]
+    );
+    assert_eq!(
         bytes(generation.lookup(key(1)).unwrap()).bytes(),
         b"replacement"
     );
@@ -109,6 +113,61 @@ fn newest_overlay_wins_tombstones_hide_base_and_old_handles_stay_valid() {
         .open(dir.path(), limits)
         .unwrap();
     assert_eq!(bytes(restarted.lookup(key(3)).unwrap()).bytes(), b"new");
+}
+
+#[test]
+fn changed_keys_after_compaction_are_only_the_new_publication_delta() {
+    let dir = tempfile::tempdir().unwrap();
+    let limits = PackLimits::default();
+    let base = compile(
+        dir.path(),
+        vec![record(1, Some(b"one")), record(2, Some(b"two"))],
+    );
+    let older = compile(dir.path(), vec![record(1, Some(b"replaced"))]);
+    let newest = compile(dir.path(), vec![record(2, None)]);
+    let full = PackManifest {
+        version: 1,
+        generation: 3,
+        base,
+        deltas: vec![older, newest],
+    };
+    let generation = full.open(dir.path(), limits).unwrap();
+    let compacted_base = generation
+        .compact(
+            dir.path(),
+            limits,
+            &std::sync::atomic::AtomicBool::new(false),
+        )
+        .unwrap();
+    let compacted = PackManifest {
+        version: 1,
+        generation: 4,
+        base: compacted_base.clone(),
+        deltas: vec![],
+    };
+    assert!(
+        compacted
+            .open(dir.path(), limits)
+            .unwrap()
+            .newest_delta_keys()
+            .unwrap()
+            .is_empty()
+    );
+    let publication = compile(dir.path(), vec![record(1, None), record(3, Some(b"new"))]);
+    let accepted = PackManifest {
+        version: 1,
+        generation: 5,
+        base: compacted_base,
+        deltas: vec![publication],
+    };
+    assert_eq!(
+        accepted
+            .open(dir.path(), limits)
+            .unwrap()
+            .newest_delta_keys()
+            .unwrap(),
+        vec![key(1), key(3)]
+    );
 }
 
 #[test]
@@ -281,4 +340,55 @@ fn empty_pack_manifest_limits_truncation_and_root_corruption() {
     raw.truncate(127);
     std::fs::write(&path, &raw).unwrap();
     assert!(MappedPack::open(dir.path(), &descriptor, PackLimits::default()).is_err());
+}
+
+#[test]
+fn paged_generation_scan_retains_overrides_tombstones_and_cursor_progress() {
+    let dir = tempfile::tempdir().unwrap();
+    let limits = PackLimits::default();
+    let base = compile(
+        dir.path(),
+        vec![
+            record(1, Some(b"old")),
+            record(3, Some(b"third")),
+            record(8, Some(b"last")),
+        ],
+    );
+    let delta = compile(
+        dir.path(),
+        vec![
+            record(1, Some(b"new")),
+            record(2, Some(b"second")),
+            record(3, None),
+        ],
+    );
+    let generation = PackManifest {
+        version: 1,
+        generation: 2,
+        base,
+        deltas: vec![delta],
+    }
+    .open(dir.path(), limits)
+    .unwrap();
+    let mut cursor = None;
+    let mut found = Vec::new();
+    loop {
+        let page = generation.scan(cursor, 2).unwrap();
+        if page.is_empty() {
+            break;
+        }
+        for (k, value) in page {
+            assert!(cursor.is_none_or(|old| k > old));
+            cursor = Some(k);
+            found.push((k, value));
+        }
+    }
+    assert_eq!(
+        found.iter().map(|r| r.0).collect::<Vec<_>>(),
+        vec![key(1), key(2), key(3), key(8)]
+    );
+    assert_eq!(bytes(found.remove(0).1).bytes(), b"new");
+    assert!(matches!(found[1].1, PackLookup::Tombstone));
+    assert!(generation.scan(None, 0).is_err());
+    assert!(generation.scan(None, 1025).is_err());
 }

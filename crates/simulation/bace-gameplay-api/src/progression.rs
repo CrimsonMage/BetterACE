@@ -123,6 +123,16 @@ pub struct ProgressionChange {
     pub after: ProgressionProjection,
     pub available_experience: u64,
     pub revision: u64,
+    /// Frozen by the simulation after refreshing derived values. The source
+    /// rank announcement must use the accepted base, including formulas and
+    /// bonuses, rather than infer it from the trait update's rank field.
+    pub rank_effect: Option<RankEffect>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RankEffect {
+    pub base: u32,
+    pub reached_maximum: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -137,6 +147,9 @@ pub enum ProgressionRejection {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProgressionActionRejection {
+    /// An authoritative reservation prevented the attempt before its sequence
+    /// was consumed. Only this rejection permits retrying the same intent.
+    DurabilityPending,
     NotBound,
     OwnershipMismatch,
     MissingActor,

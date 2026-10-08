@@ -72,6 +72,17 @@ impl<'a> TableReader<'a> {
         }
         Ok(reader)
     }
+    pub(crate) fn raw(bytes: &'a [u8], limits: DatTableLimits) -> Result<Self, DatError> {
+        if bytes.len() > limits.max_record_bytes {
+            return Err(DatError::Format("DAT record size limit"));
+        }
+        Ok(Self {
+            bytes,
+            offset: 0,
+            limits,
+            entries_left: limits.max_entries,
+        })
+    }
     pub fn remaining(&self) -> usize {
         self.bytes.len() - self.offset
     }

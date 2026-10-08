@@ -25,7 +25,7 @@ pub struct TraitState {
     pub details: TraitDetails,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct OwnedTrait {
     pub(crate) progress: TraitProgress,
     pub(crate) details: Option<TraitDetails>,
@@ -49,9 +49,10 @@ pub enum ProgressionStateError {
 pub struct CharacterProgression {
     pub(crate) traits: BTreeMap<ProgressionTarget, OwnedTrait>,
     pub(crate) tables: Arc<ProgressionTables>,
-    available_experience: u64,
+    pub(crate) available_experience: u64,
     pub(crate) revision: u64,
     pub(crate) training: Option<crate::training_rules::TrainingState>,
+    pub(crate) luminance: Option<crate::LuminanceState>,
 }
 
 impl CharacterProgression {
@@ -88,6 +89,9 @@ impl CharacterProgression {
             }
             if let Some(table) = table_for(&tables, entry)
                 && entry.experience_spent > table.maximum_experience()
+                && !(entry.advancement == SkillAdvancement::Specialized
+                    && matches!(entry.target, ProgressionTarget::Skill(_))
+                    && entry.experience_spent <= tables.trained_skills.maximum_experience())
             {
                 return Err(ProgressionStateError::ExperienceBeyondMaximum);
             }
@@ -110,6 +114,7 @@ impl CharacterProgression {
             available_experience,
             revision,
             training: None,
+            luminance: None,
         })
     }
 
@@ -153,6 +158,16 @@ impl CharacterProgression {
         self.available_experience
     }
 
+    /// Dirty auxiliary character-owned state with the same monotonic revision.
+    pub fn touch_revision(&mut self) -> Result<u64, ProgressionRejection> {
+        let next = self
+            .revision
+            .checked_add(1)
+            .ok_or(ProgressionRejection::RevisionExhausted)?;
+        self.revision = next;
+        Ok(next)
+    }
+
     pub fn revision(&self) -> u64 {
         self.revision
     }
@@ -171,6 +186,10 @@ impl CharacterProgression {
         self.traits
             .values()
             .map(|entry| (entry.progress, entry.details))
+    }
+
+    pub fn maximum_rank(&self, target: ProgressionTarget) -> Option<u16> {
+        table_for(&self.tables, &self.traits.get(&target)?.progress).map(RankTable::maximum_rank)
     }
 
     pub fn projection(&self, target: ProgressionTarget) -> Option<ProgressionProjection> {
@@ -238,11 +257,15 @@ impl CharacterProgression {
             after,
             available_experience: self.available_experience,
             revision,
+            rank_effect: None,
         })
     }
 }
 
-fn table_for<'a>(tables: &'a ProgressionTables, entry: &TraitProgress) -> Option<&'a RankTable> {
+pub(crate) fn table_for<'a>(
+    tables: &'a ProgressionTables,
+    entry: &TraitProgress,
+) -> Option<&'a RankTable> {
     match entry.target {
         ProgressionTarget::Attribute(_) => Some(&tables.attributes),
         ProgressionTarget::Vital(_) => Some(&tables.vitals),

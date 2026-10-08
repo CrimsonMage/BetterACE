@@ -41,7 +41,89 @@ fn change() -> ProgressionChange {
         },
         available_experience: 90,
         revision: 1,
+        rank_effect: None,
     }
+}
+
+#[test]
+fn ace_rank_effect_uses_frozen_base_and_source_output_order() {
+    // Pinned ACE Player_Attributes.cs, Player_Vitals.cs, Player_Skills.cs:
+    // each Raise handler emits a max-rank WeddingBliss script, RaiseTrait
+    // sound, then Advancement chat after the private trait update.
+    let limits = BatchLimits {
+        max_messages: 8,
+        max_bytes: 4096,
+        max_message_bytes: 4096,
+        max_string_bytes: 4096,
+    };
+    let mut raised = change();
+    raised.rank_effect = Some(RankEffect {
+        base: 101,
+        reached_maximum: true,
+    });
+    let packets = project_rank_effect(3, raised, limits).unwrap().unwrap();
+    assert_eq!(
+        packets.owner.iter().map(|m| m.queue).collect::<Vec<_>>(),
+        [10, 10, 9]
+    );
+    assert_eq!(
+        packets.owner[0].bytes,
+        [
+            0x55, 0xf7, 0, 0, 3, 0, 0, 0, 0x8d, 0, 0, 0, 0, 0, 0x80, 0x3f,
+        ]
+    );
+    assert_eq!(packets.observers, packets.owner[..1]);
+    assert_eq!(
+        packets.owner[1].bytes,
+        [
+            0x50, 0xf7, 0, 0, 3, 0, 0, 0, 0x8b, 0, 0, 0, 0, 0, 0x80, 0x3f,
+        ]
+    );
+    let fixture = include_str!("fixtures/rank_effect.hex").trim();
+    let golden = (0..fixture.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&fixture[i..i + 2], 16).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(packets.owner[2].bytes, golden);
+    assert_eq!(
+        packets.owner[2].bytes,
+        bace_wire::ChatMessage::System {
+            text: "Your base Strength is now 101 and has reached its upper limit!",
+            chat_type: 13,
+        }
+        .encode()
+        .unwrap()
+    );
+    raised.after.target = ProgressionTarget::Vital(VitalId::MaxHealth);
+    raised.before.target = raised.after.target;
+    raised.rank_effect = Some(RankEffect {
+        base: 125,
+        reached_maximum: false,
+    });
+    let vital = project_rank_effect(3, raised, limits).unwrap().unwrap();
+    assert_eq!(vital.owner.len(), 2);
+    assert_eq!(vital.observers.len(), 0);
+    assert_eq!(
+        vital.owner[1].bytes,
+        bace_wire::ChatMessage::System {
+            text: "Your base Maximum Health is now 125!",
+            chat_type: 13,
+        }
+        .encode()
+        .unwrap()
+    );
+    raised.after.target = ProgressionTarget::Skill(24);
+    raised.before.target = raised.after.target;
+    let skill = project_rank_effect(3, raised, limits).unwrap().unwrap();
+    assert_eq!(
+        skill.owner[1].bytes,
+        bace_wire::ChatMessage::System {
+            text: "Your base Run skill is now 125!",
+            chat_type: 13,
+        }
+        .encode()
+        .unwrap()
+    );
 }
 #[test]
 fn missing_metadata_and_wrong_identity_do_not_consume_revision_or_counters() {
@@ -159,4 +241,96 @@ fn legitimate_zero_xp_actions_emit_primary_updates_without_replaying_duplicates(
         )
         .unwrap();
     assert_eq!(positive.messages[0][4], 2);
+}
+
+#[test]
+fn training_class_message_and_full_unspec_share_skill_sequence_without_consuming_absent_xp() {
+    let before = ProgressionProjection {
+        target: ProgressionTarget::Skill(28),
+        experience_spent: 0,
+        ranks: 0,
+        advancement: SkillAdvancement::Untrained,
+        details: Some(TraitDetails::Skill {
+            initial_level: 0,
+            resistance_at_last_check: 0,
+            last_used_time: 0.0,
+        }),
+    };
+    let trained = ProgressionProjection {
+        advancement: SkillAdvancement::Trained,
+        ..before
+    };
+    let change = SkillTrainingChange {
+        before,
+        after: trained,
+        available_skill_credits: 10,
+        revision: 1,
+    };
+    // Training only needs the skill and credit sequence keys, not an XP key.
+    let mut minimal = projector(2);
+    let packets = minimal.project_training(context(), change, None).unwrap();
+    assert_eq!(
+        packets.messages[0],
+        [0xe2, 2, 0, 0, 0, 3, 0, 0, 0, 28, 0, 0, 0, 2, 0, 0, 0]
+    );
+    assert_eq!(packets.messages.len(), 2);
+    let mut full = projector(3);
+    full.project_training(context(), change, None).unwrap();
+    let after = ProgressionProjection {
+        ranks: 2,
+        experience_spent: 10,
+        ..trained
+    };
+    let packets = full
+        .project_training(
+            ActionContext {
+                sequence: 2,
+                ..context()
+            },
+            SkillTrainingChange {
+                before: trained,
+                after,
+                available_skill_credits: 10,
+                revision: 2,
+            },
+            Some(90),
+        )
+        .unwrap();
+    assert_eq!(packets.messages.len(), 4);
+    assert_eq!(packets.messages[0][4], 1);
+    assert_eq!(packets.messages[1][4], 2);
+    assert_eq!(packets.messages[3][4], 0);
+}
+
+#[test]
+fn live_cursor_uses_existing_session_counters_and_keeps_rejections_atomic() {
+    let context = context();
+    let binding = CharacterBinding {
+        actor: context.actor,
+        session: context.session,
+        account: context.account,
+    };
+    let mut cursor = ProgressionCursor::new(binding, 0);
+    let mut sequences = Sequences::with_instance(4, 17).unwrap();
+    // Entry/other adapters already emitted updates on this same session.
+    for _ in 0..7 {
+        sequences.advance(SequenceKind::PropertyInt64, 2).unwrap();
+        sequences.advance(SequenceKind::Attribute, 1).unwrap();
+    }
+    let mut invalid = change();
+    invalid.after.details = None;
+    assert!(matches!(
+        cursor.project(&mut sequences, context, invalid),
+        Err(ProgressionProjectionError::MissingDetails)
+    ));
+    assert_eq!(sequences.current(SequenceKind::PropertyInt64, 2), 6);
+    let packets = cursor.project(&mut sequences, context, change()).unwrap();
+    assert_eq!(packets.messages[0][4], 7);
+    assert_eq!(packets.messages[1][4], 7);
+    assert_eq!(sequences.current(SequenceKind::ObjectInstance, 0), 17);
+    assert!(matches!(
+        cursor.project(&mut sequences, context, change()),
+        Err(ProgressionProjectionError::StaleRevision)
+    ));
+    assert_eq!(sequences.current(SequenceKind::PropertyInt64, 2), 7);
 }

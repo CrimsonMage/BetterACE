@@ -1,10 +1,9 @@
 # BACE host console
 
 The default server command starts a localhost dashboard and a separate supervised
-foundation child. The dashboard survives child restart and can reconnect after a
-supervisor restart. **The foundation child opens no game socket, world or database;
-stock-client game serving remains unsupported.** Restarting it is a process
-lifecycle test, not evidence of a playable game restart or integrated save drain.
+game child. The dashboard survives child restart and can reconnect after a
+supervisor restart. Game readiness is reported by the child independently;
+stock-client serving and durable restart still require end-to-end validation.
 
 Provision the host password once with `bace-cli host-init --state-directory
 state/host`, passing the password through piped stdin from a hidden prompt. Never
@@ -73,11 +72,14 @@ lease-loss callback MUST close admission without destroying that state. A drain
 operation survives control reconnection and rejects a different operation ID.
 The child refuses exit before successful drain. Retry resumes the same operation;
 there is no force-kill endpoint. A lost acknowledgment or timeout remains visibly
-blocked. The foundation backend has no persistence, so its successful drain is
-explicitly an empty-state drain.
+blocked. The game backend now connects this port to its runtime drain; a
+successful empty-state drain is not evidence for populated-world recovery.
 
-No production world/save coordinator is wired to this port yet. Real gameplay
-integration must demonstrate durable final snapshots, uncertain-commit recovery,
-admission closure and retained world ownership before advertising safe game
-restart. Compiled `.bace` dataset status will be supplied by that backend; the
-host supervisor must not load or duplicate the mapped world catalog.
+Populated-world restart still needs durable final-snapshot, uncertain-commit,
+admission-closure and retained-world-ownership validation. The host supervisor
+does not construct or duplicate the mapped game catalog.
+
+The host also exposes the [reviewed content inbox](content-inbox.md). It maps the
+accepted pack for bounded review and queues the confirmed candidate in
+PostgreSQL. The game child owns pack writes, generation adoption and save-pressure
+coordination.

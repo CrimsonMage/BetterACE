@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+/// At most one base and two deltas may form an active generation.
+pub const MAX_ACTIVE_PACKS: usize = 3;
+
 pub(crate) const HEADER: usize = 128;
 pub(crate) const ENTRY: usize = 72;
 pub(crate) const DIRECTORY_ENTRY: usize = 80;
@@ -57,7 +60,7 @@ impl Default for PackLimits {
             max_record_bytes: 16 * 1024 * 1024,
             max_directory_bytes: 8 * 1024 * 1024,
             max_records: 3_000_000,
-            max_segments: 64,
+            max_segments: MAX_ACTIVE_PACKS,
             max_scan_records: 1024,
             max_scan_bytes: 64 * 1024 * 1024,
         }

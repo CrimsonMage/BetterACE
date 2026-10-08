@@ -177,3 +177,15 @@ async fn reserved_postgres_save_worker_commits_and_drains() {
     assert!(!summary.shutdown_timed_out);
     admin.close().await;
 }
+
+#[path = "publication/native.rs"]
+mod native;
+
+#[path = "publication/mixed.rs"]
+mod mixed;
+
+#[path = "publication/mapped.rs"]
+mod mapped;
+
+#[path = "publication/death.rs"]
+mod death;

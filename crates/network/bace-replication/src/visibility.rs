@@ -10,6 +10,14 @@ pub struct ForgetTicket {
     generation: u64,
     deadline_ms: u64,
 }
+impl ForgetTicket {
+    pub fn entity(self) -> EntityId {
+        self.entity
+    }
+    pub fn deadline_ms(self) -> u64 {
+        self.deadline_ms
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VisibilityChange {
     Create,
@@ -108,6 +116,48 @@ impl Visibility {
     }
     pub fn knows(&self, entity: EntityId) -> bool {
         self.known.contains_key(&entity)
+    }
+    pub fn visible(&self, entity: EntityId) -> bool {
+        self.known.get(&entity).is_some_and(|k| k.pending.is_none())
+    }
+    pub fn known_entities(&self) -> impl Iterator<Item = EntityId> + '_ {
+        self.known.keys().copied()
+    }
+    pub(crate) fn pending_forgets(&self) -> impl Iterator<Item = ForgetTicket> + '_ {
+        self.known.values().filter_map(|k| k.pending)
+    }
+    pub(crate) fn preflight_changes(
+        &self,
+        now_ms: u64,
+        observations: usize,
+        removed: usize,
+        created: usize,
+    ) -> Result<(), ReplicationError> {
+        if now_ms < self.last_ms {
+            return Err(ReplicationError::InvalidClock);
+        }
+        self.generation
+            .checked_add(observations as u64)
+            .ok_or(ReplicationError::GenerationExhausted)?;
+        if self
+            .known
+            .len()
+            .saturating_sub(removed)
+            .saturating_add(created)
+            > self.capacity
+        {
+            return Err(ReplicationError::Capacity);
+        }
+        Ok(())
+    }
+    pub(crate) fn forget_now(
+        &mut self,
+        entity: EntityId,
+        now_ms: u64,
+    ) -> Result<(), ReplicationError> {
+        self.clock(now_ms)?;
+        self.known.remove(&entity);
+        Ok(())
     }
     pub fn len(&self) -> usize {
         self.known.len()

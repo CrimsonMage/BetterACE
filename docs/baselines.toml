@@ -30,4 +30,24 @@ client_local_english_sha256 = "e85c820280c88fac7df6c8043f5e24596e9c8774193af4123
 [gdle_secondary]
 repository = "https://gitlab.com/Scribble/gdlenhanced"
 commit = "353cbab52ef7da2b7063bc3e3f008461d8531693"
-role = "secondary explanation and corroboration; never overrides official ACE"
+role = "primary combat reference including physical and spell combat, door/monster authority, player cast control and salvage; verified retail evidence overrides, ACE fills reviewed gaps and owns wire layouts"
+
+# Explicit project-owner direction, 2026-10-07. The legacy gdle_secondary key is
+# retained for existing tooling; this policy narrows its former secondary role.
+[authority_policy]
+verified_retail_evidence = "takes precedence over both emulators; unresolved reports remain explicitly uncertain"
+physical_combat = "gdle with documented defects corrected after ACE/retail comparison"
+spell_combat = "gdle where implemented; ACE gaps verified against original divergences.md"
+ring_spells = "gdle for launch layout and hit behavior; verified retail evidence overrides, ACE retains wire authority; owner direction 2026-10-08, implementation parity not yet established"
+dual_wield_charge_review = "unresolved: local ClientCombatSystem::GetPowerBarLevel at 0x0056ADE0 uses elapsed / 0.8, while pinned GDLE Monster.cpp TryMeleeAttack uses elapsed * 0.8 + 0.001; client UI and server admission roles require comparison, not automatic substitution; client file SHA256 ffb745b53eb3bf764d96ba962e9003b6b4f55e9e57bc6356c2d613d15c43f734, build provenance unconfirmed; reviewed via INDEX/AGENTS.md summaries, domain pack 09, CombatSystem leaf then scoped ClientCombatSystem"
+dual_wielding = "prefer client-decompile evidence for demonstrated behavior when it differs from GDLE; compare surrounding timing and motion roles before porting, retain server authority and label unknown server-only rules; owner direction 2026-10-08"
+npc_emote_behavior = "ace authored action order, pre/post delays, independent continuations and source-defined stages"
+wire_layout = "ace"
+gameplay_default = "ace"
+door_and_monster_authority = "gdle"
+player_cast_movement_release = "gdle"
+salvage_yield = "gdle"
+allegiance_experience = "gdle at 353cbab52ef7da2b7063bc3e3f008461d8531693, including discrete online-time accrual, eligibility, rounding, cached skills and offline propagation stops; owner direction 2026-10-07"
+imbue_probability = "ACE skill scaling with owner-directed exact 0.33 cap or 0.38 with augmentation; foolproof 1.0"
+rares = "supplied Turbine retail evidence; uncertain values require explicit profile"
+policy = "Use pinned GDLE for server-owned door state, monster decisions/movement and attack authority. Preserve exact client packet structures; compare both sources and document discrepancies/hardening. Player slide casting and physical/spell combat follow verified retail evidence first, pinned GDLE next, and reviewed ACE gap-fills. NPC emotes and otherwise unspecified gameplay follow ACE. Rares follow docs/rare-evidence.toml, never emulator probabilities as retail evidence."

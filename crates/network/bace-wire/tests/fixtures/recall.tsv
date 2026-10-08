@@ -1,0 +1,24 @@
+# Original ACE contributors, AGPL-3.0-only; unchanged action handlers and enum.
+# Synthetic Player records invoked method; BinaryReader records ignored payload; no gameplay implementation.
+# 47edade3bd3f6044b676d4eb877c4965c7eda62b sha256 ac5d46a39c9f6dd43b7c1ad0986fa514cdbc10cd37f260f2f0d3a4e5cc0840a5 Source/ACE.Server/Network/GameAction/GameActionType.cs
+# 47edade3bd3f6044b676d4eb877c4965c7eda62b sha256 dbd8338dcbe0d5a3d7e8b1e1ee3aa9a0f1841e952cd0869c22e45fa4bce3df43 Source/ACE.Server/Network/GameAction/Actions/GameActionTeleToLifestone.cs
+# 47edade3bd3f6044b676d4eb877c4965c7eda62b sha256 dc803aa4832ccb7dead190b574d0ab1487885b75ed587eb53b029548da4d3c42 Source/ACE.Server/Network/GameAction/Actions/GameActionTeleToHouse.cs
+# 47edade3bd3f6044b676d4eb877c4965c7eda62b sha256 4eabafeef1eafd16bda98174b3eb05ef9e880c65dfa5d6937c871dc5e5bfad09 Source/ACE.Server/Network/GameAction/Actions/GameActionTeleToMansion.cs
+# 47edade3bd3f6044b676d4eb877c4965c7eda62b sha256 6bac7b58d81231789cbc1228031d2b305fb98d7ad27721db244af8cc3030d13a Source/ACE.Server/Network/GameAction/Actions/GameActionTeleToMarketplace.cs
+# 47edade3bd3f6044b676d4eb877c4965c7eda62b sha256 fb12e89db1e616b2c2de827586c3a597cdf271d8488dbbbb86ec1e0b872375f2 Source/ACE.Server/Network/GameAction/Actions/GameActionTeleToPkArena.cs
+# 47edade3bd3f6044b676d4eb877c4965c7eda62b sha256 abe67221da0d955c42dad2935bea9c52babe0888358665634dbe2e08a0f12b72 Source/ACE.Server/Network/GameAction/Actions/GameActionTeleToPklArena.cs
+# 47edade3bd3f6044b676d4eb877c4965c7eda62b sha256 612e4087d34591c329bad4e29e5d5ef60ecd8e847641bebbc2e428173158cb24 Source/ACE.Server/Network/GameAction/Actions/GameActionRecallAllegianceHometown.cs
+683		RecallAllegianceHometown	0
+683	DEADBEEF	RecallAllegianceHometown	4
+610		TeleToHouse	0
+610	DEADBEEF	TeleToHouse	4
+99		TeleToLifestone	0
+99	DEADBEEF	TeleToLifestone	4
+632		TeleToMansion	0
+632	DEADBEEF	TeleToMansion	4
+653		TeleToMarketPlace	0
+653	DEADBEEF	TeleToMarketPlace	4
+39		TeleToPkArena	0
+39	DEADBEEF	TeleToPkArena	4
+38		TeleToPklArena	0
+38	DEADBEEF	TeleToPklArena	4

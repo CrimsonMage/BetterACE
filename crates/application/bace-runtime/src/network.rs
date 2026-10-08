@@ -28,6 +28,11 @@ pub struct NetworkThread {
     max_message_bytes: usize,
 }
 impl NetworkThread {
+    /// Maximum aggregate bytes in a tracked reliable admission batch.
+    pub fn maximum_message_bytes(&self) -> usize {
+        self.max_message_bytes
+    }
+
     pub fn spawn(config: NetworkThreadConfig) -> Result<Self, NetworkThreadError> {
         config.validate()?;
         let (commands, receive_commands) = mpsc::sync_channel(config.command_capacity);
@@ -75,6 +80,24 @@ impl NetworkThread {
     }
     /// Nonblocking admission; the caller retains a rejected command's payload.
     pub fn try_send(&self, command: NetworkCommand) -> Result<(), TrySendError<NetworkCommand>> {
+        if let NetworkCommand::SendReliableBatch {
+            correlation,
+            messages,
+            ..
+        } = &command
+            && (*correlation == 0
+                || messages.is_empty()
+                || messages.len() > 256
+                || messages.iter().any(|(queue, bytes)| {
+                    *queue >= 12 || !(4..=self.max_message_bytes).contains(&bytes.len())
+                })
+                || messages
+                    .iter()
+                    .try_fold(0usize, |n, (_, bytes)| n.checked_add(bytes.len()))
+                    .is_none_or(|n| n > self.max_message_bytes))
+        {
+            return Err(TrySendError::Full(command));
+        }
         if let NetworkCommand::Send { bytes, .. } = &command
             && (bytes.len() < 4 || bytes.len() > self.max_message_bytes)
         {

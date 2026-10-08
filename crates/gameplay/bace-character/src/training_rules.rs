@@ -18,11 +18,14 @@ pub enum SkillRulesError {
     TooManySkills,
     NegativeCost,
     DuplicateSkill,
+    UnknownSkill,
+    CostOverflow,
 }
 
 #[derive(Debug)]
 pub struct SkillTrainingRules {
     costs: BTreeMap<u32, SkillCosts>,
+    cap_costs: BTreeMap<u32, u32>,
 }
 impl SkillTrainingRules {
     pub fn new(costs: &[SkillCosts]) -> Result<Self, SkillRulesError> {
@@ -38,7 +41,46 @@ impl SkillTrainingRules {
                 return Err(SkillRulesError::DuplicateSkill);
             }
         }
-        Ok(Self { costs: entries })
+        let cap_costs = entries
+            .iter()
+            .map(|(id, c)| {
+                c.trained_cost
+                    .checked_add(c.specialized_cost)
+                    .map(|total| (*id, total as u32))
+                    .ok_or(SkillRulesError::CostOverflow)
+            })
+            .collect::<Result<_, _>>()?;
+        Ok(Self {
+            costs: entries,
+            cap_costs,
+        })
+    }
+    /// Heritage PrimaryCost overrides apply to the 70-credit budget only.
+    pub fn with_specialization_costs(
+        mut self,
+        costs: &[(u32, u32)],
+    ) -> Result<Self, SkillRulesError> {
+        if costs.len() > 256 {
+            return Err(SkillRulesError::TooManySkills);
+        }
+        let mut seen = BTreeSet::new();
+        for &(skill, cost) in costs {
+            if !seen.insert(skill) {
+                return Err(SkillRulesError::DuplicateSkill);
+            }
+            if cost > i32::MAX as u32 {
+                return Err(SkillRulesError::CostOverflow);
+            }
+            let entry = self
+                .cap_costs
+                .get_mut(&skill)
+                .ok_or(SkillRulesError::UnknownSkill)?;
+            *entry = cost;
+        }
+        Ok(self)
+    }
+    pub(crate) fn cap_cost(&self, skill: u32) -> Option<u32> {
+        self.cap_costs.get(&skill).copied()
     }
     pub(crate) fn get(&self, skill: u32) -> Option<SkillCosts> {
         self.costs.get(&skill).copied()
@@ -55,7 +97,7 @@ pub enum TrainingSetupError {
     UnsupportedZeroRankTable,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct TrainingState {
     pub(crate) rules: Arc<SkillTrainingRules>,
     pub(crate) credits: u32,
@@ -75,7 +117,7 @@ impl TrainingState {
         }
         let mut skills = BTreeSet::new();
         for skill in augmentation_skills {
-            if rules.get(*skill).is_none() {
+            if rules.get(*skill).is_none() || !crate::is_augmentation_skill(*skill) {
                 return Err(TrainingSetupError::UnknownAugmentationSkill);
             }
             if !skills.insert(*skill) {

@@ -3,4 +3,58 @@
 # owner = "bace-..."
 # destinations = ["module/one.rs", "module/two.rs"]
 # rationale = "Describe the responsibility boundary."
-plans = []
+[[plans]]
+path = "crates/application/bace-runtime/src/game_runtime/deaths/output/completed.rs"
+owner = "bace-runtime"
+destinations = ["crates/application/bace-runtime/src/game_runtime/deaths/output/completed/no_corpse.rs", "crates/application/bace-runtime/src/game_runtime/deaths/output/completed/ordinary.rs", "crates/application/bace-runtime/src/game_runtime/deaths/output/completed/tests.rs"]
+rationale = "Keep retained Completed dispatch and exact delivery state in the parent; move receipt-gated NoCorpse world-root, sibling-slot and burden projection into no_corpse.rs, ordinary corpse inventory/coin output into ordinary.rs, and source packet and invalid-receipt regressions into tests.rs. Preserve one death delivery owner and split before further growth."
+[[plans]]
+path = "crates/application/bace-content-studio/src/offline_workspace_ui.rs"
+owner = "bace-content-studio"
+destinations = ["crates/application/bace-content-studio/src/offline_workspace_ui/navigation.rs", "crates/application/bace-content-studio/src/offline_workspace_ui/pose.rs", "crates/application/bace-content-studio/src/offline_workspace_ui/review.rs"]
+rationale = "Keep workspace state and close guards in the parent; move pack browsing and draft navigation, DAT pose controls, and review/build worker UI into named modules before further UI growth. Retain one document owner and bounded job lifecycle."
+[[plans]]
+path = "crates/simulation/bace-simulation/tests/native_npc.rs"
+owner = "bace-simulation"
+destinations = ["crates/simulation/bace-simulation/tests/native_npc/mod.rs", "crates/simulation/bace-simulation/tests/native_npc/durable_stages.rs", "crates/simulation/bace-simulation/tests/native_npc/interaction_outputs.rs"]
+rationale = "Keep shared deterministic owner fixtures in native_npc/mod.rs; move durable effect/checkpoint and receipt-retry cases into durable_stages.rs and source interaction/output scenarios into interaction_outputs.rs. The named integration entry must retain all scenarios without duplicate fixtures. Split before further test growth."
+[[plans]]
+path = "crates/application/bace-runtime/src/game_runtime/npc/effects.rs"
+owner = "bace-runtime"
+destinations = ["crates/application/bace-runtime/src/game_runtime/npc/effects/preparation.rs", "crates/application/bace-runtime/src/game_runtime/npc/effects/durable_stages.rs", "crates/application/bace-runtime/src/game_runtime/npc/effects/adoption.rs"]
+rationale = "Keep bounded NPC effect routing in the parent; separate cold source/asset preparation, freezing and submitting exact durable stage operations, and correlated owner adoption. Preserve one retained workflow owner across these modules. Split before further feature growth."
+[[plans]]
+path = "crates/simulation/bace-simulation/src/kernel/portals.rs"
+owner = "bace-simulation"
+destinations = ["crates/simulation/bace-simulation/src/kernel/portals/preparation.rs", "crates/simulation/bace-simulation/src/kernel/portals/completion.rs"]
+rationale = "Keep portal state/contracts/registration in the parent; move pure target/preflight preparation and receipt/completion/handshake lifecycle into named modules before further growth."
+
+[[plans]]
+path = "crates/gameplay/bace-loot/src/ace_tables/scroll_wcids.rs"
+owner = "bace-loot"
+destinations = ["crates/gameplay/bace-loot/src/ace_tables/scroll_wcids/life.rs", "crates/gameplay/bace-loot/src/ace_tables/scroll_wcids/creature.rs", "crates/gameplay/bace-loot/src/ace_tables/scroll_wcids/item.rs", "crates/gameplay/bace-loot/src/ace_tables/scroll_wcids/war_void.rs"]
+rationale = "One generated ACE scroll sequence retains exact upstream ordering. Before growth, partition storage by verified spell school and retain an ordered index mapping; do not reorder the roll sequence."
+
+[[plans]]
+path = "crates/simulation/bace-simulation/src/pve.rs"
+owner = "bace-simulation"
+destinations = ["crates/simulation/bace-simulation/src/pve/combat_dispatch.rs", "crates/simulation/bace-simulation/src/pve/death_lifecycle.rs"]
+rationale = "Keep the single Population owner and authoritative awareness/home-return loop in the parent. Before further growth, move magic-target projection and prepared melee/missile candidate dispatch into combat_dispatch, and durable death/corpse completion into death_lifecycle; neither module gains a second mutable owner."
+
+[[plans]]
+path = "crates/simulation/bace-simulation/src/kernel/simulation.rs"
+owner = "bace-simulation"
+destinations = ["crates/simulation/bace-simulation/src/kernel/simulation/commands.rs", "crates/simulation/bace-simulation/src/kernel/simulation/tick.rs"]
+rationale = "Keep the Kernel facade and owned simulation state in the parent; move bounded input admission/dispatch into commands.rs and tick scheduling with retained completion lanes into tick.rs. Preserve one simulation-thread owner and keep I/O out of both modules. Split before further growth."
+
+[[plans]]
+path = "crates/simulation/bace-simulation/src/kernel/player_death/tests.rs"
+owner = "bace-simulation"
+destinations = ["crates/simulation/bace-simulation/src/kernel/player_death/tests/metadata.rs", "crates/simulation/bace-simulation/src/kernel/player_death/tests/selection.rs", "crates/simulation/bace-simulation/src/kernel/player_death/tests/corpse_expiry.rs"]
+rationale = "Keep deterministic death world, character, inventory, and enchantment fixtures in tests.rs. Move source announcement and vitae metadata cases to metadata.rs, exact coin/item selection and durable receipt cases to selection.rs, and corpse access, spill, and expiry cases to corpse_expiry.rs. Preserve one fixture and split before further test growth."
+
+[[plans]]
+path = "crates/storage/bace-db-postgres/tests/postgres/placements.rs"
+owner = "bace-db-postgres"
+destinations = ["crates/storage/bace-db-postgres/tests/postgres/placements/world.rs", "crates/storage/bace-db-postgres/tests/postgres/placements/contained.rs", "crates/storage/bace-db-postgres/tests/postgres/placements/death_receipts.rs"]
+rationale = "Keep only shared PostgreSQL fixture constructors in placements.rs; move epoch-fenced world placement and generated acquisition cases to world.rs, contained/equipment CAS races to contained.rs, and corpse/NoCorpse marker durability regressions to death_receipts.rs. Preserve independent temporary clusters and operation IDs. Split before further test growth."

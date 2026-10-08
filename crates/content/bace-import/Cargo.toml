@@ -19,3 +19,4 @@ tempfile.workspace = true
 
 [dev-dependencies]
 bace-content-tools.workspace = true
+bace-storage-codec.workspace = true

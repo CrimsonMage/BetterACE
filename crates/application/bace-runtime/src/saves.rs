@@ -5,6 +5,14 @@ use bace_persistence::{
     CharacterLease, OfflineXpEvent, OperationOutcome, SAVE_INTERVAL, SaveAck, SaveSnapshot,
     XpReceipt,
 };
+use bace_persistence::{
+    HousingOperation, InventoryOperation, NpcStageOperation, OwnedSaveBatch, OwnershipState,
+    PlacementOperation, WorldPlacementOperation,
+};
+use bace_storage_codec::HouseSaveV1;
+mod gameplay;
+use gameplay::GameplayWrite;
+pub use gameplay::HousingWrite;
 use std::{collections::VecDeque, future::Future, sync::Arc, time::Duration};
 use tokio::{
     sync::{OwnedSemaphorePermit, Semaphore, mpsc, oneshot, watch},
@@ -60,6 +68,7 @@ pub enum WriteOutcome {
     Offline(XpReceipt),
     Routine(Vec<SaveAck>),
     Valuable(OperationOutcome),
+    Allegiance(bace_persistence::AllegianceCommit),
 }
 #[derive(Debug)]
 pub struct SaveReport {
@@ -80,6 +89,107 @@ pub struct SaveWorkerSummary {
 
 /// Testable adapter contract. Real production construction uses a dedicated PgStore pool.
 pub trait SaveBackend: Send + Sync + 'static {
+    fn allegiance_placement(
+        &self,
+        _operation: &bace_persistence::AllegiancePlacementOperation,
+    ) -> impl Future<Output = Result<OperationOutcome, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "allegiance placement backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
+    fn allegiance(
+        &self,
+        _operation: &bace_persistence::AllegianceOperation,
+    ) -> impl Future<Output = Result<bace_persistence::AllegianceCommit, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "allegiance backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
+    fn world_placement(
+        &self,
+        _operation: &WorldPlacementOperation,
+    ) -> impl Future<Output = Result<OperationOutcome, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "world placement backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
+    fn constructed_creature_promotion(
+        &self,
+        _operation: &bace_persistence::ConstructedCreaturePromotionOperation,
+    ) -> impl Future<Output = Result<OperationOutcome, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "constructed creature promotion backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
+
+    fn npc_stage(
+        &self,
+        _operation: &NpcStageOperation,
+    ) -> impl Future<Output = Result<OperationOutcome, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "NPC stage backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
+
+    fn placement(
+        &self,
+        _operation: &PlacementOperation,
+    ) -> impl Future<Output = Result<OperationOutcome, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "placement backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
+    fn housing_operation(
+        &self,
+        _operation: &HousingOperation,
+    ) -> impl Future<Output = Result<OperationOutcome, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "housing lifecycle backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
+    fn inventory(
+        &self,
+        _operation: &InventoryOperation,
+    ) -> impl Future<Output = Result<OperationOutcome, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "inventory backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
+    fn housing(
+        &self,
+        _operation: &HousingWrite,
+    ) -> impl Future<Output = Result<OperationOutcome, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "housing backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
     fn routine(
         &self,
         snapshots: &[SaveSnapshot],
@@ -101,6 +211,17 @@ pub trait SaveBackend: Send + Sync + 'static {
             })
         }
     }
+    fn owned_batch(
+        &self,
+        _batch: &OwnedSaveBatch,
+    ) -> impl Future<Output = Result<Vec<SaveAck>, SaveFailure>> + Send {
+        async {
+            Err(SaveFailure::Storage {
+                message: "owned batch backend unsupported".into(),
+                uncertain: false,
+            })
+        }
+    }
     fn owned_routine(
         &self,
         _lease: CharacterLease,
@@ -118,6 +239,83 @@ pub trait SaveBackend: Send + Sync + 'static {
     }
 }
 impl SaveBackend for PgStore {
+    async fn allegiance_placement(
+        &self,
+        operation: &bace_persistence::AllegiancePlacementOperation,
+    ) -> Result<OperationOutcome, SaveFailure> {
+        self.allegiance_placement_operation(operation)
+            .await
+            .map_err(storage_failure)
+    }
+    async fn allegiance(
+        &self,
+        operation: &bace_persistence::AllegianceOperation,
+    ) -> Result<bace_persistence::AllegianceCommit, SaveFailure> {
+        self.allegiance_operation(operation)
+            .await
+            .map_err(storage_failure)
+    }
+    async fn world_placement(
+        &self,
+        operation: &WorldPlacementOperation,
+    ) -> Result<OperationOutcome, SaveFailure> {
+        PgStore::world_placement_operation(self, operation)
+            .await
+            .map_err(storage_failure)
+    }
+    async fn constructed_creature_promotion(
+        &self,
+        operation: &bace_persistence::ConstructedCreaturePromotionOperation,
+    ) -> Result<OperationOutcome, SaveFailure> {
+        PgStore::constructed_creature_promotion(self, operation)
+            .await
+            .map_err(storage_failure)
+    }
+
+    async fn npc_stage(
+        &self,
+        operation: &NpcStageOperation,
+    ) -> Result<OperationOutcome, SaveFailure> {
+        PgStore::npc_stage(self, operation)
+            .await
+            .map_err(storage_failure)
+    }
+
+    async fn placement(
+        &self,
+        operation: &PlacementOperation,
+    ) -> Result<OperationOutcome, SaveFailure> {
+        self.placement_operation(operation)
+            .await
+            .map_err(storage_failure)
+    }
+    async fn housing_operation(
+        &self,
+        operation: &HousingOperation,
+    ) -> Result<OperationOutcome, SaveFailure> {
+        PgStore::housing_operation(self, operation)
+            .await
+            .map_err(storage_failure)
+    }
+
+    async fn inventory(
+        &self,
+        operation: &InventoryOperation,
+    ) -> Result<OperationOutcome, SaveFailure> {
+        self.inventory_operation(operation)
+            .await
+            .map_err(storage_failure)
+    }
+    async fn housing(&self, operation: &HousingWrite) -> Result<OperationOutcome, SaveFailure> {
+        self.save_house(
+            &operation.operation_id,
+            operation.owner,
+            &operation.house,
+            operation.expected_version,
+        )
+        .await
+        .map_err(storage_failure)
+    }
     async fn routine(&self, snapshots: &[SaveSnapshot]) -> Result<Vec<SaveAck>, SaveFailure> {
         self.save_batch(snapshots).await.map_err(storage_failure)
     }
@@ -142,14 +340,19 @@ impl SaveBackend for PgStore {
             .await
             .map_err(storage_failure)
     }
+    async fn owned_batch(&self, batch: &OwnedSaveBatch) -> Result<Vec<SaveAck>, SaveFailure> {
+        self.save_owned_batch(batch).await.map_err(storage_failure)
+    }
     async fn owned_routine(
         &self,
         lease: CharacterLease,
         snapshot: &SaveSnapshot,
     ) -> Result<SaveAck, SaveFailure> {
-        self.save_owned(lease, snapshot)
-            .await
-            .map_err(storage_failure)
+        match lease.state {
+            OwnershipState::Offline => self.save_offline(lease, snapshot).await,
+            _ => self.save_owned(lease, snapshot).await,
+        }
+        .map_err(storage_failure)
     }
     async fn close(&self) {
         PgStore::close(self).await;
@@ -180,6 +383,8 @@ pub struct SaveHandle {
     valuable_limit: u32,
 }
 struct Request {
+    gameplay: Option<GameplayWrite>,
+    owned_batch: Option<OwnedSaveBatch>,
     offline: Option<(OfflineXpEvent, CharacterLease)>,
     owner: Option<CharacterLease>,
     snapshots: Vec<SaveSnapshot>,
@@ -232,6 +437,8 @@ impl SaveHandle {
             .map_err(|_| SaveSubmitError::Full)?;
         let (reply, ticket) = oneshot::channel();
         slot.send(Request {
+            gameplay: None,
+            owned_batch: None,
             offline: Some((event.clone(), lease)),
             owner: None,
             snapshots: Vec::new(),
@@ -251,7 +458,10 @@ impl SaveHandle {
     ) -> Result<SaveTicket, SaveSubmitError> {
         if dirty_since > Instant::now()
             || snapshot.object_id != lease.character_id
-            || lease.state != bace_persistence::OwnershipState::Online
+            || !matches!(
+                lease.state,
+                OwnershipState::Online | OwnershipState::Offline
+            )
         {
             return Err(SaveSubmitError::Invalid);
         }
@@ -324,6 +534,8 @@ impl SaveHandle {
             .map_err(|_| SaveSubmitError::Full)?;
         let (reply, ticket) = oneshot::channel();
         slot.send(Request {
+            gameplay: None,
+            owned_batch: None,
             offline: None,
             owner,
             snapshots: snapshots.to_vec(),
@@ -484,7 +696,35 @@ async fn run<B: SaveBackend>(
                 Instant::now().saturating_duration_since(deadline)
             });
             let operation = async {
-                if let Some((event, lease)) = &request.offline {
+                if let Some(gameplay) = &request.gameplay {
+                    match gameplay {
+                        GameplayWrite::AllegiancePlacement(operation) => {
+                            backend.allegiance_placement(operation).await
+                        }
+                        GameplayWrite::Allegiance(operation) => {
+                            return backend
+                                .allegiance(operation)
+                                .await
+                                .map(WriteOutcome::Allegiance);
+                        }
+                        GameplayWrite::Inventory(operation) => backend.inventory(operation).await,
+                        GameplayWrite::NpcStage(operation) => backend.npc_stage(operation).await,
+                        GameplayWrite::Placement(operation) => backend.placement(operation).await,
+                        GameplayWrite::WorldPlacement(operation) => {
+                            backend.world_placement(operation).await
+                        }
+                        GameplayWrite::ConstructedCreaturePromotion(operation) => {
+                            backend.constructed_creature_promotion(operation).await
+                        }
+                        GameplayWrite::HousingLifecycle(operation) => {
+                            backend.housing_operation(operation).await
+                        }
+                        GameplayWrite::Housing(operation) => backend.housing(operation).await,
+                    }
+                    .map(WriteOutcome::Valuable)
+                } else if let Some(batch) = &request.owned_batch {
+                    backend.owned_batch(batch).await.map(WriteOutcome::Routine)
+                } else if let Some((event, lease)) = &request.offline {
                     backend
                         .offline(event, *lease)
                         .await
@@ -512,7 +752,9 @@ async fn run<B: SaveBackend>(
             match &result {
                 Ok(WriteOutcome::Offline(_)) => summary.offline_completed += 1,
                 Ok(WriteOutcome::Routine(_)) => summary.routine_completed += 1,
-                Ok(WriteOutcome::Valuable(_)) => summary.valuable_completed += 1,
+                Ok(WriteOutcome::Valuable(_) | WriteOutcome::Allegiance(_)) => {
+                    summary.valuable_completed += 1
+                }
                 Err(_) => summary.failed += 1,
             }
             // Even a dropped receiver does not cancel an admitted durable write.

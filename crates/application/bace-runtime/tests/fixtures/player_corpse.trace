@@ -1,0 +1,15 @@
+# official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b
+# Creature_Death.cs sha256=47a3e0abd503e05a80f4d44be5f6522b2f8b1337b848525cd87e4e12b3d58e40
+# scope: unmodified CreateCorpse appearance/identity block before player/loot handling
+0|Corpse of Alice|Killed by misadventure.|11|12|103|6|7|22|-|-|-|1342177281|-|1|1|1
+1|Corpse of Alice|Killed by Killer.|11|12|103|6|7|22|1.5|9|0.25|1342177281|1342177282|1|1|1
+2|Corpse of Alice|Killed by misadventure.|11|12|103|6|7|22|-|-|-|1342177281|-|1|1|1
+3|Corpse of Alice|Killed by misadventure.|11|12|103|6|7|22|1.5|9|0.25|1342177281|1342177283|1|1|1
+4|Corpse of Alice|Killed by Pet.|11|12|103|6|7|22|-|-|-|1342177281|1342177285|1|1|1
+5|Corpse of Alice|Killed by misadventure.|11|12|103|6|7|22|1.5|9|0.25|1342177281|-|1|1|1
+6|Treasure of Alice|Killed by misadventure.|33558212|150995355|536871106|-|-|122|0.4|-|-|1342177281|-|0|0|0
+7|Treasure of Alice|Killed by Killer.|33558212|150995355|536871106|-|-|122|0.4|-|-|1342177281|1342177282|0|0|0
+8|Treasure of Alice|Killed by misadventure.|33558212|150995355|536871106|-|-|122|0.4|-|-|1342177281|-|0|0|0
+9|Treasure of Alice|Killed by misadventure.|33558212|150995355|536871106|-|-|122|0.4|-|-|1342177281|1342177283|0|0|0
+10|Treasure of Alice|Killed by Pet.|33558212|150995355|536871106|-|-|122|0.4|-|-|1342177281|1342177285|0|0|0
+11|Treasure of Alice|Killed by misadventure.|33558212|150995355|536871106|-|-|122|0.4|-|-|1342177281|-|0|0|0

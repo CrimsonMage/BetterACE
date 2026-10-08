@@ -231,10 +231,10 @@ impl IsolatedMariaDb {
                 .read_to_string(&mut diagnostics)
                 .map_err(failure)?;
             if diagnostics.len() > 1024 * 1024
-                || diagnostics.lines().any(|line| line.starts_with("Warning "))
+                || diagnostics.lines().any(|line| line.starts_with("Warning ") && line != "Warning (Code 1287): '@@sql_notes' is deprecated and will be removed in a future release. Please use '@@note_verbosity' instead")
             {
                 return Err(failure(
-                    "SQL input generated warnings or excessive output; possible lossy conversion rejected",
+                    format!("SQL input generated warnings or excessive output; possible lossy conversion rejected: {}", diagnostics.chars().take(8192).collect::<String>()),
                 ));
             }
         }
@@ -243,6 +243,15 @@ impl IsolatedMariaDb {
 }
 impl SqlStagingBackend for MariaDbStaging {
     fn extract_isolated(&mut self, dump: &Path) -> Result<StagedWorld, SqlStagingError> {
+        self.with_loaded(dump, crate::sql_extract::extract)
+    }
+}
+impl MariaDbStaging {
+    pub(crate) fn with_loaded<T>(
+        &mut self,
+        dump: &Path,
+        extract: impl FnOnce(&IsolatedMariaDb, String) -> Result<T, SqlStagingError>,
+    ) -> Result<T, SqlStagingError> {
         let instance = IsolatedMariaDb::start(&self.binaries)?;
         let schema_path = instance.directory.path().join("schema.sql");
         File::create(&schema_path)
@@ -273,6 +282,6 @@ impl SqlStagingBackend for MariaDbStaging {
         }
         drop(snapshot);
         instance.load(&snapshot_path, true)?;
-        crate::sql_extract::extract(&instance, format!("{:x}", digest.finalize()))
+        extract(&instance, format!("{:x}", digest.finalize()))
     }
 }

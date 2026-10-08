@@ -34,8 +34,26 @@ deadlines return errors instead of wrapping into immediately solvable quests.
 Boundary tests cover these intentional deviations alongside official valid cases.
 The caller must supply authenticated authoritative progress and explicit time;
 network timestamps are not a clock source. Readiness is not reward authorization
-or a durable completion receipt. Quest definition import, registry mutations,
-quest-name resolution, contracts, reward transactions, emotes and notification
-composition remain unsupported.
+or a durable completion receipt. Native quest definitions and registry mutations now have the separate implementations described below. Complete catalog/session loading, contracts, atomic reward transactions and notification composition remain unsupported.
 
 Implementation belongs in named modules. Crate roots remain declaration-only.
+
+`QuestRegistry` now provides bounded, revision-fenced proposals/adoption for
+Update/Stamp, Erase, Increment/Decrement, completion counts and quest bits. It
+strips `@` comments and uses canonical case-insensitive lookup keys, preserves
+signed counters, explicit source timestamps, first-solve behavior and maximum
+solve rules. Overflow and stale receipts reject before mutation. Simulation
+connects these operations to native NPC query/branch execution and actual
+receipt-gated quest state; the existing independent eligibility oracle remains
+separate from this new registry integration evidence. Complete contracts and
+atomic multi-action hand-in coordination are still unsupported.
+
+
+`ContractRegistry` now owns bounded contract membership and display selection
+(maximum 100), exact before/after proposals and adoption. Duplicate adds preserve
+membership; the source full-registry check precedes duplicate acceptance. Native
+NPC integration validates definitions against the accepted DAT catalog, emits
+the source full-registry message, and evaluates `InqContractsFull` from the actual
+owner. Contract status/quest tracking and client projection still require the
+prepared DAT definitions and current quest owner; membership alone is not that
+complete qualification.

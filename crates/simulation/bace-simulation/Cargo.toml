@@ -11,7 +11,16 @@ description = "Tick phases and gameplay-system orchestration"
 workspace = true
 
 [dependencies]
+bace-social.workspace = true
+bace-allegiance.workspace = true
+bace-economy.workspace = true
+bace-crafting.workspace = true
 bace-character.workspace = true
+bace-combat.workspace = true
+bace-ai.workspace = true
+bace-loot.workspace = true
+bace-spawning.workspace = true
+bace-interactions.workspace = true
 bace-gameplay-api.workspace = true
 bace-entity.workspace = true
 bace-motion.workspace = true
@@ -20,3 +29,13 @@ bace-geometry.workspace = true
 bace-physics.workspace = true
 bace-world.workspace = true
 thiserror.workspace = true
+
+bace-magic.workspace = true
+bace-emotes.workspace = true
+bace-quests.workspace = true
+bace-fellowship.workspace = true
+bace-world-events.workspace = true
+bace-content.workspace = true
+bace-random.workspace = true
+bace-inventory.workspace = true
+bace-housing.workspace = true

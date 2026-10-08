@@ -4,3 +4,5 @@ command_capacity = 4096
 max_sessions = 512
 database_connections = 4
 # dat_directory = "/absolute/path/to/user-supplied/DATS"
+# pack_directory = "/absolute/path/to/accepted/bace-packs"
+# content_inbox_directory = "/absolute/path/to/team-content-inbox"

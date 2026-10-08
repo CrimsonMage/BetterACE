@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/ACEmulator/ACE",
+  "commit": "47edade3bd3f6044b676d4eb877c4965c7eda62b",
+  "sources": {
+    "Source/ACE.Server/WorldObjects/Stackable.cs": "82339dfb0346f23693d12974049d018d605472d769e9d556b28b7822406ec07f",
+    "Source/ACE.Server/WorldObjects/WorldObject_Properties.cs": "1e3d0750310f942064bf67df77e0c650773e9bc3ced49419f8d5c8546d00da06"
+  },
+  "extracted_sha256": "536a6d58c91beaf5d40780ebdddcfd613a7a808445b3f4d829a30b1fb624c429",
+  "scope": "unchanged Stackable.SetEphemeralValues and WorldObject.SetStackSize; fresh factory field harness, not complete handler parity"
+}

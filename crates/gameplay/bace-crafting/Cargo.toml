@@ -11,3 +11,5 @@ description = "Recipes, salvage and crafting mutations"
 workspace = true
 
 [dependencies]
+bace-random = { path = "../../foundation/bace-random" }
+bace-content = { path = "../../content/bace-content" }

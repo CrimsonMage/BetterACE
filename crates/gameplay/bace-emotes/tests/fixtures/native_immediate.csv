@@ -1,0 +1,10 @@
+# official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b; unchanged scheduling methods with fake explicit clock
+# sha256 7ab6c2f7ee1ea43f17dd199fa1f951755b15a62803ac91e640c898d840986eee Source/ACE.Server/WorldObjects/Managers/EmoteManager.cs
+nested_zero,67,0
+nested_zero,8,0
+nested_zero,10,0
+nested_zero,1,0
+detached_zero,3,0
+detached_zero,10,0
+detached_zero,1,0
+detached_zero,103,0

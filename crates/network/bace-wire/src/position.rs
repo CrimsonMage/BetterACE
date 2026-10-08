@@ -26,6 +26,34 @@ impl WirePosition {
         }
     }
 }
+/// ACE GameMessagePrivateUpdatePosition (0x02DB): byte property sequence,
+/// DWORD PositionType, then the uncompressed 32-byte Position value.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PrivatePositionUpdate {
+    pub sequence: u8,
+    pub position_type: u32,
+    pub position: WirePosition,
+}
+impl PrivatePositionUpdate {
+    pub fn encode(self) -> Vec<u8> {
+        let mut writer = message_writer(GameMessageOpcode::PrivateUpdatePosition);
+        writer.bytes(&[self.sequence]);
+        writer.u32(self.position_type);
+        self.position.write(&mut writer);
+        writer.into_bytes()
+    }
+    pub fn decode(bytes: &[u8]) -> Result<Self, WireError> {
+        let mut reader = Reader::new(bytes);
+        expect_opcode(&mut reader, GameMessageOpcode::PrivateUpdatePosition)?;
+        let value = Self {
+            sequence: reader.take(1)?[0],
+            position_type: reader.u32()?,
+            position: WirePosition::decode(&mut reader)?,
+        };
+        finish(&reader)?;
+        Ok(value)
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MovementEpochs {
     pub instance: u16,

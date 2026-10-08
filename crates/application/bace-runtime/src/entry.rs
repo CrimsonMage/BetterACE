@@ -7,7 +7,7 @@ use std::process::ExitCode;
 #[command(
     name = "bace-server",
     version,
-    about = "BetterACE host console and Rust foundations; stock-client serving is not ready"
+    about = "BetterACE host console and authoritative game services"
 )]
 struct Arguments {
     #[command(subcommand)]
@@ -23,6 +23,8 @@ enum Command {
     },
     #[command(name = "__host-child", hide = true)]
     HostChild {
+        #[arg(long)]
+        config: Option<PathBuf>,
         #[arg(long)]
         state_directory: PathBuf,
         #[arg(long)]
@@ -49,7 +51,7 @@ enum Command {
         #[arg(long)]
         config: PathBuf,
     },
-    /// Readiness gate: refuses service until stock-client world support exists.
+    /// Run verified game services and retain ownership through durable shutdown.
     Serve {
         #[arg(long)]
         config: PathBuf,
@@ -84,11 +86,12 @@ fn execute(args: Arguments) -> Result<(), Box<dyn std::error::Error>> {
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()?;
-            let result = runtime.block_on(crate::supervisor::run_host(config.host));
+            let result = runtime.block_on(crate::supervisor::run_host(config));
             runtime.shutdown_timeout(std::time::Duration::from_secs(2));
             result?;
         }
         Command::HostChild {
+            config,
             state_directory,
             generation,
             drain_timeout,
@@ -96,11 +99,16 @@ fn execute(args: Arguments) -> Result<(), Box<dyn std::error::Error>> {
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()?;
+            let config = config
+                .map(|path| ServerConfig::load(&path))
+                .transpose()?
+                .unwrap_or_default();
+            let backend = crate::game_host::GameBackend::start(config)?;
             runtime.block_on(crate::supervisor_child::run_child(
                 &state_directory,
                 generation,
                 std::time::Duration::from_secs(drain_timeout),
-                crate::supervisor_child::FoundationBackend,
+                backend,
             ))?;
         }
         Command::Check { config } => {
@@ -122,8 +130,11 @@ fn execute(args: Arguments) -> Result<(), Box<dyn std::error::Error>> {
             result?;
         }
         Command::Serve { config } => {
-            ServerConfig::load(&config)?;
-            return Err("Not ready: stock-client authentication/world entry, AC motion/BSP collision, and complete world import remain unimplemented. No game socket was opened. See docs/implementation-status.md.".into());
+            let config = ServerConfig::load(&config)?;
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()?;
+            runtime.block_on(crate::game_host::serve(config))?;
         }
     }
     Ok(())

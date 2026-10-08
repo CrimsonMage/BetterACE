@@ -6,8 +6,9 @@ pub struct PortalClock {
     monotonic_start_ms: u64,
 }
 impl PortalClock {
-    /// ACE.Common.DerethDateTime.MaxValue; larger values can crash stock clients.
-    pub const MAX_SECONDS: f64 = 1_073_741_828.0;
+    /// ACE.Common.DerethDateTime.MaxValue expression (its comment is four seconds
+    /// too high); larger values can crash stock clients.
+    pub const MAX_SECONDS: f64 = 1_073_741_824.0;
     pub fn new(origin: f64, monotonic_start_ms: u64) -> Result<Self, &'static str> {
         if !origin.is_finite() || !(0.0..=Self::MAX_SECONDS).contains(&origin) {
             return Err("portal time outside stock-client range");

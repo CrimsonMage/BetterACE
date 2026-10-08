@@ -1,0 +1,3 @@
+# Original Creature.OnTargetSelected/OnTargetDeselected/OnHealthUpdate dac0064905a9708fe963e99e6f364d43c0ef4f25704739e8df46487a42be2f79
+U|H:2:3F4CCCCD
+U|H:2:3F000000

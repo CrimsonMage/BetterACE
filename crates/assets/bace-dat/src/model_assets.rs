@@ -36,6 +36,8 @@ pub struct ModelPolygon {
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct GraphicsObject {
+    pub physics_polygons: BTreeMap<u16, ModelPolygon>,
+    pub physics_bsp: Option<crate::BspTree>,
     pub id: u32,
     pub surfaces: Vec<u32>,
     pub vertices: BTreeMap<u16, ModelVertex>,
@@ -212,10 +214,14 @@ impl GraphicsObject {
                 return Err(DatError::Format("duplicate vertex"));
             }
         }
-        if flags & 1 != 0 {
-            polygons(&mut r)?;
-            skip_bsp(&mut r, false, 0)?;
-        }
+        let (physics_polygons, physics_bsp) = if flags & 1 != 0 {
+            (
+                polygons(&mut r)?,
+                Some(crate::BspTree::read(&mut r, crate::BspTreeKind::Physics)?),
+            )
+        } else {
+            (BTreeMap::new(), None)
+        };
         vec3(&mut r)?;
         let polygons = if flags & 2 != 0 {
             let p = polygons(&mut r)?;
@@ -228,7 +234,7 @@ impl GraphicsObject {
             r.u32()?;
         }
         r.finish()?;
-        for polygon in polygons.values() {
+        for polygon in polygons.values().chain(physics_polygons.values()) {
             for (i, key) in polygon.vertices.iter().enumerate() {
                 let v = vertices
                     .get(key)
@@ -252,6 +258,8 @@ impl GraphicsObject {
             surfaces,
             vertices,
             polygons,
+            physics_polygons,
+            physics_bsp,
         })
     }
 }

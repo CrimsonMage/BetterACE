@@ -11,3 +11,8 @@ description = "Generators, spawning, despawning and decay"
 workspace = true
 
 [dependencies]
+bace-gameplay-api.workspace = true
+bace-types.workspace = true
+bace-geometry.workspace = true
+bace-random.workspace = true
+bace-content.workspace = true

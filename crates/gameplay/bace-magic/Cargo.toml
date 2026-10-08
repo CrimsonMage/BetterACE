@@ -11,3 +11,6 @@ description = "Casting, spells and enchantments"
 workspace = true
 
 [dependencies]
+bace-geometry.workspace = true
+bace-gameplay-api.workspace = true
+bace-content.workspace = true

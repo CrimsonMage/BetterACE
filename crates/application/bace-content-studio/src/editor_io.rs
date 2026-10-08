@@ -4,6 +4,8 @@ use std::sync::mpsc::{self, Receiver};
 use std::thread::JoinHandle;
 
 pub(crate) enum Request {
+    ScriptOpen(PathBuf),
+    ScriptSave(PathBuf, String),
     Export {
         text: String,
         parent: PathBuf,
@@ -17,6 +19,8 @@ pub(crate) enum Request {
     },
 }
 pub(crate) enum Reply {
+    ScriptOpened(String),
+    ScriptSaved,
     Exported { path: PathBuf, notes: String },
     Opened(Document),
     Saved { path: PathBuf, text: String },
@@ -32,6 +36,16 @@ impl Job {
             .name("content-editor-io".into())
             .spawn(move || {
                 let result = match request {
+                    Request::ScriptOpen(path) => document::read_bounded(&path).and_then(|text| {
+                        if text.len() > 1024 * 1024 {
+                            Err("Script exceeds 1 MiB".into())
+                        } else {
+                            Ok(Reply::ScriptOpened(text))
+                        }
+                    }),
+                    Request::ScriptSave(path, text) => {
+                        document::write(&path, &text, None).map(|()| Reply::ScriptSaved)
+                    }
                     Request::Export {
                         text,
                         parent,

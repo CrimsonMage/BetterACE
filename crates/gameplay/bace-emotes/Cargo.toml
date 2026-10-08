@@ -11,3 +11,7 @@ description = "Content-defined actions and NPC scripting"
 workspace = true
 
 [dependencies]
+bace-gameplay-api.workspace = true
+bace-content.workspace = true
+bace-types.workspace = true
+bace-geometry.workspace = true

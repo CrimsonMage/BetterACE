@@ -12,7 +12,7 @@ BetterACE reimplements official ACEmulator/ACE in Rust, targeting the unmodified
 
 > 🚧 **Working foundations and usable authoring tools; not yet a playable replacement server.**
 >
-> The host console, Content Studio, conversion tools, and validation harnesses run today. Complete stock-client world entry, authentic AC collision, gameplay/save composition, and full-world import remain unfinished. `serve` deliberately refuses readiness. See [implementation status](docs/implementation-status.md).
+> The host console, Content Studio, conversion tools, and validation harnesses run today. Complete-world import and aggregate pack compilation work, and `serve` starts the server-side game runtime with an accepted pack and verified assets. Stock-client world entry and complete gameplay/save composition remain unqualified. See [implementation status](docs/implementation-status.md).
 
 The repository is **BetterACE**. Existing `bace-` executable/crate names, `BACE_*` environment variables, and `.bace` files keep their current spelling. 🧬
 
@@ -75,16 +75,19 @@ These are the implemented public commands. `help` / `--help` gives the exact arg
 
 | Executable | Command | What it does |
 |---|---|---|
-| `bace-server` | no command, or `host [--config FILE]` | Starts the authenticated local host dashboard and foundation child. |
+| `bace-server` | no command, or `host [--config FILE]` | Starts the authenticated local host dashboard and supervised game child. |
 | `bace-server` | `check --config FILE` | Validates configuration without opening game sockets or a database. |
 | `bace-server` | `exercise [--ticks N] [--players N] [--bodies N]` | Runs the synthetic fixed-step simulation harness. |
 | `bace-server` | `content-worker --config FILE` | Validates durable publication candidates and delivers catalog generations. |
-| `bace-server` | `serve --config FILE` | Reports the unfinished game-readiness gate; does not start a playable world. |
+| `bace-server` | `serve --config FILE` | Starts the composed game runtime with accepted content and verified assets; stock-client playability is unqualified. |
 | `bace-cli` | `host-init [--state-directory DIR]` | Provisions separate host credentials from piped stdin. |
 | `bace-cli` | `account-create --name NAME [--password-env VAR]` | Creates an ordinary player account using a password environment variable. |
 | `bace-cli` | `convert --input FILE --output FILE --from FORMAT --to FORMAT` | Converts one template between supported legacy/native formats. |
 | `bace-cli` | `import-sql --input FILE --output-directory DIR` | Converts a supported weenie SQL batch into native TOML. |
 | `bace-cli` | `migrate` | Applies native PostgreSQL schema migrations. |
+| `bace-cli` | `local-database [--directory DIR]` | Initializes/restarts a private Unix-socket PostgreSQL and migrates it. |
+| `bace-cli` | `world-build --input SQL --output-directory NEW_DIR` | Compiles complete world content into one aggregate `.bace` base. |
+| `bace-cli` | `world-activate --manifest FILE [--reindex]` | Validates initial content or source-identical replacement indexes and records the accepted manifest. |
 | `bace-cli` | `publish --input FILE --format FORMAT` | Queues an immutable content candidate for validation. |
 | `bace-cli` | `content-status` | Reads persisted generation and content/publication counts. |
 | `bace-cli` | `dat-inspect FILE [--fingerprint] [--record HEX] [--output FILE]` | Inspects a DAT archive and optionally extracts a record. |
@@ -137,7 +140,10 @@ bace-server
 # bace-server host --config tests/fixtures/config/server.toml
 ```
 
-Open the printed URL (default `http://127.0.0.1:8080`). Host privileges are separate from game accounts. The dashboard supervises a foundation child that reports game serving as unavailable.
+Open the printed URL (default `http://127.0.0.1:8080`). Host privileges are separate from game accounts. The dashboard supervises a game child and reports its readiness independently.
+
+Hosts can [review a native TOML content inbox](docs/content-inbox.md) there and
+confirm one bounded `.bace` delta publication without restarting the host.
 
 Native Windows host credential/ACL provisioning is not supported yet; macOS execution is unvalidated. Details: [host-console contract](docs/host-console.md).
 
@@ -190,7 +196,7 @@ BACE_MARIADB_BASEDIR=/path/to/mariadb/usr \
   bace-cli import-sql --input /path/to/weenies.sql --output-directory /tmp/converted-weenies
 ```
 
-The result is native TOML plus a source/count manifest. Unsupported SQL fails explicitly. Complete official-world dumps still contain unsupported systems; there is no “just import everything” button. Arbitrary MySQL SQL never runs against production PostgreSQL.
+The result is native TOML plus a source/count manifest. Unsupported SQL fails explicitly. Use `world-build` for the complete pinned official-world dump; `import-sql` remains the single/batch weenie authoring workflow. Arbitrary MySQL SQL never runs against production PostgreSQL.
 
 See [legacy conversion boundaries](crates/content/bace-import/README.md).
 
@@ -275,7 +281,7 @@ python3 tools/bace-compat/oracle/network_inventory.py --check \
   --source /path/to/pinned-ACE-checkout
 ```
 
-Only tested features have compatibility evidence. See the [oracle documentation](tools/bace-compat/README.md), [pins](docs/baselines.toml), and [validation record](docs/validation.md). GDLE is a pinned secondary reference, not an override for official ACE.
+Only tested features have compatibility evidence. See the [oracle documentation](tools/bace-compat/README.md), [pins](docs/baselines.toml), and [validation record](docs/validation.md). Pinned GDLE leads server-side door/monster authority behavior; official ACE remains the packet-layout baseline and default for other gameplay. Differences and hardening stay explicit.
 
 > 🏅 Golden vectors beat “the packet looked right to the AI.” Every time.
 
@@ -287,7 +293,7 @@ Only tested features have compatibility evidence. See the [oracle documentation]
 | 🔌 Networking | Paired UDP, reliability, bounded sessions/authentication, and source-backed object/social/inventory/trade/vendor/movement codecs | Remaining payloads, complete session/gameplay composition, stock-client qualification |
 | 🧠 Simulation | One owner, synthetic collision, character progression, bounded outcomes, retained state on recoverable shutdown | Authentic AC physics, full gameplay, durable character lifecycle |
 | 📚 Character assets | XP, skills, CharGen, validated creation/training rules | Complete player construction, appearance/world admission, saves |
-| 📦 Content/storage | TOML/binary tools, PostgreSQL foundations, immutable packs, publication/save workers | Complete world import and gameplay/runtime pack composition |
+| 📦 Content/storage | TOML/binary tools, PostgreSQL foundations, immutable packs, publication/save workers | Complete gameplay/runtime pack composition |
 | 🎨 Authoring | Native editor, supported import/export, offline pack builder | Remaining authoring systems and platform validation |
 | 🖥️ Hosting | Authenticated local supervisor/dashboard | Full game backend and cross-platform qualification |
 
@@ -308,10 +314,11 @@ For exact scope: [implementation status](docs/implementation-status.md), [networ
 - 📏 [Dependency inventory](architecture.toml)
 - 💾 [Persistence](docs/persistence.md)
 - 📦 [Runtime pack format](docs/pack-format.md)
+- 📥 [Reviewed content inbox](docs/content-inbox.md)
 - 🖥️ [Host lifecycle](docs/host-console.md)
 - ⚙️ [Physics precision and SIMD gates](docs/physics-math.md)
 
-Next milestones are authentic geometry/motion, complete character/world entry, persistence and replication composition, remaining gameplay/content systems, stock-client scenarios, and failure/performance qualification. Command simplification is also on the list. No invented completion percentage required. 📊
+Next milestones are authentic geometry/motion, complete character/world entry, gameplay persistence and replication composition, remaining gameplay/content systems, stock-client scenarios, and failure/performance qualification. Command simplification is also on the list. No invented completion percentage required. 📊
 
 <a id="contributing"></a>
 ## 🤝 Contributing and license

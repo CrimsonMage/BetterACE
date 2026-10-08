@@ -74,3 +74,105 @@ Secondary indexes MUST agree with the primary generation. Appending a changed na
 `tests/packs.rs` includes an independently computed Python struct/hash golden, deterministic compile/retry, bounded scans, empty records/tombstones, old-handle retention, manifest restart, malformed ordering/limits, lazy index/payload corruption and authenticated malformed offset rejection. These synthetic tests do not establish ACE compatibility.
 
 Run the same goldens on Windows, Linux and macOS; report only platforms actually tested. Complete typed world schemas, collision companions, runtime cache/publication integration, compaction, cross-platform crash qualification and measured memory/startup/load budgets remain required. The current generic container does not establish that existing gameplay stopped retaining its decoded catalog.
+
+## Whole-world records and active-generation bound
+
+An accepted generation contains at most three active `.bace` files: one base and
+two delta segments. The limit is enforced in manifest encode/decode and mapped
+generation construction, regardless of a larger caller-provided segment budget.
+`PackGeneration::compact` merges current records in sorted order into a new base,
+retaining one handle per segment, choosing the newest value and omitting deleted
+records. It never modifies an existing mapping. The owning pack-I/O thread must
+schedule this work, journal/atomically accept the new manifest, and reclaim old
+files only when readers no longer retain them. Temporary output and retained
+historical generations may temporarily exceed three physical files; they are not
+additional active segments. Compaction tests cover replacement, deletion,
+retained readers, cancellation and rejection of a fourth active segment.
+
+Whole-world compiler namespace allocation (all schema 1):
+
+- 1: existing kind-1 WeenieV1 envelopes.
+- 2: kind-3 LandblockIndexV1 envelopes keyed by the 16-bit landblock, containing
+  original instance GUIDs and encounter IDs.
+- 3: kind-4 InstanceLinkIndexV1 envelopes keyed by parent GUID, containing
+  child GUIDs and original link-row IDs; no global link scan is required.
+- 16–45: kind-2 WorldRecordV1 envelopes keyed by original table primary key, in
+  this frozen order: cook_book, encounter, event, house_portal,
+  landblock_instance, landblock_instance_link, points_of_interest, quest, recipe,
+  recipe_mod, recipe_mods_bool, recipe_mods_d_i_d, recipe_mods_float,
+  recipe_mods_i_i_d, recipe_mods_int, recipe_mods_string,
+  recipe_requirements_bool, recipe_requirements_d_i_d,
+  recipe_requirements_float, recipe_requirements_i_i_d,
+  recipe_requirements_int, recipe_requirements_string, spell, treasure_death,
+  treasure_gem_count, treasure_material_base, treasure_material_color,
+  treasure_material_groups, treasure_wielded, version.
+- 46–47: kind-20 loot graphs and kind-21 rare profiles.
+- 52: kind-27/schema-1 `TreasureTableSetV1` keyed by profile ID. The pinned
+  ACE table set is key 1; it contains ordered chance/reference/sequence rows,
+  enum and spell indexes, and mutation script source. Runtime preparation reads
+  this accepted record before any ACE loot or enum lookup. Existing worlds can
+  be rebuilt from the same source and reactivated with `world-activate --reindex`
+  to add the record without changing logical world rows. Subsequent reindexes
+  must preserve an accepted table set byte for byte. Missing or corrupt table
+  sets block game startup.
+- 48–49: derived creature-name and template-class indexes.
+- 50: kind-25 ClothingPatchV1 envelopes keyed by ClothingBase DID. This is a
+  native override record; game-world application remains an integration gate.
+- 51: kind-26 AnimationSwapPatchV1 envelopes keyed by Animation DID. This is
+  currently an offline candidate/preview record; live publication rejects it
+  until runtime motion preparation consistently resolves the accepted overlay.
+
+The kind-2 enum and row field order are frozen source-schema DTOs, not evolving
+runtime entities. Each record is independently enveloped and checked; world
+startup can reopen the accepted manifest and fetch only requested landblocks and
+rows. The compiler creates one aggregate base file, not separate object files.
+
+Actual pinned v0.9.295 Linux conversion passed with all 54 table counts accounted
+for: 43,913 weenies, 915,050 world rows, 38,152 generated landblock indexes,
+14,862 parent-link indexes, 1,011,977 pack records total. The unchanged input SQL SHA256 is
+`98caa038a27d2620bc4b644e62150aa4eec7754251c6313aaa959c3b11f784a8`.
+The resulting 214059573-byte aggregate has content ID
+`2af5637ef59398f91d556ad20177b5aead61986c65d4b3395bd000c17fa601f1` and
+manifest ID `7462b388e5412b8dbacbbf17be4c7d75427b8a66f009656e6c0822f3422e6ac3`.
+This is reproducible format/import evidence, not world-runtime readiness or
+performance qualification. The ignored `complete_world` prerequisite suite also
+checks actual SQL numeric widths, Unicode, nulls, bit booleans, generated
+landblock identity and unknown-table rejection using an isolated MariaDB server.
+
+The same source's reference presence audit checked 1,254,236 references and
+reported 171 unresolved IDs: 116 generator, 19 create-list, nine emote, 19 instance
+link children, three instance weenie classes, and five wielded-treasure classes.
+These counts are diagnostics, not 171 proven invalid gameplay references:
+generator treasure modes can name treasure profiles, and linked objects can
+require DAT/static-object resolution. No source row was removed. Content-only
+acceptance preserves the complete dataset; world activation must fail with a
+specific diagnostic if a required template or geometry cannot be resolved.
+
+## Character-start and name-index schemas
+
+The pinned bootstrap character-start profile is authored in TOML and compiled to
+an immutable kind-22/schema-1 `.bace` envelope (1 MiB maximum). It is a built-in
+server default, not a live accepted-head update. Its source conversion and the
+two corrected starter-item property aliases are recorded in `divergences.toml`.
+
+New complete world packs contain namespace 48/key 1, kind 23/schema 1, holding
+`CreatureNameIndexV1`: sorted template IDs and the original names of Creature
+weenies with PropertyString.Name. Repeated names retain their distinct IDs.
+The index bounds names to 8 MiB total and validates against canonical source rows
+during offline acceptance. Startup reads only this index for name policy; a legacy
+pack without the index cannot silently disable the configured name check.
+
+Namespace 49/key 1, kind 24/schema 1 holds `TemplateClassIndexV1`: sorted
+template IDs and unique, case-sensitive class names. Its maximum encoded payload
+is 8 MiB, as is the creature-name index. Offline validation compares both against
+the canonical weenies. Legacy packs may omit both indexes; partial index sets
+are rejected. Live weenie publication requires both and atomically replaces their
+changed entries with the candidate weenies and any native loot/rare profiles.
+The bounded journal admits at most 4,096 input records / 16 MiB. Two derived
+indexes expand the immutable delta budget to 4,098 records / 40 MiB including
+envelopes; exceeding that limit rejects the whole candidate transaction.
+Reviewed inbox transactions may also include world-row and ClothingBase records
+and explicit tombstones. Changes to instances, encounters and links update only
+their affected landblock or parent-link indexes in the same immutable delta.
+The 4,098-record / 40 MiB delta limit still applies; batches touching too many
+derived indexes are rejected before publication.

@@ -11,3 +11,5 @@ description = "Fellowship membership and shared rewards"
 workspace = true
 
 [dependencies]
+bace-types.workspace = true
+bace-gameplay-api.workspace = true

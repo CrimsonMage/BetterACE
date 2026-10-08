@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/ACEmulator/ACE",
+  "commit": "47edade3bd3f6044b676d4eb877c4965c7eda62b",
+  "source": "Source/ACE.Server/WorldObjects/Container.cs",
+  "source_sha256": "f6deac189f7bf7b0cdb5adfb31fc61d8c8e1c6508c44ce235872a9bcb9872690",
+  "extracted_add_sha256": "0b4803605a58d48ea3d5eb3fc0732ffe6a50fa9eb4b3140db757696a9807d02c",
+  "extracted_remove_sha256": "a52dafd5b4744d8ec5006e06af5d6ed718e7bff41fc00a461642a9e5ee9eb85a",
+  "scope": "unchanged placement shift statements only; dictionary mutation/input values are harness adapters; no full handler/capacity claim"
+}

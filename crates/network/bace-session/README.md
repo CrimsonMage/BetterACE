@@ -26,3 +26,44 @@ Generations are process-wide, allocated once per admitted session with a checked
 atomic increment. Replacing a network registry cannot reuse a generation while
 old authentication, simulation or drain work remains in the process. This is
 session fencing only; durable ownership still uses repository epochs.
+
+`decode_combat` now routes targeted melee, mode, cancellation and health-query
+inputs into `bace-gameplay-api::CombatRequest`, using authenticated actor/account
+identity and the decoded action sequence. It only accepts WorldConnected and
+retains ignored suffix counts. It does not validate physical state, finite power,
+attack cooldowns or replay: those checks belong to the single simulation owner.
+
+`decode_world_control` permits LoginComplete/ForceObjectDesc only after server-side
+world admission. `decode_door_use` maps the existing independently verified Use
+body into a bound `UseDoor` intent after the application selects the door route.
+The simulation still checks real object kind, reach, replay and obstruction;
+client use does not set open state or collision flags.
+
+`decode_magic` decodes targeted/untargeted cast actions only in WorldConnected,
+binds the caster from the authenticated session and preserves target/spell IDs as
+untrusted proposals. There is no invented client cancel-spell opcode. Domain
+validation, motion and resource commitment remain simulation responsibilities;
+`tests/magic.rs` covers actor binding, state admission and truncated payloads.
+
+
+Recall input now covers all seven pinned zero-field handlers: lifestone,
+marketplace, personal/allegiance housing, allegiance hometown and both arenas.
+Fourteen compiled-original C# cases verify routing and ignored suffix lengths;
+packet budgets and world-session binding have separate invalid-input tests.
+Destinations, permissions, motion preparation and durable execution remain with
+the runtime/simulation owners. Decoder coverage does not establish playable recalls.
+
+`decode_locomotion` binds MoveToState, Jump and AutonomousPosition to the entered
+session and preserves wire epochs for the canonical replication owner to check.
+Reported position, velocity, contact, object IDs and spell IDs remain diagnostics;
+the typed simulation request contains no accepted physical state. Raw physics
+state defaults follow the pinned ACE physics `RawMotionState.InitDefaults`.
+Action nodes are observation-only on this path; client emote admission is not
+implemented by the locomotion adapter. Nonfinite observations, excessive action
+counts and trailing bytes reject before command admission (the last is an explicit
+hardening boundary beyond ACE's ignored suffixes). Tests use consumed prefixes from
+the independently compiled official C# movement decoder corpus.
+
+The five corpse consent actions now leave `decode_social_action` as distinct
+`CorpseConsentRequest` values under the authenticated session and action
+sequence. Decoding does not alter a player's consent list or a corpse's rights.

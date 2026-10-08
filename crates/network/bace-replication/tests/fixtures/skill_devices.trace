@@ -1,0 +1,17 @@
+# official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b
+# ACE.Server/WorldObjects/SkillAlterationDevice.cs sha256=89169f28e31806943ed5836e9564b3cc0d776ff9d5fef75731ce6e7550be4cff
+# ACE.Server/WorldObjects/AugmentationDevice.cs sha256=bc32145431331352366f30157a2e79d13435e0da5c6bcb100a0a4eb3db99a8f3
+# ACE.Server/WorldObjects/Player_Skills.cs sha256=817176e5356cbf9dd8058f9be9ca25855b780cd32cc6f53d598de4eb4e7ee7a9
+# ACE.Server/WorldObjects/Player_Xp.cs sha256=8db344e63a9b0ba3fc2c61685c000d56be0042a3b5952bc2360bcebdab3c8b9d
+# ACE.Entity/Enum/Skill.cs sha256=3e74683d6bb7ffa60c92f52bbb0f438e375faa8a503b2d66f0823a6b30e7abc8
+# ACE.Entity/Enum/WeenieErrorWithString.cs sha256=ab16251a4cbdce41d708ec6f2c26897a574ed4769d6a9d2bdaf6793b4478225b
+0|44|skill/44;int/24/10;notice/1238/Heavy Weapons;consume
+1|44|int64/2/150;skill/44;int/24/14;notice/1239/Heavy Weapons;consume
+2|28|int64/2/150;skill/28;int/24/12;notice/1372/Weapon Tinkering;consume
+3|44|int64/2/150;skill/44;int/24/16;notice/1240/Heavy Weapons;consume
+4|14|int64/2/150;skill/14;int/24/12;notice/1241/Arcane Lore;consume
+5|40|skill/40;consume;int/224/1;int64/2/75;notice/1371/Test Gem;script/157;chat/Alice has acquired the Test Gem augmentation!
+6|18|skill/18;consume;int/225/1;int64/2/75;notice/1371/Test Gem;script/157;chat/Alice has acquired the Test Gem augmentation!
+7|29|skill/29;consume;int/226/1;int64/2/75;notice/1371/Test Gem;script/157;chat/Alice has acquired the Test Gem augmentation!
+8|30|skill/30;consume;int/227/1;int64/2/75;notice/1371/Test Gem;script/157;chat/Alice has acquired the Test Gem augmentation!
+9|28|skill/28;consume;int/228/1;int64/2/75;notice/1371/Test Gem;script/157;chat/Alice has acquired the Test Gem augmentation!

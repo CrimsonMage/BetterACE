@@ -40,6 +40,11 @@ pub enum SocialAction {
         enabled: bool,
         name: String,
     },
+    ClearPlayerConsentList,
+    DisplayPlayerConsentList,
+    RemoveFromPlayerConsentList(String),
+    AddPlayerPermission(String),
+    RemovePlayerPermission(String),
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SocialRequest {
@@ -96,6 +101,17 @@ impl SocialRequest {
                 enabled: reader.u32()? != 0,
                 name: reader.client_string16(max_string_units)?,
             },
+            Op::ClearPlayerConsentList => SocialAction::ClearPlayerConsentList,
+            Op::DisplayPlayerConsentList => SocialAction::DisplayPlayerConsentList,
+            Op::RemoveFromPlayerConsentList => {
+                SocialAction::RemoveFromPlayerConsentList(reader.client_string16(max_string_units)?)
+            }
+            Op::AddPlayerPermission => {
+                SocialAction::AddPlayerPermission(reader.client_string16(max_string_units)?)
+            }
+            Op::RemovePlayerPermission => {
+                SocialAction::RemovePlayerPermission(reader.client_string16(max_string_units)?)
+            }
             _ => return Err(WireError::UnexpectedOpcode(opcode.0)),
         };
         Ok(Self {

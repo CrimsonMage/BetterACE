@@ -1,4 +1,6 @@
-use crate::{ControlAction, ControlRequest, HostConsole};
+use crate::{
+    ContentAction, ContentReply, ContentRequest, ControlAction, ControlRequest, HostConsole,
+};
 use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, Query, State},
@@ -41,6 +43,11 @@ pub fn console_router(console: HostConsole) -> Router {
         .route("/api/logout", post(logout))
         .route("/api/status", get(status))
         .route("/api/control", post(control))
+        .route("/api/content/preview", post(content_preview))
+        .route("/api/content/publish", post(content_publish))
+        .route("/api/content/status", get(content_status))
+        .route("/api/content/revision", get(content_revision))
+        .route("/api/content/removal", post(content_removal))
         .route("/api/logs", get(logs))
         .layer(DefaultBodyLimit::max(4096))
         .layer(middleware::from_fn_with_state(console.clone(), security))
@@ -190,6 +197,124 @@ async fn control(
         Ok(Ok(Ok(id))) => (StatusCode::ACCEPTED, Json(json!({"operation_id":id}))).into_response(),
         Ok(Ok(Err(message))) => (StatusCode::CONFLICT, Json(json!({"error":message}))).into_response(),
         _ => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error":"Control acknowledgment unavailable; inspect status before retrying."}))).into_response(),
+    }
+}
+
+async fn content_preview(State(console): State<HostConsole>, headers: HeaderMap) -> Response {
+    content_request(console, headers, ContentAction::Preview).await
+}
+async fn content_status(State(console): State<HostConsole>, headers: HeaderMap) -> Response {
+    if console.session(&headers, false).is_none() {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    content_request_inner(console, ContentAction::Status).await
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContentRevisionQuery {
+    revision: i64,
+}
+async fn content_revision(
+    State(console): State<HostConsole>,
+    headers: HeaderMap,
+    Query(query): Query<ContentRevisionQuery>,
+) -> Response {
+    if console.session(&headers, false).is_none() {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    if query.revision <= 0 {
+        return StatusCode::BAD_REQUEST.into_response();
+    }
+    content_request_inner(
+        console,
+        ContentAction::Revision {
+            revision: query.revision,
+        },
+    )
+    .await
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContentPublishBody {
+    token: String,
+}
+async fn content_publish(
+    State(console): State<HostConsole>,
+    headers: HeaderMap,
+    Json(body): Json<ContentPublishBody>,
+) -> Response {
+    if body.token.len() != 64 || !body.token.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error":"Invalid preview token."})),
+        )
+            .into_response();
+    }
+    content_request(
+        console,
+        headers,
+        ContentAction::Publish { token: body.token },
+    )
+    .await
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContentRemovalBody {
+    kind: String,
+    id: u64,
+}
+async fn content_removal(
+    State(console): State<HostConsole>,
+    headers: HeaderMap,
+    Json(body): Json<ContentRemovalBody>,
+) -> Response {
+    if body.kind.len() > 64 || body.id > u64::from(u32::MAX) {
+        return StatusCode::BAD_REQUEST.into_response();
+    }
+    content_request(
+        console,
+        headers,
+        ContentAction::StageRemoval {
+            kind: body.kind,
+            id: body.id,
+        },
+    )
+    .await
+}
+async fn content_request(
+    console: HostConsole,
+    headers: HeaderMap,
+    action: ContentAction,
+) -> Response {
+    if console.session(&headers, true).is_none() {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    content_request_inner(console, action).await
+}
+async fn content_request_inner(console: HostConsole, action: ContentAction) -> Response {
+    let Some(sender) = &console.inner.content else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"error":"Content inbox is unavailable."})),
+        )
+            .into_response();
+    };
+    let (reply, receive) = oneshot::channel();
+    if sender.try_send(ContentRequest { action, reply }).is_err() {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"error":"Content inbox is busy."})),
+        )
+            .into_response();
+    }
+    match tokio::time::timeout(Duration::from_secs(8), receive).await {
+        Ok(Ok(Ok(ContentReply::Status(status)))) => Json(json!(status)).into_response(),
+        Ok(Ok(Ok(ContentReply::Revision(revision)))) => Json(json!(revision)).into_response(),
+        Ok(Ok(Ok(ContentReply::Preview(preview)))) => Json(json!(preview)).into_response(),
+        Ok(Ok(Ok(ContentReply::Staged { path }))) => (StatusCode::ACCEPTED, Json(json!({"path":path}))).into_response(),
+        Ok(Ok(Ok(ContentReply::Queued { revision }))) => (StatusCode::ACCEPTED, Json(json!({"revision":revision}))).into_response(),
+        Ok(Ok(Err(message))) => (StatusCode::CONFLICT, Json(json!({"error":message}))).into_response(),
+        _ => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error":"Content operation outcome unavailable; check journal before retrying."}))).into_response(),
     }
 }
 #[derive(Deserialize)]

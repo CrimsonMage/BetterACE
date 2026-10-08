@@ -1,0 +1,10 @@
+# official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b; unchanged CylinderDistance, explicit same-landblock frame stubs
+# sha256 0bbfdaebd6d233e11b0f6e62b87b4d130b25eaeb2c98daf16fd2c7fbfab243ad Source/ACE.Server/Physics/Common/Position.cs
+0,0,0,0,0,0,0.5,2,0.5,2,-2.23606797749979
+0,0,0,3,4,0,0.5,2,0.5,2,4
+0,0,0,0,0,5,0.5,2,0.5,2,5
+0,0,5,0,0,0,0.5,2,0.5,2,5
+0,0,0,1,0,1,0.5,2,0.5,2,0.41421353816986084
+0,0,0,1,0,0,0.5,2,0.5,2,0
+0,0,0,0.9999999,0,0,0.5,2,0.5,2,-2
+0,0,0,1.0000001,0,0,0.5,2,0.5,2,1.1920928955078125E-07

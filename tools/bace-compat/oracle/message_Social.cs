@@ -111,7 +111,7 @@ static class SocialHarness {
 }
 namespace ACE.Server.WorldObjects {
     public partial class WorldObject {public CreatureType CreatureType;public HarnessAccount Account=new();}
-    public sealed class HarnessCharacter {
+    public sealed partial class HarnessCharacter {
         public List<CharacterPropertiesFriendList> Friends=new();
         public List<CharacterPropertiesFriendList> GetFriends(object gate)=>Friends;
     }

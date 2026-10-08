@@ -30,6 +30,8 @@ pub enum SkillTrainingRejection {
     TraitCapacity,
     RevisionExhausted,
     ExperienceBeyondMaximum,
+    SpecializationCap,
+    InvalidSpecialization,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

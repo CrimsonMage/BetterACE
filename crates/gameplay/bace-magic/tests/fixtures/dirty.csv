@@ -1,0 +1,17 @@
+# official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b; AGPL-3.0-only; original methods, synthetic world adapters
+# sha256 7885d6af283ff970da6b101a59e48b8ec15297257fac4a147f208a252ff0e91e Source/ACE.Server/WorldObjects/Managers/EnchantmentManager.cs
+# sha256 b128641be09046d59925c6354bea553a07387641efca687f4de8bdaa09e406d2 Source/ACE.Server/WorldObjects/Creature_Rating.cs
+# sha256 476b33bff2c980df97c108137b5fb7d487fc2781abd35f7de11d9bfbc4c3a89b Source/ACE.Entity/Models/PropertiesEnchantmentRegistryExtensions.cs
+damage,10,0,100,1,90
+damage,10,8,100,1,91
+damage,2.5,0,100,1,98
+damage,50,0,12,1,0
+damage,10,0,100,0,100
+debuff,-10,-10,-10
+debuff,-15.5,-16,-16
+debuff,0,0,0
+top,2
+healing,0,1
+healing,25,0.8
+healing,50,0.6666667
+healing,-20,1.2

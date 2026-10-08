@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
-use bace_character::{CharacterProgression, ProgressionTables, RankTable, TraitProgress};
+use bace_character::{
+    CharacterProgression, ProgressionTables, RankTable, TraitProgress, TraitState,
+};
 use bace_entity::Actor;
 use bace_gameplay_api::{
     ActionContext, AttributeId, CharacterBinding, ProgressionActionRejection, ProgressionRejection,
-    ProgressionTarget, RaiseProgression, SessionId, SkillAdvancement,
+    ProgressionTarget, RaiseProgression, RankEffect, SessionId, SkillAdvancement, TraitDetails,
 };
 use bace_geometry::{Aabb, Vec3};
 use bace_motion::Capabilities;
@@ -67,6 +69,54 @@ fn character() -> CharacterProgression {
         0,
     )
     .unwrap()
+}
+
+#[test]
+fn accepted_rank_effect_freezes_base_and_maximum_at_the_simulation_owner() {
+    let table = RankTable::new(&[0, 1, 10]).unwrap();
+    let character = CharacterProgression::with_state(
+        &[TraitState {
+            progress: TraitProgress {
+                target: ProgressionTarget::Attribute(AttributeId::Strength),
+                experience_spent: 0,
+                advancement: SkillAdvancement::Inactive,
+            },
+            details: TraitDetails::Attribute {
+                starting_value: 100,
+            },
+        }],
+        Arc::new(ProgressionTables {
+            attributes: table.clone(),
+            vitals: table.clone(),
+            trained_skills: table.clone(),
+            specialized_skills: table,
+        }),
+        100,
+        0,
+    )
+    .unwrap();
+    let mut kernel = kernel(8, 1, 8);
+    kernel.register_character(binding(), character).unwrap();
+    kernel.enqueue(command(context(1), 1)).unwrap();
+    kernel.step().unwrap();
+    let first = kernel.take_progression_outcome().unwrap().result.unwrap();
+    assert_eq!(
+        first.rank_effect,
+        Some(RankEffect {
+            base: 101,
+            reached_maximum: false
+        })
+    );
+    kernel.enqueue(command(context(2), 9)).unwrap();
+    kernel.step().unwrap();
+    let maximum = kernel.take_progression_outcome().unwrap().result.unwrap();
+    assert_eq!(
+        maximum.rank_effect,
+        Some(RankEffect {
+            base: 102,
+            reached_maximum: true
+        })
+    );
 }
 
 fn binding() -> CharacterBinding {

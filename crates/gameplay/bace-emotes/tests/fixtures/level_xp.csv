@@ -1,0 +1,9 @@
+# official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b; unchanged GrantLevelProportionalXp; XP table and EarnXP recorder are explicit stubs
+# sha256 8db344e63a9b0ba3fc2c61685c000d56be0042a3b5952bc2360bcebdab3c8b9d Source/ACE.Server/WorldObjects/Player_Xp.cs
+100,0.25,0,0,25,Allegiance
+101,0.5,0,0,50,Allegiance
+103,0.5,0,0,52,Allegiance
+100,0.8,0,60,60,Allegiance
+100,0.2,30,0,30,Allegiance
+100,0.2,30,10,30,Allegiance
+100,0,0,0,0,Allegiance

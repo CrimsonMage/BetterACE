@@ -1,8 +1,8 @@
 use crate::ConfigError;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// Adapter budgets, independent of the legacy wire packet sizes.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct NetworkConfig {
     pub max_sessions_per_ip: usize,
@@ -46,7 +46,7 @@ impl NetworkConfig {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct AccountConfig {
     pub allow_auto_creation: bool,
@@ -60,7 +60,7 @@ impl Default for AccountConfig {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct DatDistributionConfig {
     pub enabled: bool,

@@ -500,6 +500,17 @@ async fn mapped_generation_acceptance_is_atomic_parent_checked_and_retryable() {
     store.accept_mapped(None, &compacted).await.unwrap();
     assert_eq!(store.active_generation().await.unwrap(), Some(compacted));
     assert_eq!(
+        store.generation_by_hash(base.manifest_hash).await.unwrap(),
+        Some(base)
+    );
+    assert!(
+        store
+            .generation_by_hash([0xff; 32])
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(
         store.content_status().await.unwrap().accepted_revision,
         first
     );
@@ -611,3 +622,63 @@ async fn offline_xp_receipts_and_login_logout_fences_prevent_stale_writes() {
     assert!(store.pending_xp_events(100, 10).await.unwrap().is_empty());
     store.close().await;
 }
+
+#[path = "postgres/gameplay.rs"]
+mod gameplay;
+#[path = "postgres/identity.rs"]
+mod identity;
+#[path = "postgres/owned_saves.rs"]
+mod owned_saves;
+#[path = "postgres/placements.rs"]
+mod placements;
+
+#[path = "postgres/enchantments.rs"]
+mod enchantments;
+
+#[path = "postgres/npc_stage.rs"]
+mod npc_stage;
+
+#[path = "postgres/allegiance.rs"]
+mod allegiance;
+
+#[path = "postgres/account_admin.rs"]
+mod account_admin;
+#[path = "postgres/account_bans.rs"]
+mod account_bans;
+
+#[path = "postgres/social_identity.rs"]
+mod social_identity;
+
+#[path = "postgres/login_instances.rs"]
+mod login_instances;
+
+#[path = "postgres/plussed.rs"]
+mod plussed;
+
+#[path = "postgres/reserved_writer.rs"]
+mod reserved_writer;
+
+#[path = "postgres/creation_conflicts.rs"]
+mod creation_conflicts;
+
+#[path = "postgres/staff_gags.rs"]
+mod staff_gags;
+
+#[path = "postgres/item_construction.rs"]
+mod item_construction;
+#[path = "postgres/item_source_origin.rs"]
+mod item_source_origin;
+#[path = "postgres/no_corpse_forest.rs"]
+mod no_corpse_forest;
+
+#[path = "postgres/mapped_content.rs"]
+mod mapped_content;
+
+#[path = "postgres/vendor_stock.rs"]
+mod vendor_stock;
+
+#[path = "postgres/vendor_default_buy.rs"]
+mod vendor_default_buy;
+
+#[path = "postgres/constructed_promotion.rs"]
+mod constructed_promotion;

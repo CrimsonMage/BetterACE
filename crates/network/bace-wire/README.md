@@ -18,6 +18,12 @@ The `opcode` module preserves all 82 message names (including aliases), 163 acti
 
 Implemented message families:
 
+The private position update codec implements pinned ACE opcode 0x02DB with a
+byte property sequence, DWORD PositionType and exact 32-byte Position payload.
+`tests/movement.rs` checks the source layout and truncation/trailing-byte
+rejection. Runtime currently uses PositionType 14 for a committed outdoor
+corpse's LastOutsideDeath; client playback remains unqualified.
+
 - Character list encoding/checked decoding, character error, conditional create response, restore, delete, logoff and world-server-ready output; server-name UI output.
 - System/speech/ranged-speech/emote/soul-emote output; account boot and ban output. A boot with no reason emits only the opcode; an empty reason emits a String16L. Ban remaining time is supplied explicitly, never read from a codec clock. The official ban fixture asserts its measured integral duration; the Rust codec accepts that duration as input.
 - Private/public integer, int64, bool, double, string, data-ID and instance-ID property output; attribute, private/public vital, current-vital and private skill output. Public strings preserve the unusual property-before-GUID order and alignment; skill ranks and `adjustPP` are 16-bit.
@@ -46,7 +52,7 @@ Object serialization now covers `ObjectDescription::encode_create` / `encode_upd
 
 `ObjectGameData` covers all 32 first-header fields and all four second-header fields with their exact widths/order. Presence is explicit, including present zero values. The second-header marker is added when needed. Housing restrictions use version 0x10000002, advertised bucket count 768 and ACE's actual GUID sorting by `(guid % 89, guid)`; duplicate IDs and count overflow are rejected. Housing resolves owner/allegiance/account privileges into this immutable permission projection before encoding. Model, children, motion, permission and string limits plus a final message-size limit are explicit caller inputs.
 
-Five object oracle suites cover nine model cases (including 255 palettes), 21 physics flag selections, every game header bit, combined create/update composition and fixed controls. Four malformed/bounds suites cover oversized lists, typed-ID mismatch, duplicate permissions, absent palette prerequisites, nested limits and message caps. The oracle compiles original message wrappers, model types, flags and restriction sorting, and extracts seven **unchanged method bodies** from SHA-verified `WorldObject_Networking.cs`; unrelated world services are replaced only by explicitly declared input adapters. Metadata lists extracted bodies separately from whole compiled files. The expanded message generator now compiles 203 full upstream source files and verifies 20 additional provenance files. These tests establish serialization of supplied projections, not correctness of upstream property selection or asset-derived appearance.
+Five object oracle suites cover nine model cases (including 255 palettes), 21 physics flag selections, every game header bit, combined create/update composition and fixed controls. Four malformed/bounds suites cover oversized lists, typed-ID mismatch, duplicate permissions, absent palette prerequisites, nested limits and message caps. The oracle compiles original message wrappers, model types, flags and restriction sorting, and extracts seven **unchanged method bodies** from SHA-verified `WorldObject_Networking.cs`; unrelated world services are replaced only by explicitly declared input adapters. Metadata lists extracted bodies separately from whole compiled files. The message generator verifies all compiled upstream files and additional evidence-only sources separately. These tests establish serialization of supplied projections, not correctness of upstream property selection or asset-derived appearance.
 
 User divergence rows 17–19 remain distinct from codec support: explicit physics-state bits are preserved; the appearance-only 0xF625 message is distinct from a full 0xF745 create. Door state transitions and handling ForceObjectDesc for missing objects belong to gameplay/replication. Nothing here assumes retail and the other-revision shard in the user register have identical behavior.
 
@@ -59,9 +65,99 @@ Turbine output rejects sender names over 127 UTF-16 units and text over 255 unit
 
 Seven social oracle suites use 65 synthetic vectors, compiling unchanged simple action handlers and outbound serializers plus verbatim input-reading prefixes from gameplay-heavy handlers and the unchanged SquelchDB serializer class. `message_social_extract.py` and fixture metadata identify those excerpts and omitted policy explicitly. Four boundary suites cover request/UTF budgets, truncation, invalid text, lossy output prefixes, duplicate squelch IDs, nested table limits, friend delta cardinality and final output caps. These are wire guarantees, not live friend persistence, delivery authorization or chat-moderation claims.
 
+The five corpse consent GameActions (0x0216–0x021A) decode the exact empty or
+single String16L prefixes read by pinned ACE's unchanged action handlers. This
+codec does not grant loot permission; authenticated online policy and durable
+corpse access belong to the death owner.
+
 
 `InventoryRequest` now decodes 19 inventory/use/stack/vendor/trade action bodies with explicit packet and item-count budgets. Signed quantities and placements are retained as untrusted proposals, and the buy/sell trailing currency word remains ignored/reported exactly as in ACE. AcceptTrade's partner, timestamp, status and acceptance claims are decoded for inspection, never treated as authoritative. Zero-payload close/decline/reset requests preserve ignored suffix counts.
 
 `InventoryEvent` encodes 14 inventory/container/trade events, including the register-trade zero int64, add-to-trade zero slot and empty clear-acceptance payload. Container contents are supplied in the stable placement order established by projection. `VendorListing` encodes ApproachVendor with optional alternate currency, explicit totals/prices, default-then-unique stock order and existing game-description encoding. Its fixed high-byte public-description tag and low 24-bit stock quantity match ACE; -1 is supported for unlimited stock, while other negative or overflowing quantities are rejected rather than truncated. These message APIs neither mutate inventory nor acknowledge a durable operation automatically: callers may supply success events only after their authoritative durability checks succeed.
 
 Three inventory/vendor oracle suites cover 19 request and 16 output vectors, using original handlers, event serializers and the verbatim Vendor.forEachItem traversal. The extracted AcceptTrade reader prefix exposes fields that the original handler subsequently ignores; metadata records that distinction. Four regression suites exercise signed quantities, ignored currency suffixes, malicious item counts, nested output caps and lossy stock encodings. Inventory ownership, transaction atomicity, vendor eligibility/pricing and trade close-reason policy remain outside this crate; no gameplay parity is implied by these wire fixtures.
+
+Combat input now covers targeted melee, combat mode, cancel attack and health
+query. Values remain untrusted proposals, including float bits and enum IDs.
+Combat output covers attack completion/commencement, attacker/defender damage,
+evasion, health fractions, kill/death notifications, sounds, scripts and player
+death broadcasts. Percentages widen ACE's float input to a double on the damage
+notifications; health fractions remain floats. Conditions use the full 64-bit
+wire field, including the signed upstream enum's extension. Four original C#
+handlers and twelve original serializers provide independent golden fixtures.
+Input truncation, suffix/budget behavior and output text/size failures are tested.
+The gameplay owner must validate finite power, heights, stance, range and targets.
+
+`PlayerDescription` serializes preselected login property tables, full ordered
+attributes/vitals, skills, known spells, options, shortcuts, eight spell bars,
+component refill preferences and possessions. Bucket ordering, explicit zero
+values, integer widths and skill constants follow pinned
+`GameEventPlayerDescription.cs`; nine original-serializer cases cover each
+optional family and their combination. Property selection, privacy, name
+prefixes and inventory placement order are supplied by authoritative projection.
+`PlayerDescription::enchantments` now carries a bounded typed registry. A true
+legacy `has_enchantments` flag without supplied registry data still fails rather
+than silently omitting persisted state.
+`CharacterTitle` and bounded character enter/delete/restore/logoff/request inputs
+also have independent source-derived fixtures. Character input account strings
+remain untrusted and cannot establish ownership. The original handler's ignored
+suffixes are reported; missing required string padding is rejected as hardening.
+These codecs do not authorize or commit world entry.
+
+`WorldControlRequest` decodes LoginComplete and ForceObjectDescSend using original
+handler fixtures. Portal exit is a world-session observation, never permission to
+enter; force-description targets require authoritative visibility/ownership policy.
+
+Magic request readers preserve the exact 0x0048 spell DWORD and 0x004A target/spell
+DWORD order, bounded ignored suffixes and untrusted IDs. `Enchantment`,
+`EnchantmentRegistry` and nine `MagicEvent` variants preserve pinned ACE field
+widths, doubles/floats, category ordering, ushort set-presence flag, optional set
+ID and the Vitae layer-zero encoding. PlayerDescription sets vector flag 0x0200
+and inserts the registry after known spells. `tools/bace-compat/fixtures/magic.json`
+contains independent original-wrapper/verbatim-writer vectors. A compositional
+PlayerDescription test joins the independent upstream fresh description and
+registry vector at the source insertion point. These are codec results, not a
+claim of full spell-effect or login transcript qualification.
+
+Fellowship/allegiance codecs now cover 35 request layouts, full/delta fellowship
+records, departed-member bucket order, lock records, full allegiance hierarchy,
+update/info prefixes, completion and confirmation output. Twelve unchanged C#
+serializers and 35 unchanged action-reading prefixes compile in
+`oracle/group_generate.py`; fixture provenance identifies every source hash.
+Empty upstream officer/title/MOTD fields and zero age counters remain exact.
+Group counts, strings, packet lengths and malformed/truncated inputs are bounded.
+`AdvocateTeleport` reads the ignored String16L target and untrusted Position;
+32 original-handler vectors cover role, water and building-height decisions.
+
+
+Recall input now covers all seven pinned zero-field handlers: lifestone,
+marketplace, personal/allegiance housing, allegiance hometown and both arenas.
+Fourteen compiled-original C# cases verify routing and ignored suffix lengths;
+packet budgets and world-session binding have separate invalid-input tests.
+Destinations, permissions, motion preparation and durable execution remain with
+the runtime/simulation owners. Decoder coverage does not establish playable recalls.
+
+The local client decompile exposes a jump-layout discrepancy: JumpPack::Pack at
+0x00516D10 includes a full Position before the four epoch words (56-byte payload),
+whereas pinned ACE reads its shorter32-byte Jump handler prefix. These are explicit
+separate codecs; the session adapter selects only exact supported lengths. Client
+CM_Movement::Event_Jump_NonAutonomous at0x006AFB30 writes only a float extent and
+has no epoch or object/spell fields. Eight synthetic byte vectors compile those
+original local methods with size/Position/UI adapters; fixtures record file hashes
+and adaptations. The local client's build provenance remains unconfirmed. No
+retail decompile body, DAT bytes or player capture is committed. Both position and
+velocity remain untrusted observations; these codecs grant no physical authority.
+
+Target query codecs preserve QueryHealth/QueryItemMana's u32 target (including
+zero), source trailing-input behavior, and UpdateHealth/QueryItemManaResponse
+payloads. `oracle/target_query_generate.py` compiles the original event
+constructors and base event-header writer; 30 independent packets include NaN,
+infinity, zero and high-bit IDs. Incoming buffers remain bounded, truncated u32
+reads reject, and unsupported success values cannot be emitted by the adapter.
+
+The appraisal encoder implements original AppraiseInfo serialization, including
+all six property tables, source bucket order, enchantment-tagged spell order,
+armor/creature/weapon/hook profiles and highlight masks. Its 136 compiled-original
+serializer vectors qualify flags, primitive widths and conditional sections;
+they do not qualify profile calculation, live assessment rolls or NPC wake-up.
+The owner must supply a fully prepared profile before this codec can be used.

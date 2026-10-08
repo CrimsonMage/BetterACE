@@ -27,6 +27,21 @@ impl AccountRepository for Accounts {
         Ok(CreateAccountOutcome::Created(record))
     }
 }
+impl BanRepository for Accounts {
+    async fn ban_verdict(
+        &self,
+        _: AccountId,
+        _: i64,
+    ) -> Result<bace_persistence::AccountBanVerdict, Self::Error> {
+        Ok(bace_persistence::AccountBanVerdict::Allowed)
+    }
+    async fn expire_ban(
+        &self,
+        _: &bace_persistence::AccountBanOperation,
+    ) -> Result<bace_persistence::AccountBanReceipt, Self::Error> {
+        unreachable!("an unbanned test account has no expiry")
+    }
+}
 fn job(generation: u64, password: &str) -> AuthenticationJob {
     AuthenticationJob {
         key: SessionKey { id: 0, generation },
@@ -108,6 +123,111 @@ impl AccountRepository for PanickingAccounts {
     async fn create(&self, new: NewAccount) -> Result<CreateAccountOutcome, Self::Error> {
         self.accounts.create(new).await
     }
+}
+impl BanRepository for PanickingAccounts {
+    async fn ban_verdict(
+        &self,
+        account_id: AccountId,
+        now_unix_millis: i64,
+    ) -> Result<bace_persistence::AccountBanVerdict, Self::Error> {
+        self.accounts.ban_verdict(account_id, now_unix_millis).await
+    }
+    async fn expire_ban(
+        &self,
+        operation: &bace_persistence::AccountBanOperation,
+    ) -> Result<bace_persistence::AccountBanReceipt, Self::Error> {
+        self.accounts.expire_ban(operation).await
+    }
+}
+
+struct BanAccounts {
+    accounts: Accounts,
+    verdict: Mutex<bace_persistence::AccountBanVerdict>,
+    expiry_ops: Mutex<Vec<bace_persistence::AccountBanOperation>>,
+}
+impl AccountRepository for BanAccounts {
+    type Error = std::io::Error;
+    async fn find_by_name(&self, name: &AccountName) -> Result<Option<AccountRecord>, Self::Error> {
+        self.accounts.find_by_name(name).await
+    }
+    async fn create(&self, account: NewAccount) -> Result<CreateAccountOutcome, Self::Error> {
+        self.accounts.create(account).await
+    }
+}
+impl BanRepository for BanAccounts {
+    async fn ban_verdict(
+        &self,
+        _: AccountId,
+        _: i64,
+    ) -> Result<bace_persistence::AccountBanVerdict, Self::Error> {
+        Ok(self.verdict.lock().unwrap().clone())
+    }
+    async fn expire_ban(
+        &self,
+        op: &bace_persistence::AccountBanOperation,
+    ) -> Result<bace_persistence::AccountBanReceipt, Self::Error> {
+        self.expiry_ops.lock().unwrap().push(op.clone());
+        *self.verdict.lock().unwrap() = bace_persistence::AccountBanVerdict::Allowed;
+        Ok(bace_persistence::AccountBanReceipt {
+            operation_id: op.operation_id,
+            account_id: op.account_id,
+            account_revision: op.expected_revision + 1,
+            ban: None,
+        })
+    }
+}
+
+#[tokio::test]
+async fn authenticated_ban_rejects_before_world_admission_and_expired_ban_clears() {
+    use bace_persistence::{AccountBanRecord, AccountBanVerdict};
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let record = AccountBanRecord {
+        account_id: 1,
+        account_revision: 7,
+        started_unix_millis: now - 1_000,
+        expires_unix_millis: now + 60_000,
+        issuer_account_id: Some(2),
+        reason: Some("source reason".into()),
+    };
+    let accounts = Arc::new(BanAccounts {
+        accounts: Accounts(Mutex::new(None)),
+        verdict: Mutex::new(AccountBanVerdict::Banned(record.clone())),
+        expiry_ops: Mutex::new(Vec::new()),
+    });
+    let mut pool = AuthenticationPool::spawn(
+        accounts.clone(),
+        &NetworkConfig::default(),
+        AccountConfig::default(),
+    )
+    .unwrap();
+    pool.try_submit(job(1, "synthetic-password")).unwrap();
+    assert!(matches!(
+        pool.next().await.unwrap().result,
+        Err(AuthenticationFailure::Banned { seconds_remaining: 1..=60, reason }) if reason == "source reason"
+    ));
+    assert!(accounts.expiry_ops.lock().unwrap().is_empty());
+    pool.try_submit(job(3, "wrong-password")).unwrap();
+    assert!(matches!(
+        pool.next().await.unwrap().result,
+        Err(AuthenticationFailure::Rejected)
+    ));
+
+    *accounts.verdict.lock().unwrap() = AccountBanVerdict::Expired(AccountBanRecord {
+        expires_unix_millis: now - 1,
+        ..record
+    });
+    pool.try_submit(job(2, "synthetic-password")).unwrap();
+    assert!(pool.next().await.unwrap().result.is_ok());
+    let operations = accounts.expiry_ops.lock().unwrap();
+    assert_eq!(operations.len(), 1);
+    assert_eq!(operations[0].expected_revision, 7);
+    assert!(matches!(
+        operations[0].change,
+        bace_persistence::AccountBanChange::Expire { .. }
+    ));
 }
 #[tokio::test]
 async fn panic_drain_preserves_other_results_and_identifies_unresolved_session() {

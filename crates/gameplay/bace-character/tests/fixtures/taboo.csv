@@ -1,0 +1,13 @@
+# official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b; synthetic taboo decoder and matching fixture
+# sha256 9c007f788a478b07ea6c380be9714735d325fe3e0b8858255e28f4f49f610b4f Source/ACE.DatLoader/FileTypes/TabooTable.cs
+# sha256 596dd55083b82e771753af9121144307ac3f32797aaf5b8107b3896ffd752d0e Source/ACE.DatLoader/Entity/TabooTableEntry.cs
+# sha256 13f137cf709de76f27a27189fda48ebb7da64b1948c7a6666cd591309453c354 Source/ACE.DatLoader/UnpackableExtensions.cs
+bytes,1E00000E0102010000000101010000000200000003666F6F052A6261722A04000000010101000000010000000462617A2A
+entry,1,65793,0,foo;*bar*
+entry,4,65793,0,baz*
+match,Foo,1
+match,Food,0
+match,Barbarian,1
+match,Alice foo,1
+match,Bazooka,0
+match,Alice,0

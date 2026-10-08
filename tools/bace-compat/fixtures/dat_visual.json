@@ -1,0 +1,423 @@
+{
+  "repository": "https://github.com/ACEmulator/ACE",
+  "commit": "47edade3bd3f6044b676d4eb877c4965c7eda62b",
+  "source_sha256": {
+    "Source/ACE.DatLoader/IUnpackable.cs": "de0d0b462e450b7cfbbe01e57205aa3ce765c6a8eb9db659d93868da883eafd7",
+    "Source/ACE.DatLoader/BinaryReaderExtensions.cs": "c8aacc633f15f29329f963c6cc3222322291d926dd66cde9e31fbd4f4966adb1",
+    "Source/ACE.DatLoader/UnpackableExtensions.cs": "13f137cf709de76f27a27189fda48ebb7da64b1948c7a6666cd591309453c354",
+    "Source/ACE.DatLoader/DatFileType.cs": "377114eb1a7707309b85a1dd2526aff8bab9e2be371e812fff2e6b91fb73835a",
+    "Source/ACE.DatLoader/DatFileTypeAttribute.cs": "568f7432af38762d1b72d05d910d379dfb9a2b2c56acb53fd5440ed640a8488c",
+    "Source/ACE.DatLoader/DatDatabaseType.cs": "096c584d94d491b724f15b584c155102a6ca1c4a286c5f559456266dd6f25224",
+    "Source/ACE.DatLoader/DatDatabaseTypeAttribute.cs": "ef84e7062727f050d4beffceed0f55d908526cc7970226c99bbce382fe71d2e0",
+    "Source/ACE.DatLoader/DatFileTypeExtensionAttribute.cs": "4ff225e1e29fea9ee2b9308299fb56de007588805651219d7b35fbb78549b233",
+    "Source/ACE.DatLoader/DatFileTypeIdRangeAttribute.cs": "002652e46a6128fb10ec092c795ff5a6c650b4301e06771245b33be90c3324d5",
+    "Source/ACE.DatLoader/FileTypes/FileType.cs": "6f94f96626381dd574e45c778fc80aacfbf439b9b8138c2885ebdbca7c3d8665",
+    "Source/ACE.DatLoader/FileTypes/XpTable.cs": "bfe241bacc04959ea4b04393a7bc8bedab1aa1552b53abf19a4130c626819a6a",
+    "Source/ACE.DatLoader/FileTypes/SkillTable.cs": "6406db1ea959ae3d040816a00018b92025fd2dccb5ec9054add59cb9058acd6b",
+    "Source/ACE.DatLoader/FileTypes/CharGen.cs": "88005e85cc1ec45e63d4c76ac64360ad065eb93417d53c463d99d8e927a8cf71",
+    "Source/ACE.DatLoader/Entity/SkillBase.cs": "b871eb599ccd688d6a2292d47faee7ff6e766acab3b9bc0c9e33866acd665ad0",
+    "Source/ACE.DatLoader/Entity/SkillFormula.cs": "8995eadd22e30e41a5c80810aab14fb8bd1bc952077e23c488678a66e7030916",
+    "Source/ACE.DatLoader/Entity/StarterArea.cs": "207e6f4e1779520fb611873385c7ea78ce923dcae09345de1837abff88f2174d",
+    "Source/ACE.DatLoader/Entity/HeritageGroupCG.cs": "947472853ed20615a4f0d5d2763832dcaa4cfbefae095436848b78dffc24dc7a",
+    "Source/ACE.DatLoader/Entity/SkillCG.cs": "0b576a69a0600b7c557ec88365352d757875fa96d91850aa75fe2d87db836c52",
+    "Source/ACE.DatLoader/Entity/TemplateCG.cs": "4b168f36747972c52ba46c11ae209f01949670f9c3deb835a66ee53afa24009b",
+    "Source/ACE.DatLoader/Entity/SexCG.cs": "25d2091df14b728a48e54d2f87656051c979a71246f8210d40f8e8479ac67893",
+    "Source/ACE.DatLoader/Entity/Position.cs": "e318c984208a3d8b1feac8c99f20214a12ef79e60c55ca689b5542b66757d0f4",
+    "Source/ACE.DatLoader/Entity/Frame.cs": "57f448a605d93361f40e28246851934b25a749b193a2d581ae324d2a873474fe",
+    "Source/ACE.DatLoader/Entity/ObjDesc.cs": "fd8f4ddf4a071c3a9114ae5159da00532074286e267e39df6bf197dd6113cd33",
+    "Source/ACE.DatLoader/Entity/HairStyleCG.cs": "5dace3d353a1d5c2e58162c8611dd7f5b85dc9c54fec8f4b2354437fefa70417",
+    "Source/ACE.DatLoader/Entity/EyeStripCG.cs": "8f21caca75edbe0aaf49e7d6c9cb4cba398cf79d8af8d4ae3c1cd53032d33cf2",
+    "Source/ACE.DatLoader/Entity/FaceStripCG.cs": "6af9c35e7af59a139372f350208818b75792ac6b0b5269ffbb7afc544d822457",
+    "Source/ACE.DatLoader/Entity/GearCG.cs": "6c4645d07d666d9940b333a3088057e2fce40f3d801b2f8df9d8122b42786ba9",
+    "Source/ACE.DatLoader/Entity/SubPalette.cs": "07979603d2173ef8e56b61055c01d7249af7d0773e56c0da2b19f6da5694ef65",
+    "Source/ACE.DatLoader/Entity/TextureMapChange.cs": "56d362fe964a2c85d704a703f98319548c446561fd47f9a6a46e7ebb39c8275d",
+    "Source/ACE.DatLoader/Entity/AnimationPartChange.cs": "6dd652dc96145b0f4eea5b013d1939ac428f93748b53a2c3c0b49201a0c65c17",
+    "Source/ACE.Entity/Enum/Skill.cs": "3e74683d6bb7ffa60c92f52bbb0f438e375faa8a503b2d66f0823a6b30e7abc8",
+    "Source/ACE.Entity/Enum/Properties/PropertyAttribute.cs": "e959f2b1aebcbd3765be356d0aeba0730ef31f6349edd7c1c18e5f858cc78ceb",
+    "Source/ACE.Entity/Enum/AttributeExtensions.cs": "07b9d955ac5ddcab1c7da216652c0faa30cfed4e0c363c977b13d6d4f5fde47e",
+    "Source/ACE.DatLoader/FileTypes/GfxObj.cs": "80f1958745d5c7e2f10309c68399f2212a536ba247841db0e4ab330706ea1806",
+    "Source/ACE.DatLoader/FileTypes/SetupModel.cs": "79829df03e3c23a1479b0d03f5acb914d59f5105464bc5a4a53f012e040ea8af",
+    "Source/ACE.DatLoader/FileTypes/Palette.cs": "aa1738b875fcac7b0c88087c883827ef6758fca84c3f955cd2f3982728e1cae8",
+    "Source/ACE.DatLoader/FileTypes/PaletteSet.cs": "0208ade0ab9b9ca34cf4dbd158e68fc708bcc720feed4a10fdef659be4b85d1f",
+    "Source/ACE.DatLoader/FileTypes/ClothingTable.cs": "266fb3893b0aa3154fe77a7925a002783b74da597a886d1c119bcf9e4bb25922",
+    "Source/ACE.DatLoader/FileTypes/Surface.cs": "4f331b9104e34560e90f2c5b0efc89ac7f64a880acb92ce1d3c1bef68c211936",
+    "Source/ACE.DatLoader/FileTypes/SurfaceTexture.cs": "0f4736d31292f0d8a6d078c4b587d8cb69911b4e29fbf8f476e33d838cab367f",
+    "Source/ACE.DatLoader/FileTypes/SecondaryAttributeTable.cs": "35020db5aa496140b9c456ac689725659f18332637f5341e0c5b4741c8c494af",
+    "Source/ACE.DatLoader/Entity/CVertexArray.cs": "204cd6aefdbb553544280871135a1abfed1f161ed581f6f0775601ea9c0ec7b2",
+    "Source/ACE.DatLoader/Entity/SWVertex.cs": "68aae90b9c9417d68b9af301d87609588bc7869fd65c2839806629b7d848b715",
+    "Source/ACE.DatLoader/Entity/Vec2Duv.cs": "821e1bc907772ba2257cecbc54df4c2bb53db88696a13339478b7af7734cfacf",
+    "Source/ACE.DatLoader/Entity/Polygon.cs": "d9c69d1456d1fa3582a2ec34fb32015fc80f2ef126a5ad185beb33269b21d0d5",
+    "Source/ACE.DatLoader/Entity/BSPTree.cs": "c864f47e24768b29fa0e3ba86132a6c589470e8d5748a07fd9e1288afbb735e1",
+    "Source/ACE.DatLoader/Entity/BSPNode.cs": "232b26a271c7d715f08cdf1875ed9bc4f1e2f18900f51c59c6dc97290ab1db10",
+    "Source/ACE.DatLoader/Entity/BSPLeaf.cs": "b6e11b7d8fed52e52b1359591fa5c1cfa3f0e2632a4cac6881fe66873785c8ab",
+    "Source/ACE.DatLoader/Entity/BSPPortal.cs": "95e3123a1318ebb8ceae93993c2c6d952997713f914cd71223b22becba691505",
+    "Source/ACE.DatLoader/Entity/PortalPoly.cs": "67a4e5b7af77e8d7264f762b419844a66eed4deb47e70353b87a74a035b47dde",
+    "Source/ACE.DatLoader/Entity/Sphere.cs": "5f265016272ebaaca42f2f551796990a80d97bb6288cc2d838d3920afa22222a",
+    "Source/ACE.DatLoader/Entity/Plane.cs": "f8d7f787ff91049692d49bc042106fee37d307ba697dc6d4461b1a5c0ea773b0",
+    "Source/ACE.DatLoader/Entity/LocationType.cs": "38f41db9cfe58a2093d2e1f9ebe7a118330e9b95f3b22cb71db1c34855ae5e2a",
+    "Source/ACE.DatLoader/Entity/PlacementType.cs": "3a9168a70092bf1ce5e91d0465b4176ff83eb06a94530d9ae0d39c6f6c6ece78",
+    "Source/ACE.DatLoader/Entity/CylSphere.cs": "223f4efe2259ad679c68dd0193a40d5ea71bfd3fdd23aabda4d3688dd4c4019e",
+    "Source/ACE.DatLoader/Entity/LightInfo.cs": "7e0dcdbb9e2888756d37d04e0aaf668647831c5966e45f1cfc4a73d789116416",
+    "Source/ACE.DatLoader/Entity/AnimationFrame.cs": "8143eb3a44c5323ade4ad9b58ac11731e9a74cd65914296934b64f4903b16327",
+    "Source/ACE.DatLoader/Entity/AnimationHook.cs": "6661752f0107a79caff14e800fe0074b1a97023c2529e116856c94598a332308",
+    "Source/ACE.DatLoader/Entity/AttackCone.cs": "0932053a0511f21babc79d4f2be9ea1e7be8143196dde9906780637dabed46ba",
+    "Source/ACE.DatLoader/Entity/ClothingBaseEffect.cs": "8804f71524dd0d66de0f1b95387303e46e4ffc2614649b76568d98a2cc332b1a",
+    "Source/ACE.DatLoader/Entity/CloObjectEffect.cs": "0d58f65c27befc99f7c76239eedc6a80ee478effa394a89e1ac0f49329c511fd",
+    "Source/ACE.DatLoader/Entity/CloTextureEffect.cs": "c723aa8cea130b42f86329898487718f71244e98b35cffb6e45837a3b4737925",
+    "Source/ACE.DatLoader/Entity/CloSubPalEffect.cs": "954945540a9444d8b396dbdb2e364f543ff077f9066c0045d992a4daa174d1a0",
+    "Source/ACE.DatLoader/Entity/CloSubPalette.cs": "77b2bef1250479da76553fce082b84674c0c9ea1802818969f3118f5cee1a1a3",
+    "Source/ACE.DatLoader/Entity/CloSubPaletteRange.cs": "36decc26565e0401245dc3179ae67eb69b0c4305766b7d45a2a5066cf2fd3872",
+    "Source/ACE.DatLoader/Entity/Attribute2ndBase.cs": "4f9229bb85e5ab8984fd793664c9725ad19eba50be9d036fc89b5067117068d8",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/AttackHook.cs": "aee684a99b4e8f0e8e28e6cd6abe17b75e9c4ed9087b6b949659eb3d5faf785a",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/CallPESHook.cs": "a2e83e260419ca7c32c04fef8217c1d2614fde63b2f8914a2e0db23d1ecda27d",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/CreateBlockingParticle.cs": "0b7abc5a3f11bb61f157784c9034bd5049e96c5bbd0f09ed9d5c70dddf97e4d1",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/CreateParticleHook.cs": "c0e5857b6c70ef42954ed40e07735107de553a8c1bfc3fd9dacfaf03749ec995",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/DefaultScriptPartHook.cs": "0b387ce5e8a4d4ad8d17ff43bdeeb7390914f25f56bcf6d0462bcdab42d69f94",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/DestroyParticleHook.cs": "29b24408dc3d43164101591f66e5309f5e5d0bca7f12309ff38e0e44a67265c7",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/DiffuseHook.cs": "31bc1ee6a2722f95badbe223380f5b1826f875c8d65d41bb6b8494d9536f97b7",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/DiffusePartHook.cs": "2cc4646a56deacad9b4ff05a81a32209260011fc02ad25050ac81fff469d6968",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/EtherealHook.cs": "4ebae99e1fc7d213b8bf24eee086c32deb1216ebc7c13f818ac6d251d7b648e9",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/LuminousHook.cs": "77f4df7904a38eb83df82f8f1a0c6cae38c49a402ec2ebebceeea502aabd7d00",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/LuminousPartHook.cs": "6d3e8d844de3a0124eb2b7e1ac0d67e131cb06d10bdc4ed0d5a88a708c701961",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/NoDrawHook.cs": "1be13aac87bbcc72c3c86e94d26c795fbb5a4e4db76da55113e2d353d5f08d0f",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/ReplaceObjectHook.cs": "8747f6206445247c01d1692f1c0bbbe84ce828b1b5faf0360b84bc30aed7b6e8",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/ScaleHook.cs": "91a92c6f25a6abd198560b512cd0f637674ebd5455a6d642371a70aee3617f5c",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/SetLightHook.cs": "6a5b63b8e8905d93f419ec57bc96352e3e456277fd90cc10c2e58449a3fdcba6",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/SetOmegaHook.cs": "a116b47d92653d5b71d12999fe06981c7ded1499810986d5287343af45938504",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/SoundHook.cs": "4a62ac9c47b94346de600784ee717862227cf8073af510176672565fc8683404",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/SoundTableHook.cs": "95ab36f47e83d56f34b4c3a3a37c0a181abac1fcfdf47a4243dfbefceb08824c",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/SoundTweakedHook.cs": "1b8655c3cd5747706afaa80bcba6921a851d569a2bde5167430ccd165bd99e83",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/StopParticleHook.cs": "fd5f2400fc7e2dc64c6f11651ba65c2072f1ff3830a021a1eff52c6677f26210",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/TextureVelocityHook.cs": "3049eb5783d00ffcc361486dba9d9be7d1b5814e023663e9225711729ff1ddaf",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/TextureVelocityPartHook.cs": "573d5d1b3faf7ba7a2a1a990239c273567a2077582bb5238f4af29f5db93d338",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/TransparentHook.cs": "f8847cdfc84584fa54de889f196d5a93a492b0fcade4fe999b6437599462ceed",
+    "Source/ACE.DatLoader/Entity/AnimationHooks/TransparentPartHook.cs": "b33861f9123385b6e6266f0b1e860d8acf9dff0d0f17c9c9113c754fe2378c3f",
+    "Source/ACE.Entity/Enum/GfxObjFlags.cs": "0ff7438330e8b7879f91e576c130de42f13ecf8a74d1f2e7ce1828bd5e216a82",
+    "Source/ACE.Entity/Enum/SetupFlags.cs": "5a3d4b895542b608944f0515a5135eae49afad9b99f48213c503eba46dff43ed",
+    "Source/ACE.Entity/Enum/StipplingType.cs": "0bc5ecbba03c03b3b3e16fcf5e088bfee773a5821ccdccc202c145622cc0d37e",
+    "Source/ACE.Entity/Enum/CullMode.cs": "5505b6eb3f656ba3fac7c4730ac270ddd0cdc79b8bb2bfcc2ad61fe78de8881d",
+    "Source/ACE.Entity/Enum/BSPType.cs": "f624b45cd6c66386c30d81f9ce0c243016d2645907fa130d42dc5b10d8937cb0",
+    "Source/ACE.Entity/Enum/Placement.cs": "00d3e47195bd1c0e60603490fa8512f4aa9a7db21209e7396e77d255698a9cb9",
+    "Source/ACE.Entity/Enum/AnimationHookType.cs": "d39a773a4786c9c95799554ba1fe875e167768b91506e90fce25c1dfff1877ae",
+    "Source/ACE.Entity/Enum/AnimationHookDir.cs": "d13782ccca25c7ec84ceeaf94bc74e7e1b8dacd7a5b960d39e99b8ab5ea8e1e4",
+    "Source/ACE.Entity/Enum/CoverageMask.cs": "4a21914833e4c68d4db73081668d6f97002a67595b7fdf5addf050645e52b388",
+    "Source/ACE.Entity/Enum/SurfaceType.cs": "61519de0c87490b5407cd817cc06424b6680d993137c311e9ae0dd0eb4809c9c"
+  },
+  "harness_sha256": "2492b2da3d09496f054072bd109b86fc55091997d3476753621d86d339c6ed26",
+  "vectors": {
+    "vitals": {
+      "bytes": "0300000E000000000100000000000000020000000200000000000000000000000100000000000000010000000200000000000000000000000100000000000000010000000200000000000000",
+      "decoded": {
+        "MaxHealth": {
+          "Formula": {
+            "W": 0,
+            "X": 1,
+            "Y": 0,
+            "Z": 2,
+            "Attr1": 2,
+            "Attr2": 0
+          }
+        },
+        "MaxStamina": {
+          "Formula": {
+            "W": 0,
+            "X": 1,
+            "Y": 0,
+            "Z": 1,
+            "Attr1": 2,
+            "Attr2": 0
+          }
+        },
+        "MaxMana": {
+          "Formula": {
+            "W": 0,
+            "X": 1,
+            "Y": 0,
+            "Z": 1,
+            "Attr1": 2,
+            "Attr2": 0
+          }
+        },
+        "Id": 234881027
+      }
+    },
+    "palette": {
+      "bytes": "01000004030000000000FFFF00FF00FFFF000000",
+      "decoded": {
+        "Colors": [
+          4294901760,
+          4278255360,
+          255
+        ],
+        "Id": 67108865
+      }
+    },
+    "palette_set": {
+      "bytes": "0100000F020000000100000402000004",
+      "decoded": {
+        "PaletteList": [
+          67108865,
+          67108866
+        ],
+        "Id": 251658241
+      }
+    },
+    "clothing": {
+      "bytes": "010000100100100001000002010000000000000001000001010000000100000502000005010010000200000001000006010000000100000008000000100000000100000F",
+      "decoded": {
+        "ClothingBaseEffects": {
+          "33554433": {
+            "CloObjectEffects": [
+              {
+                "Index": 0,
+                "ModelId": 16777217,
+                "CloTextureEffects": [
+                  {
+                    "OldTexture": 83886081,
+                    "NewTexture": 83886082
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "ClothingSubPalEffects": {
+          "2": {
+            "Icon": 100663297,
+            "CloSubPalettes": [
+              {
+                "Ranges": [
+                  {
+                    "Offset": 8,
+                    "NumColors": 16
+                  }
+                ],
+                "PaletteSet": 251658241
+              }
+            ]
+          }
+        },
+        "Id": 268435457
+      }
+    },
+    "surface": {
+      "bytes": "020000000100000501000004000000000000803E0000403F",
+      "decoded": {
+        "Type": 2,
+        "OrigTextureId": 83886081,
+        "OrigPaletteId": 67108865,
+        "ColorValue": 0,
+        "Translucency": 0,
+        "Luminosity": 0.25,
+        "Diffuse": 0.75,
+        "Id": 0
+      }
+    },
+    "textures": {
+      "bytes": "0100000500000000010100000001000006",
+      "decoded": {
+        "Unknown": 0,
+        "UnknownByte": 1,
+        "Textures": [
+          100663297
+        ],
+        "Id": 83886081
+      }
+    },
+    "setup": {
+      "bytes": "01000002020000000100000001000001000000400000404000008040000000000000000001000000000000000000803F00000040000040400000803F000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000300000000010000090000000000000000",
+      "decoded": {
+        "Flags": 2,
+        "AllowFreeHeading": false,
+        "HasPhysicsBSP": false,
+        "Parts": [
+          16777217
+        ],
+        "ParentIndex": [],
+        "DefaultScale": [
+          {
+            "X": 2,
+            "Y": 3,
+            "Z": 4
+          }
+        ],
+        "HoldingLocations": {},
+        "ConnectionPoints": {},
+        "PlacementFrames": {
+          "0": {
+            "AnimFrame": {
+              "Frames": [
+                {
+                  "Origin": {
+                    "X": 1,
+                    "Y": 2,
+                    "Z": 3
+                  },
+                  "Orientation": {
+                    "IsIdentity": true,
+                    "X": 0,
+                    "Y": 0,
+                    "Z": 0,
+                    "W": 1
+                  }
+                }
+              ],
+              "Hooks": []
+            }
+          }
+        },
+        "CylSpheres": [],
+        "Spheres": [],
+        "Height": 0,
+        "Radius": 0,
+        "StepUpHeight": 0,
+        "StepDownHeight": 0,
+        "SortingSphere": {
+          "Origin": {
+            "X": 0,
+            "Y": 0,
+            "Z": 0
+          },
+          "Radius": 0
+        },
+        "SelectionSphere": {
+          "Origin": {
+            "X": 0,
+            "Y": 0,
+            "Z": 0
+          },
+          "Radius": 0
+        },
+        "Lights": {},
+        "DefaultAnimation": 50331649,
+        "DefaultScript": 0,
+        "DefaultMotionTable": 150994945,
+        "DefaultSoundTable": 0,
+        "DefaultScriptTable": 0,
+        "HasMissileFlightPlacement": false,
+        "Id": 33554433
+      }
+    },
+    "gfx": {
+      "bytes": "0100000102000000010100000801000000030000000000010000000000000000000000000000000000000000000000803F0000000000000000010001000000803F000000000000000000000000000000000000803F0000803F0000000002000100000000000000803F0000000000000000000000000000803F000000000000803F0000000000000000000000000104000300010000000000FFFF0000010002000000004641454C00000000",
+      "decoded": {
+        "Flags": 2,
+        "Surfaces": [
+          134217729
+        ],
+        "VertexArray": {
+          "VertexType": 1,
+          "Vertices": {
+            "0": {
+              "Origin": {
+                "X": 0,
+                "Y": 0,
+                "Z": 0
+              },
+              "Normal": {
+                "X": 0,
+                "Y": 0,
+                "Z": 1
+              },
+              "UVs": [
+                {
+                  "U": 0,
+                  "V": 0
+                }
+              ]
+            },
+            "1": {
+              "Origin": {
+                "X": 1,
+                "Y": 0,
+                "Z": 0
+              },
+              "Normal": {
+                "X": 0,
+                "Y": 0,
+                "Z": 1
+              },
+              "UVs": [
+                {
+                  "U": 1,
+                  "V": 0
+                }
+              ]
+            },
+            "2": {
+              "Origin": {
+                "X": 0,
+                "Y": 1,
+                "Z": 0
+              },
+              "Normal": {
+                "X": 0,
+                "Y": 0,
+                "Z": 1
+              },
+              "UVs": [
+                {
+                  "U": 0,
+                  "V": 1
+                }
+              ]
+            }
+          }
+        },
+        "PhysicsPolygons": {},
+        "PhysicsBSP": {
+          "RootNode": {
+            "Type": null,
+            "SplittingPlane": null,
+            "PosNode": null,
+            "NegNode": null,
+            "Sphere": null,
+            "InPolys": null
+          }
+        },
+        "SortCenter": {
+          "X": 0,
+          "Y": 0,
+          "Z": 0
+        },
+        "Polygons": {
+          "4": {
+            "NumPts": 3,
+            "Stippling": 0,
+            "SidesType": 1,
+            "PosSurface": 0,
+            "NegSurface": 0,
+            "VertexIds": [
+              0,
+              1,
+              2
+            ],
+            "PosUVIndices": [
+              0,
+              0,
+              0
+            ],
+            "NegUVIndices": [
+              0,
+              0,
+              0
+            ],
+            "Vertices": null
+          }
+        },
+        "DrawingBSP": {
+          "RootNode": {
+            "Type": "LEAF",
+            "SplittingPlane": null,
+            "PosNode": null,
+            "NegNode": null,
+            "Sphere": null,
+            "InPolys": null
+          }
+        },
+        "DIDDegrade": 0,
+        "Id": 16777217
+      }
+    }
+  }
+}

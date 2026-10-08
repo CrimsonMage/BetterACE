@@ -1,0 +1,2718 @@
+{
+  "repository": "https://github.com/ACEmulator/ACE",
+  "commit": "47edade3bd3f6044b676d4eb877c4965c7eda62b",
+  "source_sha256": {
+    "Source/ACE.Server/Network/GameEvent/GameEventType.cs": "d8a52b3b65eef65545b4b954a60ac22f64085a7678727bb0afbf02b53f028c4f",
+    "Source/ACE.Server/Network/GameMessageGroup.cs": "bf12bb0bbc224c262ae534b7f5c63fc7e0c21267522c0eb71a501b1c1affcd61",
+    "Source/ACE.Server/Network/Structure/Enchantment.cs": "b7c0775717c037dfcbe476da108b0565651d88bb9c1c074e28bd1e627760d1bb",
+    "Source/ACE.Server/Network/Structure/EnchantmentRegistry.cs": "bb046d51e8a3f2adf2328648caaf5af1ccb6acbd19c1f352b21f4e171497f307",
+    "Source/ACE.Server/Network/Structure/LayeredSpell.cs": "4ba9edfbc17eb26ebc64e02f9fa99f1c63c4e3a7205f037763bb892dfc463d29",
+    "Source/ACE.Server/WorldObjects/SkillCheck.cs": "cc457426154a151ad0174fc1cb2ceb7af158afe38f3ad8ef05da65d0c556236d",
+    "Source/ACE.Server/WorldObjects/Creature_Magic.cs": "8ec4198051c1eaef14826ccbe8f1805f13e7f7c3fc66608d649f0126d0f96cb1",
+    "Source/ACE.Server/Entity/Spell.cs": "1d98fac204ef6e04982db488da5eaed720c25e71ebb0cebcaace3848f7d91fbf",
+    "Source/ACE.Entity/Enum/SpellId.cs": "1ae1e54f57f6c000408793989969e9080ca8c1dae7adaafa665f8708c69b915f",
+    "Source/ACE.Entity/Enum/EnchantmentCategory.cs": "6419437d1139d71fda48bcec1be41d5784f0ee3a8d30656ce18bcc93ab964d32",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventMagicUpdateSpell.cs": "9f7a9bbc3c13b5cad21812ce6131f94353e0d823bdbe6e074b097e982e5ed472",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventMagicUpdateEnchantment.cs": "44b87f5804cfe146cecae38855123adfe1be46d3f51c5d773b6a9ec00281f9ce",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventMagicRemoveEnchantment.cs": "e3be74462c92f910e24005bd99d370307e8bc1e91f2578cb6db603abf076717b",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventMagicUpdateMultipleEnchantments.cs": "3dd10bcab39fc656022b817b7f21e959188ecf6dd5034b969c38cf1e8832a9c0",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventMagicRemoveMultipleEnchantments.cs": "6c067a88cd46782a780206989b9290b4f9a6d46d783cb7753e83af1c608b6ce9",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventMagicPurgeEnchantments.cs": "00f60e40f64c2324964966a106651c206eeddfc5c3749b56e983e1bb4d5ac807",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventMagicDispelEnchantment.cs": "46216b890ecb0bc159032d9384778676811ab9f86e46dfbbb7bb73ddb78e057d",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventMagicDispelMultipleEnchantments.cs": "4e507bc59ea79f288730f1d3ee2bece4358df5f156ea4e6a8ef4d3e8a6119917",
+    "Source/ACE.Server/Network/GameEvent/Events/GameEventMagicPurgeBadEnchantments.cs": "a232982ed9ce6e1143c1acd624bb4e1785f8cb0d22fb32707e3fa06ae4924ed4"
+  },
+  "harness": "Original event wrappers and SkillCheck; verbatim enchantment/registry/layer writers and GetManaCost; typed input/session/random adapters, no tested calculation is replaced.",
+  "vectors": {
+    "burns": [
+      {
+        "power": 0,
+        "skill": 1,
+        "loss": 0,
+        "consumed": []
+      },
+      {
+        "power": 0,
+        "skill": 1,
+        "loss": 0.25,
+        "consumed": []
+      },
+      {
+        "power": 0,
+        "skill": 1,
+        "loss": 1,
+        "consumed": []
+      },
+      {
+        "power": 0,
+        "skill": 100,
+        "loss": 0,
+        "consumed": []
+      },
+      {
+        "power": 0,
+        "skill": 100,
+        "loss": 0.25,
+        "consumed": []
+      },
+      {
+        "power": 0,
+        "skill": 100,
+        "loss": 1,
+        "consumed": []
+      },
+      {
+        "power": 0,
+        "skill": 300,
+        "loss": 0,
+        "consumed": []
+      },
+      {
+        "power": 0,
+        "skill": 300,
+        "loss": 0.25,
+        "consumed": []
+      },
+      {
+        "power": 0,
+        "skill": 300,
+        "loss": 1,
+        "consumed": []
+      },
+      {
+        "power": 100,
+        "skill": 1,
+        "loss": 0,
+        "consumed": []
+      },
+      {
+        "power": 100,
+        "skill": 1,
+        "loss": 0.25,
+        "consumed": [
+          1
+        ]
+      },
+      {
+        "power": 100,
+        "skill": 1,
+        "loss": 1,
+        "consumed": [
+          1,
+          63
+        ]
+      },
+      {
+        "power": 100,
+        "skill": 100,
+        "loss": 0,
+        "consumed": []
+      },
+      {
+        "power": 100,
+        "skill": 100,
+        "loss": 0.25,
+        "consumed": [
+          1
+        ]
+      },
+      {
+        "power": 100,
+        "skill": 100,
+        "loss": 1,
+        "consumed": [
+          1,
+          63
+        ]
+      },
+      {
+        "power": 100,
+        "skill": 300,
+        "loss": 0,
+        "consumed": []
+      },
+      {
+        "power": 100,
+        "skill": 300,
+        "loss": 0.25,
+        "consumed": []
+      },
+      {
+        "power": 100,
+        "skill": 300,
+        "loss": 1,
+        "consumed": [
+          1,
+          63
+        ]
+      },
+      {
+        "power": 300,
+        "skill": 1,
+        "loss": 0,
+        "consumed": []
+      },
+      {
+        "power": 300,
+        "skill": 1,
+        "loss": 0.25,
+        "consumed": [
+          1
+        ]
+      },
+      {
+        "power": 300,
+        "skill": 1,
+        "loss": 1,
+        "consumed": [
+          1,
+          63
+        ]
+      },
+      {
+        "power": 300,
+        "skill": 100,
+        "loss": 0,
+        "consumed": []
+      },
+      {
+        "power": 300,
+        "skill": 100,
+        "loss": 0.25,
+        "consumed": [
+          1
+        ]
+      },
+      {
+        "power": 300,
+        "skill": 100,
+        "loss": 1,
+        "consumed": [
+          1,
+          63
+        ]
+      },
+      {
+        "power": 300,
+        "skill": 300,
+        "loss": 0,
+        "consumed": []
+      },
+      {
+        "power": 300,
+        "skill": 300,
+        "loss": 0.25,
+        "consumed": [
+          1
+        ]
+      },
+      {
+        "power": 300,
+        "skill": 300,
+        "loss": 1,
+        "consumed": [
+          1,
+          63
+        ]
+      }
+    ],
+    "enchantments": [
+      "6400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000",
+      "9a02000025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000",
+      "6500010025000000fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f",
+      "6600020025000200fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+    ],
+    "registries": [
+      {
+        "mask": 0,
+        "bytes": "00000000"
+      },
+      {
+        "mask": 1,
+        "bytes": "01000000010000006400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 2,
+        "bytes": "02000000010000006500010025000000fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f"
+      },
+      {
+        "mask": 3,
+        "bytes": "03000000010000006400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000010000006500010025000000fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f"
+      },
+      {
+        "mask": 4,
+        "bytes": "040000009a02000025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 5,
+        "bytes": "05000000010000006400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f110000009a02000025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 6,
+        "bytes": "06000000010000006500010025000000fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f9a02000025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 7,
+        "bytes": "07000000010000006400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000010000006500010025000000fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f9a02000025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 8,
+        "bytes": "08000000010000006600020025000200fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 9,
+        "bytes": "09000000010000006400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000010000006600020025000200fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 10,
+        "bytes": "0a000000010000006500010025000000fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f010000006600020025000200fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 11,
+        "bytes": "0b000000010000006400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000010000006500010025000000fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f010000006600020025000200fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 12,
+        "bytes": "0c000000010000006600020025000200fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f110000009a02000025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 13,
+        "bytes": "0d000000010000006400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000010000006600020025000200fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f110000009a02000025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 14,
+        "bytes": "0e000000010000006500010025000000fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f010000006600020025000200fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f110000009a02000025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "mask": 15,
+        "bytes": "0f000000010000006400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000010000006500010025000000fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f010000006600020025000200fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f110000009a02000025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      }
+    ],
+    "events": [
+      {
+        "name": "GameEventMagicUpdateSpell",
+        "bytes": "b0f700000100005011000000c102000064000200"
+      },
+      {
+        "name": "GameEventMagicUpdateEnchantment",
+        "bytes": "b0f700000100005011000000c20200006400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "name": "GameEventMagicRemoveEnchantment",
+        "bytes": "b0f700000100005011000000c302000064000200"
+      },
+      {
+        "name": "GameEventMagicUpdateMultipleEnchantments",
+        "bytes": "b0f700000100005011000000c4020000040000006400040025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f110000009a02000025000100fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f110000006500010025000000fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f6600020025000200fa0000000000000000002ec00000000000205e40010000500000803e008026c4000000000000000008400002400000000000903f11000000"
+      },
+      {
+        "name": "GameEventMagicRemoveMultipleEnchantments",
+        "bytes": "b0f700000100005011000000c50200000200000064000100e8fdffff"
+      },
+      {
+        "name": "GameEventMagicPurgeEnchantments",
+        "bytes": "b0f700000100005011000000c6020000"
+      },
+      {
+        "name": "GameEventMagicDispelEnchantment",
+        "bytes": "b0f700000100005011000000c7020000e8fdffff"
+      },
+      {
+        "name": "GameEventMagicDispelMultipleEnchantments",
+        "bytes": "b0f700000100005011000000c80200000200000064000100e8fdffff"
+      },
+      {
+        "name": "GameEventMagicPurgeBadEnchantments",
+        "bytes": "b0f70000010000501100000012030000"
+      }
+    ],
+    "mana": [
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 0,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 0,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 0
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0,
+        "value": 12,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 15,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0,
+        "value": 49,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 62,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0,
+        "value": 17,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0,
+        "value": 67,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0,
+        "value": 20,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0,
+        "value": 81,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0,
+        "value": 99,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 1,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0,
+        "value": 2,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 3,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 9,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0,
+        "value": 7,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 11,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 37,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0,
+        "value": 8,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 11,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0,
+        "value": 32,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 45,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0,
+        "value": 12,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0,
+        "value": 50,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0,
+        "value": 24,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0,
+        "value": 95,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 50,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 6,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 4,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 23,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 2,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 9,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0,
+        "value": 4,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 8,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 37,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0,
+        "value": 5,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 8,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0,
+        "value": 18,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 31,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0,
+        "value": 20,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0,
+        "value": 82,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 100,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 5,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 2,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 19,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 5,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 2,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 19,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 5,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 2,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 19,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 3,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 25,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 14,
+        "consumed": 3
+      },
+      {
+        "skill": 300,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 100,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 2,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 0,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 5,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 2,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 50,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 5,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 2,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 100,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 5,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 0,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 1,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.5,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 25,
+        "draw": 0.99999994,
+        "value": 1,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0,
+        "value": 1,
+        "consumed": 2
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.5,
+        "value": 2,
+        "consumed": 3
+      },
+      {
+        "skill": 1000,
+        "difficulty": 300,
+        "cost": 100,
+        "draw": 0.99999994,
+        "value": 5,
+        "consumed": 3
+      }
+    ],
+    "chance": [
+      {
+        "skill": 0,
+        "difficulty": 0,
+        "value": 0.5
+      },
+      {
+        "skill": 0,
+        "difficulty": 50,
+        "value": 0.02931223075135636
+      },
+      {
+        "skill": 0,
+        "difficulty": 100,
+        "value": 0.0009110511944006028
+      },
+      {
+        "skill": 0,
+        "difficulty": 500,
+        "value": 6.661338147750939e-16
+      },
+      {
+        "skill": 50,
+        "difficulty": 0,
+        "value": 0.9706877692486436
+      },
+      {
+        "skill": 50,
+        "difficulty": 50,
+        "value": 0.5
+      },
+      {
+        "skill": 50,
+        "difficulty": 100,
+        "value": 0.02931223075135636
+      },
+      {
+        "skill": 50,
+        "difficulty": 500,
+        "value": 2.0872192862952943e-14
+      },
+      {
+        "skill": 100,
+        "difficulty": 0,
+        "value": 0.9990889488055994
+      },
+      {
+        "skill": 100,
+        "difficulty": 50,
+        "value": 0.9706877692486436
+      },
+      {
+        "skill": 100,
+        "difficulty": 100,
+        "value": 0.5
+      },
+      {
+        "skill": 100,
+        "difficulty": 500,
+        "value": 6.914468997365475e-13
+      },
+      {
+        "skill": 500,
+        "difficulty": 0,
+        "value": 0.9999999999999993
+      },
+      {
+        "skill": 500,
+        "difficulty": 50,
+        "value": 0.9999999999999791
+      },
+      {
+        "skill": 500,
+        "difficulty": 100,
+        "value": 0.9999999999993086
+      },
+      {
+        "skill": 500,
+        "difficulty": 500,
+        "value": 0.5
+      }
+    ]
+  }
+}

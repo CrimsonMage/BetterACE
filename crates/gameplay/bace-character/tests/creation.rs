@@ -154,28 +154,29 @@ fn no_client_word_or_asset_cost_can_become_a_negative_credit() {
 }
 
 #[test]
-fn reported_locked_skill_divergence_is_explicitly_preserved_for_allocations() {
-    // User divergence #36: pinned factory accepts Untrained for these skills.
-    // This does not assert the retail witness or implement untraining later.
-    let locked = [14, 15, 22, 24, 36, 40];
-    let mut skills = [None; 55];
-    let mut request = request();
-    for id in locked {
+fn retail_locked_skill_policy_rejects_untrained_and_inactive_before_mutation() {
+    for id in [14, 15, 22, 24, 36, 40] {
+        let mut skills = [None; 55];
         skills[id] = Some(CreationSkillCosts {
             trained: 0,
             specialized: 4,
         });
-        request.skills[id] = SkillAdvancement::Untrained;
-    }
-    let result = CreationRules::new(60, 52, skills)
-        .unwrap()
-        .validate(&request)
-        .unwrap();
-    assert_eq!(result.available_skill_credits, 52);
-    for id in locked {
+        let rules = CreationRules::new(60, 52, skills).unwrap();
+        for class in [SkillAdvancement::Inactive, SkillAdvancement::Untrained] {
+            let mut request = request();
+            request.skills[id] = class;
+            assert_eq!(
+                rules.validate(&request),
+                Err(CreationRejection::LockedSkillMustBeTrained(id as u32))
+            );
+        }
+        let mut request = request();
+        request.skills[id] = SkillAdvancement::Trained;
         assert_eq!(
-            result.skills[id].unwrap().advancement,
-            SkillAdvancement::Untrained
+            rules.validate(&request).unwrap().skills[id]
+                .unwrap()
+                .advancement,
+            SkillAdvancement::Trained
         );
     }
 }

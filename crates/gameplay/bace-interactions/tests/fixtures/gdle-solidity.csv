@@ -1,0 +1,19 @@
+# GDLE 353cbab52ef7da2b7063bc3e3f008461d8531693; AGPL-3.0-only; GDLE contributors
+# sha256 53c247458b52455fdfd5c4481463a54873eb87798687e544b269a1036cdbddc0 Source/PhatSDK/PhysicsObj.cpp
+# Synthetic caller: unparented, loaded cell; no client authority
+0,0,0,0,0,1
+0,0,1,1,1,0
+0,1,0,1,0,1
+0,1,1,1,0,1
+1,0,0,0,0,1
+1,0,1,1,1,0
+1,1,0,1,0,1
+1,1,1,1,0,1
+2,0,0,0,0,1
+2,0,1,1,1,0
+2,1,0,1,0,1
+2,1,1,1,0,1
+3,0,0,0,0,1
+3,0,1,1,1,0
+3,1,0,1,0,1
+3,1,1,1,0,1

@@ -9,7 +9,29 @@ pub struct ContentStatus {
     pub pending_publications: i64,
     pub rejected_publications: i64,
 }
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PublicationStatus {
+    pub status: String,
+    pub rejection: Option<String>,
+}
 impl PgStore {
+    pub async fn publication_status(
+        &self,
+        revision: i64,
+    ) -> Result<Option<PublicationStatus>, StoreError> {
+        if revision <= 0 {
+            return Err(StoreError::Invalid("publication revision"));
+        }
+        let row =
+            sqlx::query("SELECT status,rejection FROM content_publications WHERE revision=$1")
+                .bind(revision)
+                .fetch_optional(&self.pool)
+                .await?;
+        Ok(row.map(|row| PublicationStatus {
+            status: row.get("status"),
+            rejection: row.get("rejection"),
+        }))
+    }
     pub async fn content_status(&self) -> Result<ContentStatus, StoreError> {
         let row = sqlx::query("SELECT COALESCE(MAX(revision) FILTER (WHERE status='accepted'),0) AS accepted_revision, COUNT(*) FILTER (WHERE status='pending') AS pending_publications, COUNT(*) FILTER (WHERE status='rejected') AS rejected_publications, (SELECT COUNT(*) FROM content_heads) AS active_templates FROM content_publications")
             .fetch_one(&self.pool).await?;
@@ -53,6 +75,17 @@ impl PgStore {
         let mut total_bytes = 0_i64;
         for row in revisions {
             let revision: i64 = row.get("revision");
+            let native: bool = sqlx::query_scalar(
+                "SELECT EXISTS(SELECT 1 FROM native_content_candidates WHERE revision=$1) OR EXISTS(SELECT 1 FROM mapped_content_candidates WHERE revision=$1)",
+            )
+            .bind(revision)
+            .fetch_one(&self.pool)
+            .await?;
+            if native {
+                return Err(StoreError::Invalid(
+                    "native profiles require mapped publication",
+                ));
+            }
             let bytes: i64 = row.get("payload_bytes");
             if total_bytes + bytes > 256 * 1024 * 1024 {
                 break;
@@ -98,6 +131,17 @@ impl PgStore {
             return Err(StoreError::PublicationOrder);
         }
         if rejection.is_none() {
+            let native: bool = sqlx::query_scalar(
+                "SELECT EXISTS(SELECT 1 FROM native_content_candidates WHERE revision=$1) OR EXISTS(SELECT 1 FROM mapped_content_candidates WHERE revision=$1)",
+            )
+            .bind(revision)
+            .fetch_one(&mut *tx)
+            .await?;
+            if native {
+                return Err(StoreError::Invalid(
+                    "native profiles require mapped publication",
+                ));
+            }
             let mapped: bool = sqlx::query_scalar("SELECT active_manifest_hash IS NOT NULL FROM content_runtime_state WHERE singleton").fetch_one(&mut *tx).await?;
             if mapped {
                 return Err(StoreError::Invalid("mapped content requires accept_mapped"));

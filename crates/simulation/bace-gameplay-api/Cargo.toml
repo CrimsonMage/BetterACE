@@ -11,4 +11,5 @@ description = "Typed commands, effects and subsystem contracts"
 workspace = true
 
 [dependencies]
+bace-geometry.workspace = true
 bace-types.workspace = true

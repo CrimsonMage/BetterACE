@@ -1,0 +1,488 @@
+{
+  "source_sha256": "a9177c7dc874505627fc84e45516e1dcebc8e171482d9a3caeab3ce15243f20f",
+  "monster_sha256": "3754f33335fc58dc60af675ba73a6330f65bcc7eaccbcc111c3734eea4bfb88b",
+  "cases": [
+    {
+      "id": 0,
+      "type": null,
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 1,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 2,
+      "type": "Clothing",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 3,
+      "type": "MissileLauncher",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 4,
+      "type": "Missile",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 5,
+      "type": "Ammunition",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 6,
+      "type": "MeleeWeapon",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 7,
+      "type": "Portal",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 8,
+      "type": "Book",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 9,
+      "type": "Coin",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 10,
+      "type": "Creature",
+      "creature": true,
+      "container": true
+    },
+    {
+      "id": 11,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 12,
+      "type": "Vendor",
+      "creature": true,
+      "container": true
+    },
+    {
+      "id": 13,
+      "type": "Hotspot",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 14,
+      "type": "Corpse",
+      "creature": false,
+      "container": true
+    },
+    {
+      "id": 15,
+      "type": "Cow",
+      "creature": true,
+      "container": true
+    },
+    {
+      "id": 16,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 17,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 18,
+      "type": "Food",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 19,
+      "type": "Door",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 20,
+      "type": "Chest",
+      "creature": false,
+      "container": true
+    },
+    {
+      "id": 21,
+      "type": "Container",
+      "creature": false,
+      "container": true
+    },
+    {
+      "id": 22,
+      "type": "Key",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 23,
+      "type": "Lockpick",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 24,
+      "type": "PressurePlate",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 25,
+      "type": "Lifestone",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 26,
+      "type": "Switch",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 27,
+      "type": "PKModifier",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 28,
+      "type": "Healer",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 29,
+      "type": "LightSource",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 30,
+      "type": "Allegiance",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 31,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 32,
+      "type": "SpellComponent",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 33,
+      "type": "SpellProjectile",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 34,
+      "type": "Scroll",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 35,
+      "type": "Caster",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 36,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 37,
+      "type": "ManaStone",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 38,
+      "type": "Gem",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 39,
+      "type": "AdvocateFane",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 40,
+      "type": "AdvocateItem",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 41,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 42,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 43,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 44,
+      "type": "CraftTool",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 45,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 46,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 47,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 48,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 49,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 50,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 51,
+      "type": "Stackable",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 52,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 53,
+      "type": "House",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 54,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 55,
+      "type": "SlumLord",
+      "creature": false,
+      "container": true
+    },
+    {
+      "id": 56,
+      "type": "Hook",
+      "creature": false,
+      "container": true
+    },
+    {
+      "id": 57,
+      "type": "Storage",
+      "creature": false,
+      "container": true
+    },
+    {
+      "id": 58,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 59,
+      "type": "HousePortal",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 60,
+      "type": "Game",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 61,
+      "type": "GamePiece",
+      "creature": true,
+      "container": true
+    },
+    {
+      "id": 62,
+      "type": "SkillAlterationDevice",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 63,
+      "type": "AttributeTransferDevice",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 64,
+      "type": "Hooker",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 65,
+      "type": "Bindstone",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 66,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 67,
+      "type": "AugmentationDevice",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 68,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 69,
+      "type": "Pet",
+      "creature": true,
+      "container": true
+    },
+    {
+      "id": 70,
+      "type": "PetDevice",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 71,
+      "type": "CombatPet",
+      "creature": true,
+      "container": true
+    },
+    {
+      "id": 72,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 73,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    },
+    {
+      "id": 74,
+      "type": "GenericObject",
+      "creature": false,
+      "container": false
+    }
+  ],
+  "ai_cases": [
+    {
+      "attackable": false,
+      "tactic": 0,
+      "combat": false
+    },
+    {
+      "attackable": false,
+      "tactic": 1,
+      "combat": true
+    },
+    {
+      "attackable": false,
+      "tactic": 2,
+      "combat": true
+    },
+    {
+      "attackable": true,
+      "tactic": 0,
+      "combat": true
+    },
+    {
+      "attackable": true,
+      "tactic": 1,
+      "combat": true
+    },
+    {
+      "attackable": true,
+      "tactic": 2,
+      "combat": true
+    }
+  ]
+}

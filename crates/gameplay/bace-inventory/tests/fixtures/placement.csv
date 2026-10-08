@@ -1,0 +1,8 @@
+# action,pack_slot,placement_or_removed_id,id:placement pairs
+add,0,0,10:1;11:2;12:0;13:0
+add,0,1,10:0;11:2;12:0;13:1
+add,1,0,10:0;11:1;12:1;13:0
+add,1,1,10:0;11:1;12:0;13:1
+remove,0,10,11:0;12:0
+remove,0,11,10:0;12:0
+remove,0,12,10:0;11:1

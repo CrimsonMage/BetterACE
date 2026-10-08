@@ -65,6 +65,12 @@ pub enum NetworkCommand {
         key: SessionKey,
         account_id: bace_types::AccountId,
     },
+    /// Complete the ordinary cookie challenge, then send the authenticated
+    /// account-ban control packet and close without acquiring account ownership.
+    RejectBanned {
+        key: SessionKey,
+        bytes: Vec<u8>,
+    },
     Send {
         key: SessionKey,
         queue: u16,
@@ -77,11 +83,34 @@ pub enum NetworkCommand {
         queue: u16,
         messages: Vec<Vec<u8>>,
     },
+    /// Mixed-queue enqueue order. ACE transport bundles queues separately;
+    /// this preserves per-queue order, not global on-wire interleaving.
+    /// Admission completes before peer polling;
+    /// any failure closes the peer so a required prefix cannot escape alone.
+    SendOrderedBatch {
+        key: SessionKey,
+        messages: Vec<(u16, Vec<u8>)>,
+    },
+    /// Correlated admission into the reliable peer, distinct from adapter queue
+    /// admission and from remote delivery. Retain exact bytes until the result.
+    SendReliableBatch {
+        key: SessionKey,
+        correlation: u64,
+        messages: Vec<(u16, Vec<u8>)>,
+    },
     EnterWorldCommitted {
         key: SessionKey,
     },
     LogoutCommitted {
         key: SessionKey,
+    },
+    /// Queue a final bounded message, flush queued datagrams to the socket, then
+    /// terminate. This is best-effort transmission, not a remote receipt or a
+    /// player-save acknowledgment. Other output is refused once closing starts.
+    TerminateAfterFlush {
+        key: SessionKey,
+        queue: u16,
+        bytes: Vec<u8>,
     },
     Terminate {
         key: SessionKey,
@@ -92,6 +121,11 @@ pub enum NetworkCommand {
 }
 #[derive(Debug)]
 pub enum NetworkEvent {
+    ReliableBatchAdmission {
+        key: SessionKey,
+        correlation: u64,
+        accepted: bool,
+    },
     CommandRejected {
         key: SessionKey,
     },

@@ -11,7 +11,7 @@ pub(crate) struct Camera {
 impl Default for Camera {
     fn default() -> Self {
         Self {
-            yaw: 0.4,
+            yaw: 3.5,
             pitch: 0.15,
             zoom: 1.0,
             pan: [0.0; 2],
@@ -54,7 +54,7 @@ pub(crate) fn render(scene: &PreviewScene, camera: Camera) -> Result<ColorImage,
             (x - a[0]) * (b[1] - a[1]) - (y - a[1]) * (b[0] - a[0])
         };
         let area = edge(p[0], p[1], p[2][0], p[2][1]);
-        if area.abs() < 0.001 {
+        if area.abs() < 0.001 || (triangle.cull && area < 0.0) {
             continue;
         }
         let min_x = p

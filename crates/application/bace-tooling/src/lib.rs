@@ -4,4 +4,6 @@
 
 mod commands;
 pub mod entry;
+mod loot_tools;
 mod sql_import;
+mod world_tools;

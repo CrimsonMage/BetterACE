@@ -1,0 +1,440 @@
+0|0|0|Failed to train None! You now have 0 credits available.
+0|0|1|None trained. You now have 0 credits available.
+0|1|0|Failed to train None! You now have 1 credits available.
+0|1|1|None trained. You now have 1 credits available.
+0|20|0|Failed to train None! You now have 20 credits available.
+0|20|1|None trained. You now have 20 credits available.
+0|2147483647|0|Failed to train None! You now have 2147483647 credits available.
+0|2147483647|1|None trained. You now have 2147483647 credits available.
+1|0|0|Failed to train Axe! You now have 0 credits available.
+1|0|1|Axe trained. You now have 0 credits available.
+1|1|0|Failed to train Axe! You now have 1 credits available.
+1|1|1|Axe trained. You now have 1 credits available.
+1|20|0|Failed to train Axe! You now have 20 credits available.
+1|20|1|Axe trained. You now have 20 credits available.
+1|2147483647|0|Failed to train Axe! You now have 2147483647 credits available.
+1|2147483647|1|Axe trained. You now have 2147483647 credits available.
+2|0|0|Failed to train Bow! You now have 0 credits available.
+2|0|1|Bow trained. You now have 0 credits available.
+2|1|0|Failed to train Bow! You now have 1 credits available.
+2|1|1|Bow trained. You now have 1 credits available.
+2|20|0|Failed to train Bow! You now have 20 credits available.
+2|20|1|Bow trained. You now have 20 credits available.
+2|2147483647|0|Failed to train Bow! You now have 2147483647 credits available.
+2|2147483647|1|Bow trained. You now have 2147483647 credits available.
+3|0|0|Failed to train Crossbow! You now have 0 credits available.
+3|0|1|Crossbow trained. You now have 0 credits available.
+3|1|0|Failed to train Crossbow! You now have 1 credits available.
+3|1|1|Crossbow trained. You now have 1 credits available.
+3|20|0|Failed to train Crossbow! You now have 20 credits available.
+3|20|1|Crossbow trained. You now have 20 credits available.
+3|2147483647|0|Failed to train Crossbow! You now have 2147483647 credits available.
+3|2147483647|1|Crossbow trained. You now have 2147483647 credits available.
+4|0|0|Failed to train Dagger! You now have 0 credits available.
+4|0|1|Dagger trained. You now have 0 credits available.
+4|1|0|Failed to train Dagger! You now have 1 credits available.
+4|1|1|Dagger trained. You now have 1 credits available.
+4|20|0|Failed to train Dagger! You now have 20 credits available.
+4|20|1|Dagger trained. You now have 20 credits available.
+4|2147483647|0|Failed to train Dagger! You now have 2147483647 credits available.
+4|2147483647|1|Dagger trained. You now have 2147483647 credits available.
+5|0|0|Failed to train Mace! You now have 0 credits available.
+5|0|1|Mace trained. You now have 0 credits available.
+5|1|0|Failed to train Mace! You now have 1 credits available.
+5|1|1|Mace trained. You now have 1 credits available.
+5|20|0|Failed to train Mace! You now have 20 credits available.
+5|20|1|Mace trained. You now have 20 credits available.
+5|2147483647|0|Failed to train Mace! You now have 2147483647 credits available.
+5|2147483647|1|Mace trained. You now have 2147483647 credits available.
+6|0|0|Failed to train Melee Defense! You now have 0 credits available.
+6|0|1|Melee Defense trained. You now have 0 credits available.
+6|1|0|Failed to train Melee Defense! You now have 1 credits available.
+6|1|1|Melee Defense trained. You now have 1 credits available.
+6|20|0|Failed to train Melee Defense! You now have 20 credits available.
+6|20|1|Melee Defense trained. You now have 20 credits available.
+6|2147483647|0|Failed to train Melee Defense! You now have 2147483647 credits available.
+6|2147483647|1|Melee Defense trained. You now have 2147483647 credits available.
+7|0|0|Failed to train Missile Defense! You now have 0 credits available.
+7|0|1|Missile Defense trained. You now have 0 credits available.
+7|1|0|Failed to train Missile Defense! You now have 1 credits available.
+7|1|1|Missile Defense trained. You now have 1 credits available.
+7|20|0|Failed to train Missile Defense! You now have 20 credits available.
+7|20|1|Missile Defense trained. You now have 20 credits available.
+7|2147483647|0|Failed to train Missile Defense! You now have 2147483647 credits available.
+7|2147483647|1|Missile Defense trained. You now have 2147483647 credits available.
+8|0|0|Failed to train Sling! You now have 0 credits available.
+8|0|1|Sling trained. You now have 0 credits available.
+8|1|0|Failed to train Sling! You now have 1 credits available.
+8|1|1|Sling trained. You now have 1 credits available.
+8|20|0|Failed to train Sling! You now have 20 credits available.
+8|20|1|Sling trained. You now have 20 credits available.
+8|2147483647|0|Failed to train Sling! You now have 2147483647 credits available.
+8|2147483647|1|Sling trained. You now have 2147483647 credits available.
+9|0|0|Failed to train Spear! You now have 0 credits available.
+9|0|1|Spear trained. You now have 0 credits available.
+9|1|0|Failed to train Spear! You now have 1 credits available.
+9|1|1|Spear trained. You now have 1 credits available.
+9|20|0|Failed to train Spear! You now have 20 credits available.
+9|20|1|Spear trained. You now have 20 credits available.
+9|2147483647|0|Failed to train Spear! You now have 2147483647 credits available.
+9|2147483647|1|Spear trained. You now have 2147483647 credits available.
+10|0|0|Failed to train Staff! You now have 0 credits available.
+10|0|1|Staff trained. You now have 0 credits available.
+10|1|0|Failed to train Staff! You now have 1 credits available.
+10|1|1|Staff trained. You now have 1 credits available.
+10|20|0|Failed to train Staff! You now have 20 credits available.
+10|20|1|Staff trained. You now have 20 credits available.
+10|2147483647|0|Failed to train Staff! You now have 2147483647 credits available.
+10|2147483647|1|Staff trained. You now have 2147483647 credits available.
+11|0|0|Failed to train Sword! You now have 0 credits available.
+11|0|1|Sword trained. You now have 0 credits available.
+11|1|0|Failed to train Sword! You now have 1 credits available.
+11|1|1|Sword trained. You now have 1 credits available.
+11|20|0|Failed to train Sword! You now have 20 credits available.
+11|20|1|Sword trained. You now have 20 credits available.
+11|2147483647|0|Failed to train Sword! You now have 2147483647 credits available.
+11|2147483647|1|Sword trained. You now have 2147483647 credits available.
+12|0|0|Failed to train Thrown Weapon! You now have 0 credits available.
+12|0|1|Thrown Weapon trained. You now have 0 credits available.
+12|1|0|Failed to train Thrown Weapon! You now have 1 credits available.
+12|1|1|Thrown Weapon trained. You now have 1 credits available.
+12|20|0|Failed to train Thrown Weapon! You now have 20 credits available.
+12|20|1|Thrown Weapon trained. You now have 20 credits available.
+12|2147483647|0|Failed to train Thrown Weapon! You now have 2147483647 credits available.
+12|2147483647|1|Thrown Weapon trained. You now have 2147483647 credits available.
+13|0|0|Failed to train Unarmed Combat! You now have 0 credits available.
+13|0|1|Unarmed Combat trained. You now have 0 credits available.
+13|1|0|Failed to train Unarmed Combat! You now have 1 credits available.
+13|1|1|Unarmed Combat trained. You now have 1 credits available.
+13|20|0|Failed to train Unarmed Combat! You now have 20 credits available.
+13|20|1|Unarmed Combat trained. You now have 20 credits available.
+13|2147483647|0|Failed to train Unarmed Combat! You now have 2147483647 credits available.
+13|2147483647|1|Unarmed Combat trained. You now have 2147483647 credits available.
+14|0|0|Failed to train Arcane Lore! You now have 0 credits available.
+14|0|1|Arcane Lore trained. You now have 0 credits available.
+14|1|0|Failed to train Arcane Lore! You now have 1 credits available.
+14|1|1|Arcane Lore trained. You now have 1 credits available.
+14|20|0|Failed to train Arcane Lore! You now have 20 credits available.
+14|20|1|Arcane Lore trained. You now have 20 credits available.
+14|2147483647|0|Failed to train Arcane Lore! You now have 2147483647 credits available.
+14|2147483647|1|Arcane Lore trained. You now have 2147483647 credits available.
+15|0|0|Failed to train Magic Defense! You now have 0 credits available.
+15|0|1|Magic Defense trained. You now have 0 credits available.
+15|1|0|Failed to train Magic Defense! You now have 1 credits available.
+15|1|1|Magic Defense trained. You now have 1 credits available.
+15|20|0|Failed to train Magic Defense! You now have 20 credits available.
+15|20|1|Magic Defense trained. You now have 20 credits available.
+15|2147483647|0|Failed to train Magic Defense! You now have 2147483647 credits available.
+15|2147483647|1|Magic Defense trained. You now have 2147483647 credits available.
+16|0|0|Failed to train Mana Conversion! You now have 0 credits available.
+16|0|1|Mana Conversion trained. You now have 0 credits available.
+16|1|0|Failed to train Mana Conversion! You now have 1 credits available.
+16|1|1|Mana Conversion trained. You now have 1 credits available.
+16|20|0|Failed to train Mana Conversion! You now have 20 credits available.
+16|20|1|Mana Conversion trained. You now have 20 credits available.
+16|2147483647|0|Failed to train Mana Conversion! You now have 2147483647 credits available.
+16|2147483647|1|Mana Conversion trained. You now have 2147483647 credits available.
+17|0|0|Failed to train Spellcraft! You now have 0 credits available.
+17|0|1|Spellcraft trained. You now have 0 credits available.
+17|1|0|Failed to train Spellcraft! You now have 1 credits available.
+17|1|1|Spellcraft trained. You now have 1 credits available.
+17|20|0|Failed to train Spellcraft! You now have 20 credits available.
+17|20|1|Spellcraft trained. You now have 20 credits available.
+17|2147483647|0|Failed to train Spellcraft! You now have 2147483647 credits available.
+17|2147483647|1|Spellcraft trained. You now have 2147483647 credits available.
+18|0|0|Failed to train Item Tinkering! You now have 0 credits available.
+18|0|1|Item Tinkering trained. You now have 0 credits available.
+18|1|0|Failed to train Item Tinkering! You now have 1 credits available.
+18|1|1|Item Tinkering trained. You now have 1 credits available.
+18|20|0|Failed to train Item Tinkering! You now have 20 credits available.
+18|20|1|Item Tinkering trained. You now have 20 credits available.
+18|2147483647|0|Failed to train Item Tinkering! You now have 2147483647 credits available.
+18|2147483647|1|Item Tinkering trained. You now have 2147483647 credits available.
+19|0|0|Failed to train Assess Person! You now have 0 credits available.
+19|0|1|Assess Person trained. You now have 0 credits available.
+19|1|0|Failed to train Assess Person! You now have 1 credits available.
+19|1|1|Assess Person trained. You now have 1 credits available.
+19|20|0|Failed to train Assess Person! You now have 20 credits available.
+19|20|1|Assess Person trained. You now have 20 credits available.
+19|2147483647|0|Failed to train Assess Person! You now have 2147483647 credits available.
+19|2147483647|1|Assess Person trained. You now have 2147483647 credits available.
+20|0|0|Failed to train Deception! You now have 0 credits available.
+20|0|1|Deception trained. You now have 0 credits available.
+20|1|0|Failed to train Deception! You now have 1 credits available.
+20|1|1|Deception trained. You now have 1 credits available.
+20|20|0|Failed to train Deception! You now have 20 credits available.
+20|20|1|Deception trained. You now have 20 credits available.
+20|2147483647|0|Failed to train Deception! You now have 2147483647 credits available.
+20|2147483647|1|Deception trained. You now have 2147483647 credits available.
+21|0|0|Failed to train Healing! You now have 0 credits available.
+21|0|1|Healing trained. You now have 0 credits available.
+21|1|0|Failed to train Healing! You now have 1 credits available.
+21|1|1|Healing trained. You now have 1 credits available.
+21|20|0|Failed to train Healing! You now have 20 credits available.
+21|20|1|Healing trained. You now have 20 credits available.
+21|2147483647|0|Failed to train Healing! You now have 2147483647 credits available.
+21|2147483647|1|Healing trained. You now have 2147483647 credits available.
+22|0|0|Failed to train Jump! You now have 0 credits available.
+22|0|1|Jump trained. You now have 0 credits available.
+22|1|0|Failed to train Jump! You now have 1 credits available.
+22|1|1|Jump trained. You now have 1 credits available.
+22|20|0|Failed to train Jump! You now have 20 credits available.
+22|20|1|Jump trained. You now have 20 credits available.
+22|2147483647|0|Failed to train Jump! You now have 2147483647 credits available.
+22|2147483647|1|Jump trained. You now have 2147483647 credits available.
+23|0|0|Failed to train Lockpick! You now have 0 credits available.
+23|0|1|Lockpick trained. You now have 0 credits available.
+23|1|0|Failed to train Lockpick! You now have 1 credits available.
+23|1|1|Lockpick trained. You now have 1 credits available.
+23|20|0|Failed to train Lockpick! You now have 20 credits available.
+23|20|1|Lockpick trained. You now have 20 credits available.
+23|2147483647|0|Failed to train Lockpick! You now have 2147483647 credits available.
+23|2147483647|1|Lockpick trained. You now have 2147483647 credits available.
+24|0|0|Failed to train Run! You now have 0 credits available.
+24|0|1|Run trained. You now have 0 credits available.
+24|1|0|Failed to train Run! You now have 1 credits available.
+24|1|1|Run trained. You now have 1 credits available.
+24|20|0|Failed to train Run! You now have 20 credits available.
+24|20|1|Run trained. You now have 20 credits available.
+24|2147483647|0|Failed to train Run! You now have 2147483647 credits available.
+24|2147483647|1|Run trained. You now have 2147483647 credits available.
+25|0|0|Failed to train Awareness! You now have 0 credits available.
+25|0|1|Awareness trained. You now have 0 credits available.
+25|1|0|Failed to train Awareness! You now have 1 credits available.
+25|1|1|Awareness trained. You now have 1 credits available.
+25|20|0|Failed to train Awareness! You now have 20 credits available.
+25|20|1|Awareness trained. You now have 20 credits available.
+25|2147483647|0|Failed to train Awareness! You now have 2147483647 credits available.
+25|2147483647|1|Awareness trained. You now have 2147483647 credits available.
+26|0|0|Failed to train Arms And Armor Repair! You now have 0 credits available.
+26|0|1|Arms And Armor Repair trained. You now have 0 credits available.
+26|1|0|Failed to train Arms And Armor Repair! You now have 1 credits available.
+26|1|1|Arms And Armor Repair trained. You now have 1 credits available.
+26|20|0|Failed to train Arms And Armor Repair! You now have 20 credits available.
+26|20|1|Arms And Armor Repair trained. You now have 20 credits available.
+26|2147483647|0|Failed to train Arms And Armor Repair! You now have 2147483647 credits available.
+26|2147483647|1|Arms And Armor Repair trained. You now have 2147483647 credits available.
+27|0|0|Failed to train Assess Creature! You now have 0 credits available.
+27|0|1|Assess Creature trained. You now have 0 credits available.
+27|1|0|Failed to train Assess Creature! You now have 1 credits available.
+27|1|1|Assess Creature trained. You now have 1 credits available.
+27|20|0|Failed to train Assess Creature! You now have 20 credits available.
+27|20|1|Assess Creature trained. You now have 20 credits available.
+27|2147483647|0|Failed to train Assess Creature! You now have 2147483647 credits available.
+27|2147483647|1|Assess Creature trained. You now have 2147483647 credits available.
+28|0|0|Failed to train Weapon Tinkering! You now have 0 credits available.
+28|0|1|Weapon Tinkering trained. You now have 0 credits available.
+28|1|0|Failed to train Weapon Tinkering! You now have 1 credits available.
+28|1|1|Weapon Tinkering trained. You now have 1 credits available.
+28|20|0|Failed to train Weapon Tinkering! You now have 20 credits available.
+28|20|1|Weapon Tinkering trained. You now have 20 credits available.
+28|2147483647|0|Failed to train Weapon Tinkering! You now have 2147483647 credits available.
+28|2147483647|1|Weapon Tinkering trained. You now have 2147483647 credits available.
+29|0|0|Failed to train Armor Tinkering! You now have 0 credits available.
+29|0|1|Armor Tinkering trained. You now have 0 credits available.
+29|1|0|Failed to train Armor Tinkering! You now have 1 credits available.
+29|1|1|Armor Tinkering trained. You now have 1 credits available.
+29|20|0|Failed to train Armor Tinkering! You now have 20 credits available.
+29|20|1|Armor Tinkering trained. You now have 20 credits available.
+29|2147483647|0|Failed to train Armor Tinkering! You now have 2147483647 credits available.
+29|2147483647|1|Armor Tinkering trained. You now have 2147483647 credits available.
+30|0|0|Failed to train Magic Item Tinkering! You now have 0 credits available.
+30|0|1|Magic Item Tinkering trained. You now have 0 credits available.
+30|1|0|Failed to train Magic Item Tinkering! You now have 1 credits available.
+30|1|1|Magic Item Tinkering trained. You now have 1 credits available.
+30|20|0|Failed to train Magic Item Tinkering! You now have 20 credits available.
+30|20|1|Magic Item Tinkering trained. You now have 20 credits available.
+30|2147483647|0|Failed to train Magic Item Tinkering! You now have 2147483647 credits available.
+30|2147483647|1|Magic Item Tinkering trained. You now have 2147483647 credits available.
+31|0|0|Failed to train Creature Enchantment! You now have 0 credits available.
+31|0|1|Creature Enchantment trained. You now have 0 credits available.
+31|1|0|Failed to train Creature Enchantment! You now have 1 credits available.
+31|1|1|Creature Enchantment trained. You now have 1 credits available.
+31|20|0|Failed to train Creature Enchantment! You now have 20 credits available.
+31|20|1|Creature Enchantment trained. You now have 20 credits available.
+31|2147483647|0|Failed to train Creature Enchantment! You now have 2147483647 credits available.
+31|2147483647|1|Creature Enchantment trained. You now have 2147483647 credits available.
+32|0|0|Failed to train Item Enchantment! You now have 0 credits available.
+32|0|1|Item Enchantment trained. You now have 0 credits available.
+32|1|0|Failed to train Item Enchantment! You now have 1 credits available.
+32|1|1|Item Enchantment trained. You now have 1 credits available.
+32|20|0|Failed to train Item Enchantment! You now have 20 credits available.
+32|20|1|Item Enchantment trained. You now have 20 credits available.
+32|2147483647|0|Failed to train Item Enchantment! You now have 2147483647 credits available.
+32|2147483647|1|Item Enchantment trained. You now have 2147483647 credits available.
+33|0|0|Failed to train Life Magic! You now have 0 credits available.
+33|0|1|Life Magic trained. You now have 0 credits available.
+33|1|0|Failed to train Life Magic! You now have 1 credits available.
+33|1|1|Life Magic trained. You now have 1 credits available.
+33|20|0|Failed to train Life Magic! You now have 20 credits available.
+33|20|1|Life Magic trained. You now have 20 credits available.
+33|2147483647|0|Failed to train Life Magic! You now have 2147483647 credits available.
+33|2147483647|1|Life Magic trained. You now have 2147483647 credits available.
+34|0|0|Failed to train War Magic! You now have 0 credits available.
+34|0|1|War Magic trained. You now have 0 credits available.
+34|1|0|Failed to train War Magic! You now have 1 credits available.
+34|1|1|War Magic trained. You now have 1 credits available.
+34|20|0|Failed to train War Magic! You now have 20 credits available.
+34|20|1|War Magic trained. You now have 20 credits available.
+34|2147483647|0|Failed to train War Magic! You now have 2147483647 credits available.
+34|2147483647|1|War Magic trained. You now have 2147483647 credits available.
+35|0|0|Failed to train Leadership! You now have 0 credits available.
+35|0|1|Leadership trained. You now have 0 credits available.
+35|1|0|Failed to train Leadership! You now have 1 credits available.
+35|1|1|Leadership trained. You now have 1 credits available.
+35|20|0|Failed to train Leadership! You now have 20 credits available.
+35|20|1|Leadership trained. You now have 20 credits available.
+35|2147483647|0|Failed to train Leadership! You now have 2147483647 credits available.
+35|2147483647|1|Leadership trained. You now have 2147483647 credits available.
+36|0|0|Failed to train Loyalty! You now have 0 credits available.
+36|0|1|Loyalty trained. You now have 0 credits available.
+36|1|0|Failed to train Loyalty! You now have 1 credits available.
+36|1|1|Loyalty trained. You now have 1 credits available.
+36|20|0|Failed to train Loyalty! You now have 20 credits available.
+36|20|1|Loyalty trained. You now have 20 credits available.
+36|2147483647|0|Failed to train Loyalty! You now have 2147483647 credits available.
+36|2147483647|1|Loyalty trained. You now have 2147483647 credits available.
+37|0|0|Failed to train Fletching! You now have 0 credits available.
+37|0|1|Fletching trained. You now have 0 credits available.
+37|1|0|Failed to train Fletching! You now have 1 credits available.
+37|1|1|Fletching trained. You now have 1 credits available.
+37|20|0|Failed to train Fletching! You now have 20 credits available.
+37|20|1|Fletching trained. You now have 20 credits available.
+37|2147483647|0|Failed to train Fletching! You now have 2147483647 credits available.
+37|2147483647|1|Fletching trained. You now have 2147483647 credits available.
+38|0|0|Failed to train Alchemy! You now have 0 credits available.
+38|0|1|Alchemy trained. You now have 0 credits available.
+38|1|0|Failed to train Alchemy! You now have 1 credits available.
+38|1|1|Alchemy trained. You now have 1 credits available.
+38|20|0|Failed to train Alchemy! You now have 20 credits available.
+38|20|1|Alchemy trained. You now have 20 credits available.
+38|2147483647|0|Failed to train Alchemy! You now have 2147483647 credits available.
+38|2147483647|1|Alchemy trained. You now have 2147483647 credits available.
+39|0|0|Failed to train Cooking! You now have 0 credits available.
+39|0|1|Cooking trained. You now have 0 credits available.
+39|1|0|Failed to train Cooking! You now have 1 credits available.
+39|1|1|Cooking trained. You now have 1 credits available.
+39|20|0|Failed to train Cooking! You now have 20 credits available.
+39|20|1|Cooking trained. You now have 20 credits available.
+39|2147483647|0|Failed to train Cooking! You now have 2147483647 credits available.
+39|2147483647|1|Cooking trained. You now have 2147483647 credits available.
+40|0|0|Failed to train Salvaging! You now have 0 credits available.
+40|0|1|Salvaging trained. You now have 0 credits available.
+40|1|0|Failed to train Salvaging! You now have 1 credits available.
+40|1|1|Salvaging trained. You now have 1 credits available.
+40|20|0|Failed to train Salvaging! You now have 20 credits available.
+40|20|1|Salvaging trained. You now have 20 credits available.
+40|2147483647|0|Failed to train Salvaging! You now have 2147483647 credits available.
+40|2147483647|1|Salvaging trained. You now have 2147483647 credits available.
+41|0|0|Failed to train Two Handed Combat! You now have 0 credits available.
+41|0|1|Two Handed Combat trained. You now have 0 credits available.
+41|1|0|Failed to train Two Handed Combat! You now have 1 credits available.
+41|1|1|Two Handed Combat trained. You now have 1 credits available.
+41|20|0|Failed to train Two Handed Combat! You now have 20 credits available.
+41|20|1|Two Handed Combat trained. You now have 20 credits available.
+41|2147483647|0|Failed to train Two Handed Combat! You now have 2147483647 credits available.
+41|2147483647|1|Two Handed Combat trained. You now have 2147483647 credits available.
+42|0|0|Failed to train Gearcraft! You now have 0 credits available.
+42|0|1|Gearcraft trained. You now have 0 credits available.
+42|1|0|Failed to train Gearcraft! You now have 1 credits available.
+42|1|1|Gearcraft trained. You now have 1 credits available.
+42|20|0|Failed to train Gearcraft! You now have 20 credits available.
+42|20|1|Gearcraft trained. You now have 20 credits available.
+42|2147483647|0|Failed to train Gearcraft! You now have 2147483647 credits available.
+42|2147483647|1|Gearcraft trained. You now have 2147483647 credits available.
+43|0|0|Failed to train Void Magic! You now have 0 credits available.
+43|0|1|Void Magic trained. You now have 0 credits available.
+43|1|0|Failed to train Void Magic! You now have 1 credits available.
+43|1|1|Void Magic trained. You now have 1 credits available.
+43|20|0|Failed to train Void Magic! You now have 20 credits available.
+43|20|1|Void Magic trained. You now have 20 credits available.
+43|2147483647|0|Failed to train Void Magic! You now have 2147483647 credits available.
+43|2147483647|1|Void Magic trained. You now have 2147483647 credits available.
+44|0|0|Failed to train Heavy Weapons! You now have 0 credits available.
+44|0|1|Heavy Weapons trained. You now have 0 credits available.
+44|1|0|Failed to train Heavy Weapons! You now have 1 credits available.
+44|1|1|Heavy Weapons trained. You now have 1 credits available.
+44|20|0|Failed to train Heavy Weapons! You now have 20 credits available.
+44|20|1|Heavy Weapons trained. You now have 20 credits available.
+44|2147483647|0|Failed to train Heavy Weapons! You now have 2147483647 credits available.
+44|2147483647|1|Heavy Weapons trained. You now have 2147483647 credits available.
+45|0|0|Failed to train Light Weapons! You now have 0 credits available.
+45|0|1|Light Weapons trained. You now have 0 credits available.
+45|1|0|Failed to train Light Weapons! You now have 1 credits available.
+45|1|1|Light Weapons trained. You now have 1 credits available.
+45|20|0|Failed to train Light Weapons! You now have 20 credits available.
+45|20|1|Light Weapons trained. You now have 20 credits available.
+45|2147483647|0|Failed to train Light Weapons! You now have 2147483647 credits available.
+45|2147483647|1|Light Weapons trained. You now have 2147483647 credits available.
+46|0|0|Failed to train Finesse Weapons! You now have 0 credits available.
+46|0|1|Finesse Weapons trained. You now have 0 credits available.
+46|1|0|Failed to train Finesse Weapons! You now have 1 credits available.
+46|1|1|Finesse Weapons trained. You now have 1 credits available.
+46|20|0|Failed to train Finesse Weapons! You now have 20 credits available.
+46|20|1|Finesse Weapons trained. You now have 20 credits available.
+46|2147483647|0|Failed to train Finesse Weapons! You now have 2147483647 credits available.
+46|2147483647|1|Finesse Weapons trained. You now have 2147483647 credits available.
+47|0|0|Failed to train Missile Weapons! You now have 0 credits available.
+47|0|1|Missile Weapons trained. You now have 0 credits available.
+47|1|0|Failed to train Missile Weapons! You now have 1 credits available.
+47|1|1|Missile Weapons trained. You now have 1 credits available.
+47|20|0|Failed to train Missile Weapons! You now have 20 credits available.
+47|20|1|Missile Weapons trained. You now have 20 credits available.
+47|2147483647|0|Failed to train Missile Weapons! You now have 2147483647 credits available.
+47|2147483647|1|Missile Weapons trained. You now have 2147483647 credits available.
+48|0|0|Failed to train Shield! You now have 0 credits available.
+48|0|1|Shield trained. You now have 0 credits available.
+48|1|0|Failed to train Shield! You now have 1 credits available.
+48|1|1|Shield trained. You now have 1 credits available.
+48|20|0|Failed to train Shield! You now have 20 credits available.
+48|20|1|Shield trained. You now have 20 credits available.
+48|2147483647|0|Failed to train Shield! You now have 2147483647 credits available.
+48|2147483647|1|Shield trained. You now have 2147483647 credits available.
+49|0|0|Failed to train Dual Wield! You now have 0 credits available.
+49|0|1|Dual Wield trained. You now have 0 credits available.
+49|1|0|Failed to train Dual Wield! You now have 1 credits available.
+49|1|1|Dual Wield trained. You now have 1 credits available.
+49|20|0|Failed to train Dual Wield! You now have 20 credits available.
+49|20|1|Dual Wield trained. You now have 20 credits available.
+49|2147483647|0|Failed to train Dual Wield! You now have 2147483647 credits available.
+49|2147483647|1|Dual Wield trained. You now have 2147483647 credits available.
+50|0|0|Failed to train Recklessness! You now have 0 credits available.
+50|0|1|Recklessness trained. You now have 0 credits available.
+50|1|0|Failed to train Recklessness! You now have 1 credits available.
+50|1|1|Recklessness trained. You now have 1 credits available.
+50|20|0|Failed to train Recklessness! You now have 20 credits available.
+50|20|1|Recklessness trained. You now have 20 credits available.
+50|2147483647|0|Failed to train Recklessness! You now have 2147483647 credits available.
+50|2147483647|1|Recklessness trained. You now have 2147483647 credits available.
+51|0|0|Failed to train Sneak Attack! You now have 0 credits available.
+51|0|1|Sneak Attack trained. You now have 0 credits available.
+51|1|0|Failed to train Sneak Attack! You now have 1 credits available.
+51|1|1|Sneak Attack trained. You now have 1 credits available.
+51|20|0|Failed to train Sneak Attack! You now have 20 credits available.
+51|20|1|Sneak Attack trained. You now have 20 credits available.
+51|2147483647|0|Failed to train Sneak Attack! You now have 2147483647 credits available.
+51|2147483647|1|Sneak Attack trained. You now have 2147483647 credits available.
+52|0|0|Failed to train Dirty Fighting! You now have 0 credits available.
+52|0|1|Dirty Fighting trained. You now have 0 credits available.
+52|1|0|Failed to train Dirty Fighting! You now have 1 credits available.
+52|1|1|Dirty Fighting trained. You now have 1 credits available.
+52|20|0|Failed to train Dirty Fighting! You now have 20 credits available.
+52|20|1|Dirty Fighting trained. You now have 20 credits available.
+52|2147483647|0|Failed to train Dirty Fighting! You now have 2147483647 credits available.
+52|2147483647|1|Dirty Fighting trained. You now have 2147483647 credits available.
+53|0|0|Failed to train Challenge! You now have 0 credits available.
+53|0|1|Challenge trained. You now have 0 credits available.
+53|1|0|Failed to train Challenge! You now have 1 credits available.
+53|1|1|Challenge trained. You now have 1 credits available.
+53|20|0|Failed to train Challenge! You now have 20 credits available.
+53|20|1|Challenge trained. You now have 20 credits available.
+53|2147483647|0|Failed to train Challenge! You now have 2147483647 credits available.
+53|2147483647|1|Challenge trained. You now have 2147483647 credits available.
+54|0|0|Failed to train Summoning! You now have 0 credits available.
+54|0|1|Summoning trained. You now have 0 credits available.
+54|1|0|Failed to train Summoning! You now have 1 credits available.
+54|1|1|Summoning trained. You now have 1 credits available.
+54|20|0|Failed to train Summoning! You now have 20 credits available.
+54|20|1|Summoning trained. You now have 20 credits available.
+54|2147483647|0|Failed to train Summoning! You now have 2147483647 credits available.
+54|2147483647|1|Summoning trained. You now have 2147483647 credits available.

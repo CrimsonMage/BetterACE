@@ -22,7 +22,12 @@ impl PackManifest {
             .len()
             .checked_add(1)
             .ok_or(PackError::Limit("segments"))?;
-        if count > limits.max_segments || count > u32::MAX as usize {
+        if count
+            > limits
+                .max_segments
+                .min(crate::pack_format::MAX_ACTIVE_PACKS)
+            || count > u32::MAX as usize
+        {
             return Err(PackError::Limit("segments"));
         }
         let capacity = count
@@ -55,7 +60,12 @@ impl PackManifest {
             return Err(PackError::Format("manifest header"));
         }
         let count = u32_at(bytes, 12)? as usize;
-        if count == 0 || count > limits.max_segments {
+        if count == 0
+            || count
+                > limits
+                    .max_segments
+                    .min(crate::pack_format::MAX_ACTIVE_PACKS)
+        {
             return Err(PackError::Limit("segments"));
         }
         let prefix_len = count
