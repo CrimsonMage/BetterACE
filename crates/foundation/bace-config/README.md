@@ -4,6 +4,13 @@ Status: implemented.
 
 TOML configuration loading and validation.
 
+`ServerConfig::load_or_create_default(path)` creates a commented, valid
+`server.toml` on first run and returns whether it created the file. It publishes
+the complete template without replacing an existing file. The generated file
+leaves `dat_directory`, `pack_directory`, and `random_key_file` visibly
+unconfigured; gameplay readiness remains closed until the operator provisions
+those paths and the PostgreSQL URL environment variable.
+
 See root ARCHITECTURE.md and AGENTS.md for MUST rules.
 
 

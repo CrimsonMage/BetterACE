@@ -3,6 +3,7 @@
 /.reference/
 /.env
 /state/
+/server.toml
 *.dat
 *.pcap
 *.pcapng

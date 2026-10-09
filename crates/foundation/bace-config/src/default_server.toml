@@ -1,0 +1,23 @@
+# BetterACE server configuration. Generated on the first run only.
+# Edit this file before serving a game client. Existing files are never replaced.
+
+# The game listens here and uses the next UDP port for the ACE companion port.
+bind_address = "127.0.0.1:9000"
+
+# Name of the environment variable containing the PostgreSQL URL.
+# Keep the URL itself out of this file.
+database_url_env = "BACE_DATABASE_URL"
+
+# Set these to your provisioned locations before gameplay can become ready.
+# dat_directory = "/path/to/your/DAT/files"
+# pack_directory = "/path/to/accepted/bace-packs"
+# random_key_file = "/path/to/private/random-key"
+
+# Native TOML staged here is reviewed by the host; it is not imported on startup.
+content_inbox_directory = "state/content-inbox"
+
+# Defaults match the bounded server settings. See crates/foundation/bace-config/README.md for
+# optional [host], [network], [accounts], [world], and chat sections.
+command_capacity = 4096
+max_sessions = 512
+database_connections = 4

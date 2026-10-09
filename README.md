@@ -75,11 +75,11 @@ These are the implemented public commands. `help` / `--help` gives the exact arg
 
 | Executable | Command | What it does |
 |---|---|---|
-| `bace-server` | no command, or `host [--config FILE]` | Starts the authenticated local host dashboard and supervised game child. |
+| `bace-server` | no command, or `host [--config FILE]` | Creates `server.toml` in the working directory on first run without `--config`, then starts the authenticated host dashboard and supervised game child. |
 | `bace-server` | `check --config FILE` | Validates configuration without opening game sockets or a database. |
 | `bace-server` | `exercise [--ticks N] [--players N] [--bodies N]` | Runs the synthetic fixed-step simulation harness. |
 | `bace-server` | `content-worker --config FILE` | Validates durable publication candidates and delivers catalog generations. |
-| `bace-server` | `serve --config FILE` | Starts the composed game runtime with accepted content and verified assets; stock-client playability is unqualified. |
+| `bace-server` | `serve [--config FILE]` | Creates `server.toml` on first run without `--config`, then starts the composed game runtime; stock-client playability is unqualified. |
 | `bace-cli` | `host-init [--state-directory DIR]` | Provisions separate host credentials from piped stdin. |
 | `bace-cli` | `account-create --name NAME [--password-env VAR]` | Creates an ordinary player account using a password environment variable. |
 | `bace-cli` | `convert --input FILE --output FILE --from FORMAT --to FORMAT` | Converts one template between supported legacy/native formats. |
@@ -139,6 +139,12 @@ bace-server
 # Equivalent explicit form:
 # bace-server host --config tests/fixtures/config/server.toml
 ```
+
+Without `--config`, the first run writes `server.toml` in the current working
+directory and later runs load your edits. An explicit `--config FILE` must
+already exist. The generated file is a starting template: configure DATs,
+accepted packs, the private RNG key and PostgreSQL before the game child can
+be ready. The local `server.toml` is ignored by Git.
 
 Open the printed URL (default `http://127.0.0.1:8080`). Host privileges are separate from game accounts. The dashboard supervises a game child and reports its readiness independently.
 
@@ -300,9 +306,10 @@ Only tested features have compatibility evidence. See the [oracle documentation]
 A real UDP integration test carries a progression action through typed dispatch, authoritative simulation, and primary XP/trait replies. It uses a **synthetic world**; it is not a stock-client playability test. Rank-up secondary effects and durable gameplay composition remain work.
 
 ```sh
-# This starts the composed game runtime with accepted content and verified DATs.
+# First run creates server.toml in the current working directory.
+# Configure its asset and database settings before game readiness.
 # Stock-client world entry is not yet qualified.
-bace-server serve --config tests/fixtures/config/server.toml
+cargo run -p bace-server -- serve
 ```
 
 For exact scope: [implementation status](docs/implementation-status.md), [network coverage](docs/network-coverage.toml), [gameplay parity](docs/gameplay-parity.toml), and [reported divergences](docs/divergences.toml).

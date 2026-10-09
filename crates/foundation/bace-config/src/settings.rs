@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
+use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+const DEFAULT_SERVER_TOML: &str = include_str!("default_server.toml");
+static NEXT_TEMP_FILE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -66,6 +71,59 @@ impl ServerConfig {
     pub fn load(path: &Path) -> Result<Self, ConfigError> {
         let source = std::fs::read_to_string(path)?;
         Self::parse(&source)
+    }
+    /// Load an existing configuration unchanged, or publish a complete first-run template.
+    ///
+    /// A temporary file is created next to `path` and linked into place only after
+    /// it has been written and synced. Linking fails if another process won the
+    /// create race, in which case its file is loaded without being overwritten.
+    pub fn load_or_create_default(path: &Path) -> Result<(Self, bool), ConfigError> {
+        match Self::load(path) {
+            Ok(config) => return Ok((config, false)),
+            Err(ConfigError::Io(error)) if error.kind() == ErrorKind::NotFound => {}
+            Err(error) => return Err(error),
+        }
+
+        let config = Self::parse(DEFAULT_SERVER_TOML)?;
+        let directory = path
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
+        let (temporary_path, mut temporary) = loop {
+            let sequence = NEXT_TEMP_FILE.fetch_add(1, Ordering::Relaxed);
+            let temporary_path = directory.join(format!(
+                ".bace-server-config-{}-{sequence}.tmp",
+                std::process::id()
+            ));
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temporary_path)
+            {
+                Ok(file) => break (temporary_path, file),
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
+                Err(error) => return Err(error.into()),
+            }
+        };
+
+        let write_result = temporary
+            .write_all(DEFAULT_SERVER_TOML.as_bytes())
+            .and_then(|()| temporary.sync_all());
+        drop(temporary);
+        let publication =
+            write_result.and_then(|()| match std::fs::hard_link(&temporary_path, path) {
+                Ok(()) => Ok(true),
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => Ok(false),
+                Err(error) => Err(error),
+            });
+        let cleanup = std::fs::remove_file(&temporary_path);
+        let created = publication?;
+        cleanup?;
+        if created {
+            Ok((config, true))
+        } else {
+            Self::load(path).map(|config| (config, false))
+        }
     }
     pub fn parse(source: &str) -> Result<Self, ConfigError> {
         let config: Self = toml::from_str(source)?;

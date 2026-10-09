@@ -1,7 +1,12 @@
-use bace_config::ServerConfig;
+use bace_config::{ConfigError, ServerConfig};
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+
+#[cfg(test)]
+mod tests;
+
+const DEFAULT_CONFIG: &str = "server.toml";
 
 #[derive(Parser)]
 #[command(
@@ -54,7 +59,7 @@ enum Command {
     /// Run verified game services and retain ownership through durable shutdown.
     Serve {
         #[arg(long)]
-        config: PathBuf,
+        config: Option<PathBuf>,
     },
 }
 
@@ -76,13 +81,29 @@ pub fn run() -> ExitCode {
     }
 }
 
+fn load_run_config(
+    explicit: Option<&Path>,
+    default_path: &Path,
+) -> Result<(ServerConfig, bool), ConfigError> {
+    match explicit {
+        Some(path) => ServerConfig::load(path).map(|config| (config, false)),
+        None => ServerConfig::load_or_create_default(default_path),
+    }
+}
+
+fn report_created_default(created: bool) {
+    if created {
+        eprintln!(
+            "Created {DEFAULT_CONFIG}. Configure DATs, accepted packs, the RNG key and database access before game readiness."
+        );
+    }
+}
+
 fn execute(args: Arguments) -> Result<(), Box<dyn std::error::Error>> {
     match args.command.unwrap_or(Command::Host { config: None }) {
         Command::Host { config } => {
-            let config = config
-                .map(|path| ServerConfig::load(&path))
-                .transpose()?
-                .unwrap_or_default();
+            let (config, created) = load_run_config(config.as_deref(), Path::new(DEFAULT_CONFIG))?;
+            report_created_default(created);
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()?;
@@ -130,7 +151,8 @@ fn execute(args: Arguments) -> Result<(), Box<dyn std::error::Error>> {
             result?;
         }
         Command::Serve { config } => {
-            let config = ServerConfig::load(&config)?;
+            let (config, created) = load_run_config(config.as_deref(), Path::new(DEFAULT_CONFIG))?;
+            report_created_default(created);
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()?;
