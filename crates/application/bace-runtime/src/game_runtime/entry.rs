@@ -177,8 +177,28 @@ impl GameRuntime {
             .ok_or("entry snapshot missing")?
             .entry_physics();
         if !physics.grounded() || physics.velocity() != bace_geometry::Vec3::ZERO {
+            let tick = loading.snapshot.as_ref().expect("entry snapshot").tick();
+            loading.first_settle_tick.get_or_insert(tick);
             if loading.settle_attempts >= 300 {
-                return Err("entry physics did not settle after 300 accepted snapshots".into());
+                return Err(format!(
+                    "entry physics did not settle after 300 accepted snapshots: first tick {:?}, last tick {}, grounded {}, position {:?}, velocity {:?}, saved PlayerStatus {:?}",
+                    loading.first_settle_tick,
+                    tick,
+                    physics.grounded(),
+                    physics.position(),
+                    physics.velocity(),
+                    loading
+                        .loaded
+                        .player
+                        .player
+                        .entity
+                        .state
+                        .properties
+                        .ints
+                        .iter()
+                        .find(|property| property.id == 134)
+                        .map(|property| property.value)
+                ));
             }
             loading.settle_attempts += 1;
             loading.snapshot = None;

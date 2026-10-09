@@ -33,10 +33,10 @@ pub struct PreparedPlayerAdmission {
     pub staff: bace_gameplay_api::staff::StaffRegistration,
     pub portal_access: bace_interactions::PortalAccess,
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PlayerAdmissionError {
     Identity,
-    Geometry,
+    Geometry { stage: &'static str, detail: String },
     Capacity,
     Character,
     Inventory,

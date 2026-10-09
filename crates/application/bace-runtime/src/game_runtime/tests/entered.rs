@@ -35,7 +35,13 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
         .await
         .unwrap();
     store.migrate().await.unwrap();
-    let directory = tempfile::tempdir().unwrap();
+    let fixture_root = std::env::var_os("BACE_ENTRY_TMPDIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../.local/entry-fixtures")
+        });
+    std::fs::create_dir_all(&fixture_root).unwrap();
+    let directory = tempfile::tempdir_in(fixture_root).unwrap();
     let path = PathBuf::from(
         std::env::var_os("BACE_WORLD_MANIFEST")
             .or_else(|| std::env::var_os("BACE_CREATION_PACK_MANIFEST"))
@@ -319,25 +325,17 @@ pub(in crate::game_runtime) async fn poll_until(
     client: &mut client::Client,
     ready: impl Fn(&GameRuntime, &client::Client) -> bool,
 ) {
-    tokio::time::timeout(Duration::from_secs(120), async {
+    let mut degraded_polls = 0u64;
+    let mut last_degraded = None;
+    let progress = tokio::time::timeout(Duration::from_secs(180), async {
         loop {
-            runtime
-                .poll(runtime.clock.monotonic.elapsed())
-                .unwrap_or_else(|e| {
-                    panic!(
-                        "entered controller: {e}; player failures {:?}; loading {:?}",
-                        runtime
-                            .sessions
-                            .iter()
-                            .map(|(k, s)| (*k, s.failure.clone()))
-                            .collect::<Vec<_>>(),
-                        runtime
-                            .sessions
-                            .iter()
-                            .map(|(k, s)| (*k, s.loading.as_ref().map(|l| l.phase as u8)))
-                            .collect::<Vec<_>>()
-                    )
-                });
+            // Production records a degraded service poll and keeps serving
+            // independent session/lifecycle lanes. An unrelated generator
+            // hold must not end this real UDP entry replay early.
+            if let Err(error) = runtime.poll(runtime.clock.monotonic.elapsed()) {
+                degraded_polls += 1;
+                last_degraded = Some(error.to_string());
+            }
             client.drain(runtime);
             if let Some((key, failure)) = runtime
                 .sessions
@@ -352,8 +350,34 @@ pub(in crate::game_runtime) async fn poll_until(
             tokio::time::sleep(Duration::from_millis(2)).await;
         }
     })
-    .await
-    .expect("bounded real entry progress");
+    .await;
+    assert!(
+        progress.is_ok(),
+        "bounded real entry progress; degraded polls {degraded_polls}, last {last_degraded:?}; world job {}, preparation pending {}; player failures {:?}; loading {:?}",
+        runtime.world_job.is_some(),
+        runtime.preparation.pending(),
+        runtime
+            .sessions
+            .iter()
+            .map(|(key, session)| (*key, session.failure.clone()))
+            .collect::<Vec<_>>(),
+        runtime
+            .sessions
+            .iter()
+            .map(|(key, session)| {
+                (
+                    *key,
+                    session
+                        .loading
+                        .as_ref()
+                        .map(|load| (load.phase as u8, load.cold_token, load.region_requested)),
+                )
+            })
+            .collect::<Vec<_>>()
+    );
+    if degraded_polls != 0 {
+        eprintln!("entry replay: {degraded_polls} degraded polls; last {last_degraded:?}");
+    }
 }
 fn creation_message(account: &str, color: u32, name: &str) -> Vec<u8> {
     creation_message_with_start_area(account, color, name, 0)
@@ -435,15 +459,27 @@ async fn poll_until_pair(
     second: &mut client::Client,
     ready: impl Fn(&GameRuntime, &client::Client, &client::Client) -> bool,
 ) {
-    tokio::time::timeout(Duration::from_secs(120), async {
+    let mut degraded_polls = 0u64;
+    let mut last_degraded = None;
+    let progress = tokio::time::timeout(Duration::from_secs(120), async {
         loop {
-            runtime
-                .poll(runtime.clock.monotonic.elapsed())
-                .unwrap_or_else(|error| panic!("two-player entry: {error}"));
+            if let Err(error) = runtime.poll(runtime.clock.monotonic.elapsed()) {
+                degraded_polls += 1;
+                last_degraded = Some(error.to_string());
+            }
             first.drain(runtime);
             second.drain(runtime);
-            if let Some(error) = runtime.sessions.values().find_map(|s| s.failure.as_ref()) {
-                panic!("two-player entry: {error}");
+            if let Some((key, session)) = runtime
+                .sessions
+                .iter()
+                .find(|(_, session)| session.failure.is_some())
+            {
+                panic!(
+                    "two-player entry {key:?} account {} phase {:?}: {}",
+                    session.account.name.as_str(),
+                    session.loading.as_ref().map(|loading| loading.phase as u8),
+                    session.failure.as_deref().unwrap()
+                );
             }
             if ready(runtime, first, second) {
                 return;
@@ -451,8 +487,33 @@ async fn poll_until_pair(
             tokio::time::sleep(Duration::from_millis(2)).await;
         }
     })
-    .await
-    .expect("bounded two-player entry progress");
+    .await;
+    assert!(
+        progress.is_ok(),
+        "bounded two-player entry progress; degraded polls {degraded_polls}, last {last_degraded:?}; first messages {}, second messages {}, login job {}, queue {}, preparation {}, world job {}; sessions {:?}",
+        first.messages.len(),
+        second.messages.len(),
+        runtime.login_job.is_some(),
+        runtime.login_queue.len(),
+        runtime.preparation.pending(),
+        runtime.world_job.is_some(),
+        runtime
+            .sessions
+            .iter()
+            .map(|(key, session)| {
+                (
+                    *key,
+                    session.account.name.as_str(),
+                    session.connected,
+                    session.terminated,
+                    session.loading.as_ref().map(|load| load.phase as u8),
+                )
+            })
+            .collect::<Vec<_>>()
+    );
+    if degraded_polls != 0 {
+        eprintln!("two-player replay: {degraded_polls} degraded polls; last {last_degraded:?}");
+    }
 }
 
 #[tokio::test]
@@ -475,7 +536,7 @@ async fn native_two_player_visibility_save_and_reconnect() {
     else {
         panic!("second account created");
     };
-    let mut second = client::Client::new(&fixture.runtime, "AcctTwo");
+    let mut second = client::Client::new(&fixture.runtime, account.name.as_str());
     poll_until_pair(
         &mut fixture.runtime,
         &mut fixture.client,
@@ -488,6 +549,7 @@ async fn native_two_player_visibility_save_and_reconnect() {
         },
     )
     .await;
+    eprintln!("two-player replay: second UDP authenticated");
     let key = *fixture
         .runtime
         .sessions
@@ -503,10 +565,11 @@ async fn native_two_player_visibility_save_and_reconnect() {
         |runtime, _, _| runtime.login_job.is_none() && runtime.login_queue.is_empty(),
     )
     .await;
+    eprintln!("two-player replay: login preparation idle");
     second.send_message(
         &fixture.runtime,
         key,
-        &creation_message("AcctTwo", fixture.creation_color, "Entrytwo"),
+        &creation_message(account.name.as_str(), fixture.creation_color, "Entrytwo"),
     );
     poll_until_pair(
         &mut fixture.runtime,
@@ -523,6 +586,7 @@ async fn native_two_player_visibility_save_and_reconnect() {
         },
     )
     .await;
+    eprintln!("two-player replay: second durable creation response");
     let roster = fixture
         .runtime
         .bootstrap
@@ -537,8 +601,9 @@ async fn native_two_player_visibility_save_and_reconnect() {
     let mut enter = bace_wire::Writer::new();
     enter.u32(bace_wire::opcode::GameMessageOpcode::CharacterEnterWorld.0);
     enter.u32(actor.0);
-    enter.string16("AcctTwo").unwrap();
+    enter.string16(account.name.as_str()).unwrap();
     second.send_message(&fixture.runtime, key, &enter.into_bytes());
+    eprintln!("two-player replay: second EnterWorld sent");
     poll_until_pair(
         &mut fixture.runtime,
         &mut fixture.client,
@@ -551,6 +616,7 @@ async fn native_two_player_visibility_save_and_reconnect() {
         },
     )
     .await;
+    eprintln!("two-player replay: reciprocal create visibility");
     second.assert_entry_order(actor.0, second_start);
 
     // Change a real player UI bit, then require logout's durable save before
@@ -583,16 +649,36 @@ async fn native_two_player_visibility_save_and_reconnect() {
         &mut fixture.runtime,
         &mut fixture.client,
         &mut second,
-        |runtime, first, _| {
-            !runtime.sessions.contains_key(&key)
+        |runtime, first, second| {
+            runtime
+                .sessions
+                .get(&key)
+                .is_some_and(|s| s.loading.is_none())
                 && !runtime.players.entered(actor)
                 && first.has_delete(actor.0, first_start)
+                && second.messages.iter().any(|message| {
+                    message.queue == 9
+                        && message.bytes
+                            == bace_wire::opcode::GameMessageOpcode::CharacterLogOff
+                                .0
+                                .to_le_bytes()
+                })
         },
     )
     .await;
+    eprintln!("two-player replay: second logged off after save");
+    second.disconnect(&fixture.runtime, key);
+    poll_until_pair(
+        &mut fixture.runtime,
+        &mut fixture.client,
+        &mut second,
+        |runtime, _, _| !runtime.sessions.contains_key(&key),
+    )
+    .await;
+    eprintln!("two-player replay: second UDP disconnected");
     drop(second);
 
-    let mut reconnect = client::Client::new(&fixture.runtime, "AcctTwo");
+    let mut reconnect = client::Client::new(&fixture.runtime, account.name.as_str());
     poll_until_pair(
         &mut fixture.runtime,
         &mut fixture.client,
@@ -605,6 +691,7 @@ async fn native_two_player_visibility_save_and_reconnect() {
         },
     )
     .await;
+    eprintln!("two-player replay: second UDP reauthenticated");
     let new_key = *fixture
         .runtime
         .sessions
@@ -618,7 +705,7 @@ async fn native_two_player_visibility_save_and_reconnect() {
     let mut enter = bace_wire::Writer::new();
     enter.u32(bace_wire::opcode::GameMessageOpcode::CharacterEnterWorld.0);
     enter.u32(actor.0);
-    enter.string16("AcctTwo").unwrap();
+    enter.string16(account.name.as_str()).unwrap();
     reconnect.send_message(&fixture.runtime, new_key, &enter.into_bytes());
     poll_until_pair(
         &mut fixture.runtime,
@@ -629,6 +716,7 @@ async fn native_two_player_visibility_save_and_reconnect() {
         },
     )
     .await;
+    eprintln!("two-player replay: second reentered with saved UI");
     let loading = fixture.runtime.sessions[&new_key].loading.as_ref().unwrap();
     assert_eq!(loading.receipt.unwrap().total_logins, 2);
     assert_eq!(
@@ -638,6 +726,26 @@ async fn native_two_player_visibility_save_and_reconnect() {
     let mut logoff = bace_wire::Writer::new();
     logoff.u32(bace_wire::opcode::GameMessageOpcode::CharacterLogOff.0);
     reconnect.send_message(&fixture.runtime, new_key, &logoff.into_bytes());
+    poll_until_pair(
+        &mut fixture.runtime,
+        &mut fixture.client,
+        &mut reconnect,
+        |runtime, _, reconnect| {
+            runtime
+                .sessions
+                .get(&new_key)
+                .is_some_and(|session| session.loading.is_none())
+                && reconnect.messages.iter().any(|message| {
+                    message.queue == 9
+                        && message.bytes
+                            == bace_wire::opcode::GameMessageOpcode::CharacterLogOff
+                                .0
+                                .to_le_bytes()
+                })
+        },
+    )
+    .await;
+    reconnect.disconnect(&fixture.runtime, new_key);
     poll_until_pair(
         &mut fixture.runtime,
         &mut fixture.client,

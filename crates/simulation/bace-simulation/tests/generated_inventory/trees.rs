@@ -147,7 +147,7 @@ fn malformed_descendant_tree_is_rejected_before_any_root_or_membership_is_adopte
     let root = req.entities[0];
     let mut bag = item(root.0, 0, true);
     bag.place = ItemPlace::World;
-    assert_eq!(
+    assert!(matches!(
         k.admit_generated_item_trees(
             req.intent.key,
             &[bag.clone(), item(child.0, child.0, false)],
@@ -155,8 +155,13 @@ fn malformed_descendant_tree_is_rejected_before_any_root_or_membership_is_adopte
             &[root],
             Some(&[shape(0.5)])
         ),
-        Err(GeneratorServiceError::Invalid)
-    );
+        Err(GeneratorServiceError::GeneratedItemForest {
+            stage: "non-container parent",
+            entity,
+            slot: Some(0),
+            inventory: None,
+        }) if entity == child
+    ));
     assert!(k.world().body(root).is_err());
     assert!(k.inventory_item(root).is_none());
     let good = k
@@ -202,6 +207,78 @@ fn contained_tree_admission_keeps_child_parent_and_only_root_generator_membershi
         k.notify_generated_entity(root, GeneratorNotification::PickUp)
             .unwrap()
     );
+}
+#[test]
+fn chest_profiles_use_refreshed_contained_slots_in_source_order() {
+    // The pinned ACE GeneratorProfile.Spawn_Container inserts each generated
+    // potion through Container.TryAddToInventory. WCID 30989 has three
+    // Contain profiles (31196/31197/31198), each with init/max create 1,
+    // and 120 main slots in the pinned world release.
+    assert!(
+        include_str!("../fixtures/generator_destinations.csv")
+            .lines()
+            .any(|row| row == "1|0|1|1|0")
+    );
+    let mut k = kernel();
+    let mut chest = container(10, None);
+    chest.slots = 120;
+    chest.pack_slots = 10;
+    k.register_inventory_container(chest).unwrap();
+    let mut def = definition(10, 8);
+    def.profiles[0].weenie_class_id = 31196;
+    for (id, wcid) in [(1, 31197), (2, 31198)] {
+        let mut profile = def.profiles[0].clone();
+        profile.id = id;
+        profile.weenie_class_id = wcid;
+        def.profiles.push(profile);
+    }
+    def.initial_count = 3;
+    def.maximum_count = 3;
+    k.register_generator(Arc::new(def)).unwrap();
+    k.supply_generator_id(EntityId(0x8000_0c11)).unwrap();
+    k.supply_generator_id(EntityId(0x8000_0c12)).unwrap();
+    k.supply_generator_id(EntityId(0x8000_0c13)).unwrap();
+    k.step().unwrap();
+    let first = k.take_generator_request().unwrap();
+    let first_item = item(first.entities[0].0, 10, false);
+    k.admit_generated_item_trees(first.intent.key, &[first_item], &[], &first.entities, None)
+        .unwrap();
+    k.step().unwrap();
+    let second = k.take_generator_request().unwrap();
+    assert_ne!(first.intent.key.profile_id, second.intent.key.profile_id);
+    assert_ne!(first.intent.key.occurrence, second.intent.key.occurrence);
+    let refreshed = k.refresh_generator_request(second.intent.key).unwrap();
+    assert_eq!(refreshed.next_slots, Some((1, 0)));
+    let mut second_item = item(second.entities[0].0, 10, false);
+    second_item.place = ItemPlace::Contained {
+        container: EntityId(10),
+        slot: 1,
+        equipped: 0,
+    };
+    k.admit_generated_item_trees(
+        second.intent.key,
+        &[second_item],
+        &[],
+        &second.entities,
+        None,
+    )
+    .unwrap();
+    k.step().unwrap();
+    let third = k.take_generator_request().unwrap();
+    assert_ne!(second.intent.key.profile_id, third.intent.key.profile_id);
+    let refreshed = k.refresh_generator_request(third.intent.key).unwrap();
+    assert_eq!(refreshed.next_slots, Some((2, 0)));
+    let mut third_item = item(third.entities[0].0, 10, false);
+    third_item.place = ItemPlace::Contained {
+        container: EntityId(10),
+        slot: 2,
+        equipped: 0,
+    };
+    k.admit_generated_item_trees(third.intent.key, &[third_item], &[], &third.entities, None)
+        .unwrap();
+    assert!(k.inventory_item(first.entities[0]).is_some());
+    assert!(k.inventory_item(second.entities[0]).is_some());
+    assert!(k.inventory_item(third.entities[0]).is_some());
 }
 #[test]
 fn unused_allocator_ids_only_retire_after_every_generator_owner_has_drained() {

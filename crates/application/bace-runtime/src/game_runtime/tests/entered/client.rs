@@ -101,6 +101,23 @@ impl Client {
                 .unwrap();
         }
     }
+    pub fn disconnect(&mut self, runtime: &GameRuntime, key: SessionKey) {
+        let packet = encode_server_packet(
+            PacketHeader {
+                flags: flags::DISCONNECT,
+                id: key.id,
+                iteration: 1,
+                ..Default::default()
+            },
+            &[],
+            &[],
+            0,
+        )
+        .unwrap();
+        self.login
+            .send_to(&packet, runtime.network.client_address)
+            .unwrap();
+    }
     pub fn has_create(&self, object: u32, start: usize) -> bool {
         self.messages.iter().skip(start).any(|message| {
             message.queue == 10

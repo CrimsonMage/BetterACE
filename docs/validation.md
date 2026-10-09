@@ -310,3 +310,25 @@ service composition, all combat aura consumers, periodic/proc equipped effects,
 platform qualification and representative capacity/performance remain gated.
 The reviewed stash was preserved; its generator changes were already represented
 or superseded in the current tree.
+
+## Real UDP world-entry replay — 2026-10-08
+
+The opt-in `native_two_player_visibility_save_and_reconnect` runtime test passed
+against a private 1,011,980-record native world pack, fingerprint-approved DATs,
+and disposable PostgreSQL. Both clients authenticated over UDP, created durable
+characters, entered the same world region, and received reciprocal reliable
+ObjectCreate visibility. Character logoff durably saved a UI option and produced
+an observer ObjectDelete; a real UDP disconnect, fresh authentication and second
+entry restored that option and advanced the login receipt. The replay took
+115.78 seconds, reported no degraded runtime polls, and observed no held
+generator at first entry. The one-player real UDP entry replay also passed twice.
+
+Pinned ACE `Player.InitPhysicsObj` admits a loading player in a collision-ignoring
+pink bubble until `OnTeleportComplete`. The world owner now permits that initial
+dynamic overlap while retaining DAT static placement and floor checks. Focused
+world regressions cover shared-spawn admission, ordinary insertion and static-wall
+rejection, and loading-player floor settling. The generated-inventory suite
+passed 25/25, including the pinned tutorial chest's three contained potion
+profiles; it added structured rejection diagnostics without changing spawn
+policy. These server-side tests do not qualify an unmodified stock client or
+platform-specific deployment.

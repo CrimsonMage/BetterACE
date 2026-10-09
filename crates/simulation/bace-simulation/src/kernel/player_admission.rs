@@ -58,7 +58,7 @@ impl Kernel {
             .adopt_animated_style(locomotion.clone(), true)
             .expect("initial interpreter preflight");
         self.world
-            .insert(actor)
+            .insert_loading_player(actor)
             .expect("same-owner geometry admission preflight");
         self.world
             .register_properties(id, properties)
@@ -200,13 +200,22 @@ impl Kernel {
             .locomotion
             .profile
             .interpret(bace_motion::LocomotionControls::default(), 1.0)
-            .map_err(|_| E::Geometry)?;
+            .map_err(|error| E::Geometry {
+                stage: "default locomotion",
+                detail: format!("{error:?}"),
+            })?;
         if input.actor.body.collision_shape().is_none() {
-            return Err(E::Geometry);
+            return Err(E::Geometry {
+                stage: "missing player collision shape",
+                detail: "no collision shape".into(),
+            });
         }
         self.world
-            .validate_actor(&input.actor)
-            .map_err(|_| E::Geometry)?;
+            .validate_loading_player_actor(&input.actor)
+            .map_err(|error| E::Geometry {
+                stage: "actor placement",
+                detail: format!("{error:?}"),
+            })?;
         if self.population.reserves_identity(id)
             || self.generator_reserves_identity(id)
             || self.physical_reserves_identity(id)
@@ -374,24 +383,39 @@ impl Kernel {
             .map_err(|_| E::Combat)?;
         self.world
             .validate_locomotion_styles(id, &input.locomotion_styles)
-            .map_err(|_| E::Geometry)?;
+            .map_err(|error| E::Geometry {
+                stage: "locomotion styles",
+                detail: format!("{error:?}"),
+            })?;
         self.world
             .validate_death_motions(id, &input.death_motions)
-            .map_err(|_| E::Geometry)?;
+            .map_err(|error| E::Geometry {
+                stage: "death motions",
+                detail: format!("{error:?}"),
+            })?;
         self.world
             .validate_player_entry(id)
-            .map_err(|_| E::Geometry)?;
+            .map_err(|error| E::Geometry {
+                stage: "entry reservation",
+                detail: format!("{error:?}"),
+            })?;
         input
             .actor
             .body
             .validate_animated_style(&input.locomotion, true)
-            .map_err(|_| E::Geometry)?;
+            .map_err(|error| E::Geometry {
+                stage: "animated style",
+                detail: format!("{error:?}"),
+            })?;
         if !input
             .locomotion_styles
             .iter()
             .any(|style| style.profile.style == input.locomotion.profile.style)
         {
-            return Err(E::Geometry);
+            return Err(E::Geometry {
+                stage: "initial style absent",
+                detail: "initial style absent".into(),
+            });
         }
         self.combat
             .validate_physical_refresh_source(id, &input.physical_source)

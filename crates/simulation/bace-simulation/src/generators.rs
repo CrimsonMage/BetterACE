@@ -54,6 +54,12 @@ pub enum GeneratorWorldEvent {
 pub enum GeneratorServiceError {
     Capacity,
     Invalid,
+    GeneratedItemForest {
+        stage: &'static str,
+        entity: EntityId,
+        slot: Option<u32>,
+        inventory: Option<bace_gameplay_api::InventoryRejection>,
+    },
     Stale,
     Busy,
     Missing,

@@ -470,6 +470,14 @@ impl World {
         self.actors.insert(actor.id, actor);
         Ok(())
     }
+    /// Trusted loading-player transfer; normal insertion keeps dynamic overlap
+    /// rejection. Static geometry and identity still gate this insertion.
+    pub fn insert_loading_player(&mut self, actor: Actor) -> Result<(), WorldError> {
+        self.validate_loading_player_actor(&actor)?;
+        self.visibility.track(actor.id, actor.cell);
+        self.actors.insert(actor.id, actor);
+        Ok(())
+    }
     pub fn body(&self, id: EntityId) -> Result<&Body, WorldError> {
         self.actors
             .get(&id)
@@ -531,6 +539,15 @@ impl World {
             }
             if actor.body.collision_shape().is_some() {
                 let region = self.geometry.as_ref().ok_or(WorldError::MissingGeometry)?;
+                // Pinned ACE Player.InitPhysicsObj keeps IgnoreCollisions on
+                // through the entry pink bubble. Static DAT geometry still
+                // participates; only dynamic actor contacts are suppressed.
+                let pending_entry = self.entry_pending.contains(&actor.id);
+                let dynamics = if pending_entry {
+                    &[][..]
+                } else {
+                    self.geometry_dynamic.as_slice()
+                };
                 let mut allowed = [0u32; 64];
                 let mut count = 0;
                 if let Some(grants) = self.cell_access.get(&actor.id) {
@@ -545,8 +562,12 @@ impl World {
                     region,
                     actor.cell.0,
                     actor.id.0,
-                    &self.geometry_dynamic,
+                    dynamics,
                     &allowed[..count],
+                    // The loading actor is known to be a player. Suppressing
+                    // dynamic contacts must not suppress player-only authored
+                    // cell-access checks at a portal boundary.
+                    pending_entry.then_some(2),
                 ) {
                     Ok(cell) => {
                         if actor.cell != CellId(cell) {
@@ -657,6 +678,8 @@ pub enum WorldError {
     DuplicateScene,
     #[error("actor ID already owned")]
     DuplicateActor,
+    #[error("actor overlaps accepted actor {0:?}")]
+    ActorOverlap(EntityId),
     #[error("actor does not exist")]
     MissingActor,
     #[error(transparent)]

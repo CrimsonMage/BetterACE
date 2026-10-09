@@ -25,13 +25,21 @@ impl World {
     }
 
     pub fn validate_actor(&self, actor: &Actor) -> Result<(), WorldError> {
-        self.validate_actor_in_region(actor, self.geometry.as_deref(), &[])
+        self.validate_actor_in_region(actor, self.geometry.as_deref(), &[], true)
+    }
+    /// Pinned ACE `Player.InitPhysicsObj` admits a newly loading player in the
+    /// pink bubble with IgnoreCollisions until `OnTeleportComplete`. Keep the
+    /// authored static geometry and identity checks, but allow another live
+    /// actor at the character's initial spawn for this entry-only preflight.
+    pub fn validate_loading_player_actor(&self, actor: &Actor) -> Result<(), WorldError> {
+        self.validate_actor_in_region(actor, self.geometry.as_deref(), &[], false)
     }
     fn validate_actor_in_region(
         &self,
         actor: &Actor,
         region: Option<&GeometryRegion>,
         staged: &[Actor],
+        check_dynamic_overlap: bool,
     ) -> Result<(), WorldError> {
         if self.contains_identity(actor.id) || staged.iter().any(|a| a.id == actor.id) {
             return Err(WorldError::DuplicateActor);
@@ -48,7 +56,8 @@ impl World {
                 )
                 .map_err(PhysicsError::from)?;
             for other in self.actors.values().chain(staged).filter(|o| {
-                o.cell == actor.cell
+                check_dynamic_overlap
+                    && o.cell == actor.cell
                     && !self.anchors.contains(&o.id)
                     && !self.is_in_portal_transit(o.id)
             }) {
@@ -71,7 +80,7 @@ impl World {
                             center: actor.body.accepted().position() + sphere.center,
                             radius: sphere.radius,
                         }) {
-                            return Err(PhysicsError::InvalidState.into());
+                            return Err(WorldError::ActorOverlap(other.id));
                         }
                     }
                 }
@@ -112,7 +121,7 @@ impl World {
             if actor.body.collision_shape().is_none() {
                 return Err(WorldError::MissingGeometry);
             }
-            self.validate_actor_in_region(actor, Some(&region), &actors[..index])?;
+            self.validate_actor_in_region(actor, Some(&region), &actors[..index], true)?;
         }
         let mut seen = std::collections::BTreeSet::new();
         for (actor, corpse) in &roots {
@@ -228,7 +237,11 @@ impl World {
         let count = self
             .actors
             .values()
-            .filter(|a| !self.anchors.contains(&a.id) && !self.is_in_portal_transit(a.id))
+            .filter(|a| {
+                !self.anchors.contains(&a.id)
+                    && !self.is_in_portal_transit(a.id)
+                    && !self.entry_pending.contains(&a.id)
+            })
             .filter_map(|a| a.body.collision_shape())
             .map(|s| s.obstacles().count())
             .sum::<usize>();
@@ -240,7 +253,10 @@ impl World {
             self.geometry_dynamic.reserve(count);
         }
         for actor in self.actors.values() {
-            if self.anchors.contains(&actor.id) || self.is_in_portal_transit(actor.id) {
+            if self.anchors.contains(&actor.id)
+                || self.is_in_portal_transit(actor.id)
+                || self.entry_pending.contains(&actor.id)
+            {
                 continue;
             }
             if let Some(shape) = actor.body.collision_shape() {

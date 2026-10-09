@@ -30,6 +30,26 @@ impl Kernel {
         let request = self.generators.requests.get(&key).ok_or(G::Stale)?;
         let ids: BTreeSet<_> = items.iter().map(|i| i.id).collect();
         let root_ids: BTreeSet<_> = roots.iter().copied().collect();
+        let rejected =
+            |stage: &'static str,
+             entity: EntityId,
+             inventory: Option<bace_gameplay_api::InventoryRejection>| {
+                G::GeneratedItemForest {
+                    stage,
+                    entity,
+                    slot: items
+                        .iter()
+                        .find(|item| item.id == entity)
+                        .and_then(|item| {
+                            if let ItemPlace::Contained { slot, .. } = item.place {
+                                Some(slot)
+                            } else {
+                                None
+                            }
+                        }),
+                    inventory,
+                }
+            };
         if !self.generators.submitted.contains(&key)
             || ids.len() != items.len()
             || root_ids.len() != roots.len()
@@ -40,7 +60,7 @@ impl Kernel {
                 c.root_owner.is_some() || !items.iter().any(|i| i.id == c.id && i.is_container)
             })
         {
-            return Err(G::Invalid);
+            return Err(rejected("identity partition", roots[0], None));
         }
         let intent = request.intent.clone();
         let map: BTreeMap<_, _> = items.iter().map(|i| (i.id, i)).collect();
@@ -50,7 +70,7 @@ impl Kernel {
             let mut seen = BTreeSet::new();
             loop {
                 if !seen.insert(cursor.id) || seen.len() > 64 {
-                    return Err(G::Invalid);
+                    return Err(rejected("containment cycle or depth", item.id, None));
                 }
                 if root_ids.contains(&cursor.id) {
                     owners.insert(item.id, cursor.id);
@@ -62,11 +82,14 @@ impl Kernel {
                     ..
                 } = cursor.place
                 else {
-                    return Err(G::Invalid);
+                    return Err(rejected("non-contained descendant", item.id, None));
                 };
-                cursor = map.get(&container).copied().ok_or(G::Invalid)?;
+                cursor = map
+                    .get(&container)
+                    .copied()
+                    .ok_or_else(|| rejected("missing contained parent", item.id, None))?;
                 if !cursor.is_container {
-                    return Err(G::Invalid);
+                    return Err(rejected("non-container parent", item.id, None));
                 }
             }
         }
@@ -74,7 +97,7 @@ impl Kernel {
             GeneratorDestination::Contain { container } => {
                 if shapes.is_some() || self.inventory.reserved(container)
                     || roots.iter().any(|id| !matches!(map[id].place, ItemPlace::Contained { container: c, equipped: 0, .. } if c == container))
-                { return Err(G::Invalid); }
+                { return Err(rejected("contain destination", roots[0], None)); }
                 false
             }
             GeneratorDestination::Shop { .. } => return Err(G::Invalid),
@@ -97,7 +120,9 @@ impl Kernel {
         } else {
             let mut next = self.inventory.clone();
             next.register_generated(items, containers)
-                .map_err(inventory_error)?;
+                .map_err(|error| {
+                    rejected("contained inventory registration", roots[0], Some(error))
+                })?;
             contained = Some(next);
         }
         let mut inserted = Vec::new();
