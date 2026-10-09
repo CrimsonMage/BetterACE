@@ -26,9 +26,10 @@ pub struct NetworkThread {
     pub client_address: std::net::SocketAddr,
     pub server_address: std::net::SocketAddr,
     max_message_bytes: usize,
+    max_batch_bytes: usize,
 }
 impl NetworkThread {
-    /// Maximum aggregate bytes in a tracked reliable admission batch.
+    /// Maximum one encoded outbound application message.
     pub fn maximum_message_bytes(&self) -> usize {
         self.max_message_bytes
     }
@@ -40,7 +41,8 @@ impl NetworkThread {
         let (ready, start) = mpsc::sync_channel(1);
         let stop = Arc::new(AtomicBool::new(false));
         let stop_worker = stop.clone();
-        let max_message_bytes = config.peer.reassembly.max_message_bytes;
+        let max_message_bytes = config.peer.max_outgoing_message_bytes;
+        let max_batch_bytes = config.peer.max_outgoing_bytes;
         let worker = thread::Builder::new()
             .name("bace-network".into())
             .spawn(move || {
@@ -68,6 +70,7 @@ impl NetworkThread {
                 client_address,
                 server_address,
                 max_message_bytes,
+                max_batch_bytes,
             }),
             result => {
                 let _ = worker.join();
@@ -94,7 +97,7 @@ impl NetworkThread {
                 || messages
                     .iter()
                     .try_fold(0usize, |n, (_, bytes)| n.checked_add(bytes.len()))
-                    .is_none_or(|n| n > self.max_message_bytes))
+                    .is_none_or(|n| n > self.max_batch_bytes))
         {
             return Err(TrySendError::Full(command));
         }
@@ -116,7 +119,7 @@ impl NetworkThread {
                 && messages
                     .iter()
                     .try_fold(0usize, |total, bytes| total.checked_add(bytes.len()))
-                    .is_some_and(|total| total <= self.max_message_bytes);
+                    .is_some_and(|total| total <= self.max_batch_bytes);
             if !valid {
                 return Err(TrySendError::Full(command));
             }

@@ -22,10 +22,24 @@ impl Default for DddLimits {
     }
 }
 impl DddLimits {
+    /// Opt-in budgets large enough for the admitted stock DAT record envelope.
+    /// These still bound one session's Begin plan, transfer and queued jobs.
+    pub fn stock_patch() -> Self {
+        Self {
+            max_record_bytes: 16 * 1024 * 1024,
+            max_message_bytes: 4 * 1024 * 1024,
+            max_catalog_records: 5_000_000,
+            max_iterations: 100_000,
+            max_pending_records: 1_000_000,
+            max_transfer_bytes: 2 * 1024 * 1024 * 1024,
+        }
+    }
+
     pub fn validate(self) -> Result<(), DddError> {
         if self.max_record_bytes == 0
-            || self.max_record_bytes > u32::MAX as usize
-            || self.max_record_bytes.saturating_add(33) > self.max_message_bytes
+            || self.max_record_bytes > i32::MAX as usize - 4
+            || self.max_message_bytes < 33
+            || self.max_message_bytes > u32::MAX as usize
             || self.max_catalog_records == 0
             || self.max_iterations == 0
             || self.max_iterations > i32::MAX as u32
@@ -54,6 +68,7 @@ pub enum DddError {
     InvalidState,
     StaleCompletion,
     PreparedRecordMismatch,
+    UnsupportedRecordType,
 }
 impl std::fmt::Display for DddError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

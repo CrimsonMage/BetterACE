@@ -50,6 +50,9 @@ impl DddSession {
         if self.begun || self.complete {
             return Err(DddError::InvalidState);
         }
+        if self.enabled && !self.catalog.transfer_ready {
+            return Err(DddError::InvalidCatalog);
+        }
         if response.with_keys.len() > 4 {
             return Err(DddError::InvalidIterations);
         }
@@ -86,6 +89,14 @@ impl DddSession {
                 continue;
             }
             let present = crate::iterations::present(set, database.iteration, self.limits)?;
+            // Index-only catalogs are used when patching is disabled. Reject
+            // mismatches without constructing an incomplete Begin plan.
+            if !self.enabled {
+                if present[1..].iter().any(|owned| !owned) {
+                    return Err(DddError::Disabled);
+                }
+                continue;
+            }
             for iteration in 1..=database.iteration {
                 if present[iteration as usize] {
                     continue;

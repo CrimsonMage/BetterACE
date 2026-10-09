@@ -178,6 +178,7 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
         max_sessions: 4,
         command_capacity: 4096,
         bind_address: "127.0.0.1:0".into(),
+        dat_directory: Some(dat.clone()),
         pack_directory: Some(directory.path().to_owned()),
         ..Default::default()
     };
@@ -247,6 +248,73 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
     assert_eq!(runtime.sessions[&key].account.id, account.id);
     poll_until(&mut runtime, &mut client, |runtime, _| {
         runtime.login_job.is_none() && runtime.login_queue.is_empty()
+    })
+    .await;
+    poll_until(&mut runtime, &mut client, |_, client| {
+        [
+            bace_wire::opcode::GameMessageOpcode::CharacterList.0,
+            bace_wire::opcode::GameMessageOpcode::ServerName.0,
+            bace_wire::opcode::GameMessageOpcode::DDD_Interrogation.0,
+        ]
+        .into_iter()
+        .all(|opcode| {
+            client
+                .messages
+                .iter()
+                .any(|message| message.bytes.starts_with(&opcode.to_le_bytes()))
+        })
+    })
+    .await;
+    let list = client
+        .messages
+        .iter()
+        .position(|message| {
+            message.bytes.starts_with(
+                &bace_wire::opcode::GameMessageOpcode::CharacterList
+                    .0
+                    .to_le_bytes(),
+            )
+        })
+        .unwrap();
+    let name = client
+        .messages
+        .iter()
+        .position(|message| {
+            message.bytes.starts_with(
+                &bace_wire::opcode::GameMessageOpcode::ServerName
+                    .0
+                    .to_le_bytes(),
+            )
+        })
+        .unwrap();
+    let interrogation = client
+        .messages
+        .iter()
+        .position(|message| {
+            message.bytes.starts_with(
+                &bace_wire::opcode::GameMessageOpcode::DDD_Interrogation
+                    .0
+                    .to_le_bytes(),
+            )
+        })
+        .unwrap();
+    assert!(
+        list < name && name < interrogation,
+        "authenticated CharacterList, ServerName, DDD interrogation order"
+    );
+    assert!(
+        !runtime.dat.as_ref().unwrap().ready_for_world(key),
+        "world entry stays fenced before DAT completion"
+    );
+    client.send_message_on_queue(&runtime, key, 5, &current_ddd_response(&runtime));
+    poll_until(&mut runtime, &mut client, |_, client| {
+        client.messages.iter().any(|message| {
+            message.queue == 5 && message.bytes == bace_wire::DddControl::End.encode()
+        })
+    })
+    .await;
+    poll_until(&mut runtime, &mut client, |runtime, _| {
+        runtime.dat.as_ref().unwrap().ready_for_world(key)
     })
     .await;
     eprintln!("entry fixture: creating character");
@@ -320,6 +388,32 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
         _cluster: cluster,
     }
 }
+
+fn current_ddd_response(runtime: &GameRuntime) -> Vec<u8> {
+    let dat = runtime.dat.as_ref().expect("admitted DAT catalog");
+    let mut writer = bace_wire::Writer::new();
+    writer.u32(bace_wire::opcode::GameMessageOpcode::DDD_InterrogationResponse.0);
+    writer.u32(1); // ACE English client language.
+    writer.u32(3);
+    for database in [
+        bace_wire::DddDatabase::Portal,
+        bace_wire::DddDatabase::Language,
+        bace_wire::DddDatabase::Cell,
+    ] {
+        let (kind, id) = database.wire_identity();
+        let iteration = dat
+            .database_iteration(database)
+            .expect("approved DAT iteration");
+        writer.u32(kind);
+        writer.u32(id);
+        writer.u32(iteration);
+        if iteration > 1 {
+            writer.u32((-(iteration as i32)) as u32);
+        }
+        writer.u32(1);
+    }
+    writer.into_bytes()
+}
 pub(in crate::game_runtime) async fn poll_until(
     runtime: &mut GameRuntime,
     client: &mut client::Client,
@@ -327,6 +421,8 @@ pub(in crate::game_runtime) async fn poll_until(
 ) {
     let mut degraded_polls = 0u64;
     let mut last_degraded = None;
+    let started = std::time::Instant::now();
+    let mut diagnosed = false;
     let progress = tokio::time::timeout(Duration::from_secs(180), async {
         loop {
             // Production records a degraded service poll and keeps serving
@@ -337,6 +433,29 @@ pub(in crate::game_runtime) async fn poll_until(
                 last_degraded = Some(error.to_string());
             }
             client.drain(runtime);
+            if !diagnosed && started.elapsed() > Duration::from_secs(10) {
+                diagnosed = true;
+                eprintln!(
+                    "entry wait: messages={:?}, retained={}, dat_admissions={}",
+                    client
+                        .messages
+                        .iter()
+                        .rev()
+                        .take(8)
+                        .map(|m| (
+                            m.queue,
+                            m.bytes
+                                .get(..4)
+                                .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+                        ))
+                        .collect::<Vec<_>>(),
+                    runtime.network_output.len(),
+                    runtime
+                        .dat
+                        .as_ref()
+                        .map_or(0, ddd::DatRuntime::pending_admissions),
+                );
+            }
             if let Some((key, failure)) = runtime
                 .sessions
                 .iter()

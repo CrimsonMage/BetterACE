@@ -137,6 +137,12 @@ impl RetransmitCache {
             next_expiry_ms: None,
         }
     }
+    /// Reserve room for a full-sized reliable datagram before consuming the
+    /// next message fragment. ACK processing or expiry will free this window.
+    pub fn can_store(&self, max_datagram_bytes: usize) -> bool {
+        self.entries.len() < self.max_packets
+            && self.bytes.saturating_add(max_datagram_bytes) <= self.max_bytes
+    }
     pub fn expire(&mut self, now_ms: u64) -> Result<(), TransportError> {
         if now_ms < self.last_ms {
             return Err(TransportError::InvalidClock);

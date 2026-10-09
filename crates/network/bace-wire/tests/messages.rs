@@ -163,6 +163,28 @@ fn ddd_limits_are_checked_before_emitting_output_and_requests_are_exact() {
 }
 
 #[test]
+fn ddd_client_end_accepts_only_the_pinned_opcode_only_message() {
+    // GameMessageDDDEndDDD at the ACE pin writes no fields after 0xF7EA.
+    let end = GameMessageOpcode::DDD_EndDDD.0.to_le_bytes();
+    assert_eq!(DddControl::decode_end(&end), Ok(()));
+    for length in 0..end.len() {
+        assert!(DddControl::decode_end(&end[..length]).is_err());
+    }
+    let mut trailing = end.to_vec();
+    trailing.push(0);
+    assert_eq!(
+        DddControl::decode_end(&trailing),
+        Err(WireError::InvalidLength)
+    );
+    assert_eq!(
+        DddControl::decode_end(&GameMessageOpcode::DDD_Interrogation.0.to_le_bytes()),
+        Err(WireError::UnexpectedOpcode(
+            GameMessageOpcode::DDD_Interrogation.0
+        ))
+    );
+}
+
+#[test]
 fn progression_truncation_limits_and_attribute_alias_hardening() {
     for action in [
         GameActionType::RaiseAttribute,

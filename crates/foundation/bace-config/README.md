@@ -10,6 +10,10 @@ the complete template without replacing an existing file. The generated file
 names conventional local paths (`data/dats`, `.local/world-packs`, and
 `state/random-key`); gameplay readiness remains closed until approved assets,
 an accepted world pack, and the private RNG key are actually provisioned.
+`world_name` defaults to `BetterACE` for the authenticated `ServerName` login
+message. It accepts 1–128 printable ASCII characters to keep the wire encoding
+bounded and valid. Existing configuration files without this key retain the
+default.
 
 `ServerConfig::resolve_database_url()` uses a nonempty URL from the named
 environment variable first and then optional `database_url` from TOML. An
@@ -24,7 +28,10 @@ See root ARCHITECTURE.md and AGENTS.md for MUST rules.
 
 Optional TOML `[accounts]`, `[network]` and `[dat_distribution]` sections preserve
 existing config compatibility. `accounts.allow_auto_creation` defaults true;
-`dat_distribution.enabled` defaults false and enabling it requires `dat_directory`.
+`dat_distribution.enabled` defaults false and is explicit in new templates.
+Enable it only to patch older client DATs; startup scans the approved Portal
+and Language archives to prepare transfer metadata and can take minutes.
+Enabling it requires `dat_directory`.
 Network settings bound worker/queue/admission budgets and authentication/session
 timeouts. Enabling a setting does not bypass runtime readiness or asset validation.
 

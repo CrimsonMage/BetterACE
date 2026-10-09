@@ -61,6 +61,9 @@ impl GameRuntime {
             })?;
             if !self.accept_creation_io(key, &result)? {
                 match result {
+                    Ok(PlayerIoResult::Roster) => {
+                        self.complete_roster_ddd(key)?;
+                    }
                     Ok(PlayerIoResult::Loaded(loaded)) => {
                         let session = self
                             .sessions
@@ -102,6 +105,9 @@ impl GameRuntime {
                             .adopted = true;
                     }
                     Ok(PlayerIoResult::Retired) => {
+                        if let Some(dat) = self.dat.as_mut() {
+                            dat.forget(key);
+                        }
                         self.forget_social_session(key)?;
                         self.forget_staff_session(key)?;
                         self.forget_progression_session(key)?;

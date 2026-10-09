@@ -187,6 +187,206 @@ fn reliable_overload_and_incomplete_message_expiry_close_peer() {
 }
 
 #[test]
+fn batch_preflight_distinguishes_temporary_pressure_from_impossible_input() {
+    let config = PeerConfig {
+        max_outgoing_messages: 2,
+        max_outgoing_message_bytes: 8,
+        max_outgoing_bytes: 12,
+        ..Default::default()
+    };
+    let mut peer = Peer::new(
+        config,
+        PeerSeeds {
+            client: 0,
+            server: 0,
+        },
+        0,
+    )
+    .unwrap();
+    let batch = [(3, vec![1; 4]), (9, vec![2; 8])];
+    assert_eq!(peer.can_enqueue_batch(&batch), Ok(true));
+    peer.enqueue(9, vec![3; 4]).unwrap();
+    assert_eq!(peer.can_enqueue_batch(&batch), Ok(false));
+    assert!(!peer.is_closed());
+    assert_eq!(peer.queued_message_bytes(), 4);
+    assert_eq!(
+        peer.can_enqueue_batch(&[(12, vec![1; 4])]),
+        Err(TransportError::InvalidFragment)
+    );
+    assert_eq!(
+        peer.can_enqueue_batch(&[(3, vec![1; 9])]),
+        Err(TransportError::InvalidFragment)
+    );
+    assert_eq!(
+        peer.can_enqueue_batch(&[(3, vec![1; 8]), (3, vec![2; 8])]),
+        Err(TransportError::Capacity)
+    );
+    assert_eq!(
+        peer.can_enqueue_batch(&[(3, vec![1; 4]), (3, vec![2; 4]), (3, vec![3; 4])]),
+        Err(TransportError::Capacity)
+    );
+    assert!(!peer.is_closed());
+    assert_eq!(peer.poll(0, 0.0).unwrap().len(), 1);
+    assert_eq!(peer.can_enqueue_batch(&batch), Ok(true));
+    assert_eq!(peer.queued_message_bytes(), 0);
+}
+
+#[test]
+fn large_outbound_message_uses_its_own_limit_and_waits_for_ack_cache_room() {
+    let config = PeerConfig {
+        max_outgoing_message_bytes: 10 * 1024 * 1024,
+        max_outgoing_bytes: 10 * 1024 * 1024,
+        max_cached_packets: 2,
+        max_cached_bytes: 2 * SERVER_DATAGRAM_LIMIT,
+        ..Default::default()
+    };
+    let mut peer = Peer::new(
+        config,
+        PeerSeeds {
+            client: 0,
+            server: 0,
+        },
+        0,
+    )
+    .unwrap();
+    let message = vec![0x5a; 9 * 1024 * 1024];
+    peer.enqueue(3, message).unwrap();
+    let first = peer.poll(0, 0.0).unwrap();
+    assert_eq!(first.len(), 2);
+    assert!(peer.queued_message_bytes() > 0);
+    assert!(peer.poll(1, 0.0).unwrap().is_empty());
+    assert!(!peer.is_closed());
+    peer.enable_time_sync();
+    let ack_only = peer.poll(2001, 1.0).unwrap();
+    assert_eq!(ack_only.len(), 1);
+    assert_eq!(headers(&ack_only[0]).0.flags, flags::ACK_SEQUENCE);
+    assert!(!peer.is_closed());
+    peer.receive(
+        &packet(
+            2,
+            OptionalHeaders {
+                ack: Some(3),
+                ..Default::default()
+            },
+            &[],
+        ),
+        2002,
+    )
+    .unwrap();
+    let sync = peer.poll(2007, 1.0).unwrap();
+    assert_eq!(sync.len(), 1);
+    assert_eq!(headers(&sync[0]).1.time_sync, Some(1.0));
+    peer.receive(
+        &packet(
+            3,
+            OptionalHeaders {
+                ack: Some(4),
+                ..Default::default()
+            },
+            &[],
+        ),
+        2008,
+    )
+    .unwrap();
+    assert_eq!(peer.poll(2012, 1.0).unwrap().len(), 1);
+    assert!(!peer.is_closed());
+}
+
+#[test]
+fn outbound_limit_is_independent_and_cannot_exceed_fragment_count_or_queue_budget() {
+    let mut config = PeerConfig::default();
+    config.max_outgoing_message_bytes = usize::from(u16::MAX) * FRAGMENT_DATA_LIMIT + 1;
+    assert!(matches!(
+        Peer::new(
+            config,
+            PeerSeeds {
+                client: 0,
+                server: 0
+            },
+            0
+        ),
+        Err(TransportError::InvalidConfiguration)
+    ));
+    config.max_outgoing_message_bytes = config.max_outgoing_bytes + 1;
+    assert!(matches!(
+        Peer::new(
+            config,
+            PeerSeeds {
+                client: 0,
+                server: 0
+            },
+            0
+        ),
+        Err(TransportError::InvalidConfiguration)
+    ));
+}
+
+#[test]
+fn nine_megabyte_message_completes_across_ack_windows() {
+    let config = PeerConfig {
+        max_outgoing_message_bytes: 10 * 1024 * 1024,
+        max_outgoing_bytes: 10 * 1024 * 1024,
+        max_cached_packets: 128,
+        max_cached_bytes: 128 * SERVER_DATAGRAM_LIMIT,
+        ..Default::default()
+    };
+    let mut peer = Peer::new(
+        config,
+        PeerSeeds {
+            client: 0,
+            server: 0,
+        },
+        0,
+    )
+    .unwrap();
+    let message = vec![0x5a; 9 * 1024 * 1024];
+    let expected_fragments = message.len().div_ceil(FRAGMENT_DATA_LIMIT);
+    peer.enqueue(3, message.clone()).unwrap();
+    let mut bytes_sent = 0;
+    let mut fragment_count = 0;
+    let mut now = 0;
+    while peer.queued_message_bytes() != 0 {
+        let datagrams = peer.poll(now, 0.0).unwrap();
+        assert!(!datagrams.is_empty(), "ACK window did not advance");
+        for bytes in &datagrams {
+            let datagram = Datagram::decode(bytes).unwrap();
+            let mut reader = Reader::new(datagram.body);
+            let fragment = Fragment::decode(&mut reader).unwrap_or_else(|error| {
+                panic!(
+                    "fragment decode failed: {error:?}, flags={:#x}, size={}, sequence={}",
+                    datagram.header.flags, datagram.header.size, datagram.header.sequence
+                )
+            });
+            assert_eq!(reader.remaining(), 0);
+            assert_eq!(usize::from(fragment.header.count), expected_fragments);
+            assert_eq!(fragment.header.queue, 3);
+            bytes_sent += fragment.data.len();
+            fragment_count += 1;
+        }
+        let last = Datagram::decode(datagrams.last().unwrap())
+            .unwrap()
+            .header
+            .sequence;
+        peer.receive(
+            &packet(
+                0,
+                OptionalHeaders {
+                    ack: Some(last),
+                    ..Default::default()
+                },
+                &[],
+            ),
+            now,
+        )
+        .unwrap();
+        now += 1;
+    }
+    assert_eq!(fragment_count, expected_fragments);
+    assert_eq!(bytes_sent, message.len());
+    assert!(!peer.is_closed());
+}
+
+#[test]
 fn cache_retransmission_preserves_checksum_key_and_rejects_misses() {
     let mut peer = peer();
     peer.enqueue(9, vec![1; 4]).unwrap();

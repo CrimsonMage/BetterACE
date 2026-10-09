@@ -47,6 +47,8 @@ pub struct GameRuntimeStartup {
     npc_inventory: Option<NpcInventoryIdentitySets>,
     generators: Option<GeneratorService>,
     preparation: Option<PlayerPreparationWorker>,
+    dat: Option<ddd::DatRuntime>,
+    dat_failure: Option<String>,
     rejected: Option<GameRuntimeOwners>,
     failure: Option<String>,
 }
@@ -94,6 +96,8 @@ impl GameRuntimeStartup {
             npc_inventory: None,
             generators: None,
             preparation: None,
+            dat: None,
+            dat_failure: None,
             rejected: None,
             failure: None,
         })
@@ -117,6 +121,9 @@ impl GameRuntimeStartup {
     async fn advance_inner(&mut self) -> Result<Option<Box<GameRuntime>>, String> {
         if self.simulation_failure.is_some() {
             return Err("simulation failure retains its original owner".into());
+        }
+        if let Some(error) = &self.dat_failure {
+            return Err(error.clone());
         }
         if let Some(owners) = self.rejected.take() {
             return self.finish(owners);
@@ -189,6 +196,16 @@ impl GameRuntimeStartup {
                 bootstrap.assets.clone(),
                 self.limits.loading,
             )?);
+            return Ok(None);
+        }
+        if self.dat.is_none() && bootstrap.config.dat_directory.is_some() {
+            self.dat = Some(match ddd::DatRuntime::prepare(bootstrap).await {
+                Ok(dat) => dat,
+                Err(error) => {
+                    self.dat_failure = Some(error.clone());
+                    return Err(error);
+                }
+            });
             return Ok(None);
         }
         if self.npc_inventory.is_none() {
@@ -278,6 +295,14 @@ impl GameRuntimeStartup {
             return Ok(None);
         }
         if self.network.is_none() {
+            let mut peer = bace_transport::PeerConfig {
+                server_id: 0xB,
+                ..Default::default()
+            };
+            if bootstrap.config.dat_distribution.enabled {
+                peer.max_outgoing_message_bytes = 16 * 1024 * 1024 + 64;
+                peer.max_outgoing_bytes = 24 * 1024 * 1024;
+            }
             self.network = Some(
                 NetworkThread::spawn(crate::network::NetworkThreadConfig {
                     bind_address: bootstrap
@@ -290,6 +315,7 @@ impl GameRuntimeStartup {
                     command_capacity: bootstrap.config.command_capacity,
                     event_capacity: self.limits.messages,
                     network: bootstrap.config.network.clone(),
+                    peer,
                     ..Default::default()
                 })
                 .map_err(|e| e.to_string())?,
@@ -334,6 +360,7 @@ impl GameRuntimeStartup {
             regions: self.regions.take().expect("constructed regions"),
             generators: self.generators.take().expect("constructed generators"),
             preparation: self.preparation.take().expect("constructed preparation"),
+            dat: self.dat.take(),
         };
         self.finish(owners)
     }

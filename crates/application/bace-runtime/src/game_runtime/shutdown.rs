@@ -13,6 +13,8 @@ struct Recovery {
     _region: Option<Box<RegionService>>,
     _cold: Option<Box<PlayerPreparationWorker>>,
     _authentication: Option<crate::authentication_pool::AuthenticationDrain>,
+    _dat: Option<ddd::DatRuntime>,
+    _dat_drain: Option<crate::dat_distribution::DatPreparationDrain>,
     _social: Vec<crate::social_lookup::PendingSocialAction>,
     _pack: Vec<crate::pack_io::PackCompletion>,
 }
@@ -96,12 +98,24 @@ async fn stop(runtime: Box<GameRuntime>, threads: Vec<std::thread::JoinHandle<()
         authentication,
         world,
         preparation,
+        dat,
         social,
         mut shard,
         ..
     } = *runtime;
     let mut recovery = Recovery::default();
     let mut failures = Vec::new();
+    if let Some(dat) = dat {
+        match tokio::task::spawn_blocking(move || dat.shutdown()).await {
+            Ok(Ok(())) => {}
+            Ok(Err((owner, drain))) => {
+                recovery._dat = Some(owner);
+                recovery._dat_drain = drain;
+                failures.push("DAT preparation shutdown retained recovery".into());
+            }
+            Err(_) => failures.push("DAT preparation shutdown task failed".into()),
+        }
+    }
     let joined = tokio::task::spawn_blocking(move || {
         let mut succeeded = true;
         for thread in threads {

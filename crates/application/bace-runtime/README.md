@@ -120,12 +120,22 @@ stock-client login remains unqualified.
 blocking capacity. Rejected jobs retain caller ownership; preparation results are
 fenced against the DDD generation. Explicit shutdown recovers accepted results and
 unrecovered jobs. Dropping the worker counts abandoned results, never DDD success.
-Fingerprint validation/catalog production must occur before composition.
+The composed startup rechecks approved Portal, Language and Cell fingerprints,
+opens their version records on blocking asset capacity, then starts game sockets.
+Authenticated roster output carries CharacterList and ServerName on UIQueue in
+one correlated reliable batch, then DDD_Interrogation on DatabaseQueue after
+that prefix is admitted. World entry waits for reliable admission of DDD_EndDDD.
+A matching client gets DDD_EndDDD; an older client gets an explicit AccountBoot while the
+default `dat_distribution.enabled = false`. Opt-in patching prepares exact
+Portal/Language metadata before readiness, streams Begin/Data/End through the
+bounded worker with two active patch sessions and retains rejected reliable
+output with bounded retry backoff. On-demand Cell requests are serialized per session and
+records use uncompressed raw payloads. The admitted stock DAT catalog proof
+takes about three minutes with patching enabled; startup reports this stage.
 
-These APIs are integration building blocks. The composed `serve` path now owns
-character persistence, world/asset admission, gameplay routing and production
-session/DDD composition for its implemented paths; complete client qualification
-remains open. Network shutdown alone does not
+These APIs are integration building blocks. The composed `serve` path owns
+character persistence, world/asset admission, gameplay routing and DDD for its
+implemented paths; stock-client login qualification remains open. Network shutdown alone does not
 claim that simulation or persistence has drained. Linux loopback tests are not
 Windows/macOS or stock-client qualification. Network idle polling currently sleeps
 1 ms and processes bounded rotating batches; shard capacity is not performance-qualified.

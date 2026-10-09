@@ -733,6 +733,12 @@ description = "Pinned ACE Player.Examine and SkillCheck.GetSkillChance use int s
 status = "prepared_appraisal_source_vectors_and_invalid_extreme_regression_pass; live_identify_unsupported"
 
 [[regressions]]
+id = "ace-ddd-cell-uncompressed-on-demand"
+owners = ["bace-dat-service", "bace-runtime", "bace-transport"]
+description = "Pinned ACE DDDManager.InitIterations/TryGetDatFileContentsForTransmission may zlib-compress Cell records before DDD_DataMessage. BetterACE's opt-in patch path records Cell raw sizes from the approved DAT index and sends on-demand Cell payloads uncompressed with compressed=false. The client wire format permits this representation. This avoids compressing 805,348 Cell payloads at startup while preserving exact bytes and bounded worker ownership. Portal and Language transfer metadata is prepared with source-equivalent compression selection. Transport pauses large outgoing fragments until ACK frees cache space. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/Managers/DDDManager.cs and Source/ACE.Server/Network/Handlers/DDDHandler.cs."
+status = "synthetic_exact_metadata_and_9MiB_ACK_window_regressions_pass; admitted_DAT_catalog_proof_pass; stock_client_qualification_deferred"
+
+[[regressions]]
 id = "ace-no-corpse-fresh-world-forest"
 owners = ["bace-simulation"]
 description = "Pinned ACE Creature_Death.cs GenerateTreasure/CreateCorpse places selected existing items and generated treasure roots into the world; generated descendants belong to their generated container roots. BetterACE preflights a bounded source-ordered forest before the separate NoCorpse durable operation so a malformed prepared child cannot be minted into the dead player's inventory, attached to a missing parent, or left outside the copied world roots. Valid-source evidence: a generated container and nested child pass one exact death receipt and WorldDrops adoption. Invalid-input evidence: actor-contained, missing-parent, cyclic/out-of-order and unrooted fresh rows reject before reservation. This admission hardening does not claim complete equipped NoCorpse output. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Creature_Death.cs."

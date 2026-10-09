@@ -4,6 +4,9 @@
 # The game listens here and uses the next UDP port for the ACE companion port.
 bind_address = "127.0.0.1:9000"
 
+# Name shown to game clients during login (1-128 printable ASCII characters).
+world_name = "BetterACE"
+
 # A nonempty PostgreSQL URL in this environment variable takes precedence.
 database_url_env = "BACE_DATABASE_URL"
 
@@ -26,3 +29,8 @@ content_inbox_directory = "state/content-inbox"
 command_capacity = 4096
 max_sessions = 512
 database_connections = 4
+
+# Set true only to patch clients with older DATs. Startup scans the approved
+# Portal/Language archives to prepare transfer metadata and can take minutes.
+[dat_distribution]
+enabled = false

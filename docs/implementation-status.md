@@ -11,6 +11,29 @@ This file records verified capability, not the architecture's intended outcome.
 
 The crate inventory uses `scaffolded`, `foundation`, and `implemented` to distinguish declared ownership, partial working foundations, and a completed stated crate scope. Protocol compatibility is assessed separately; no whole-server parity is claimed.
 
+## DDD login integration — 2026-10-09
+
+The live authenticated roster path now queues CharacterList and ServerName in
+one reliable UI batch, then DDD_Interrogation after that prefix is admitted.
+A matching client iteration
+response receives DDD_EndDDD; its reliable admission gates world entry.
+Responses before interrogation admission remain retained. Missing or newer DAT iterations receive an
+explicit AccountBoot while patching stays disabled by default. Opt-in patching
+prepares exact Portal/Language metadata on blocking capacity, sends Begin and
+bounded Data records, handles client End and world Cell requests, and retains
+temporarily rejected reliable output with bounded retry backoff. Large outbound fragments wait for ACK
+cache capacity. The admitted stock DATs passed a read-only full catalog proof;
+Portal contains an 8,949,784-byte record. Cell requests intentionally use raw
+uncompressed payloads, recorded in `docs/divergences.toml`.
+
+Pinned ACE message vectors, DAT service tests and a synthetic 9 MiB transport
+ACK regression pass. The composed synthetic UDP replay passed authenticated
+login, roster and server-name ordering, DDD interrogation and matching End,
+durable character creation, and entered-world visibility against an approved
+pack and the admitted DATs. No stock game client has been run by the agent.
+Stock-client login remains unqualified until the project owner repeats the
+client test.
+
 ## Active implementation and validation — 2026-10-08
 
 Client testing is explicitly deferred by the project owner. Server-side unit,

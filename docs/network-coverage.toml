@@ -5162,7 +5162,7 @@ owner = "bace-auth"
 identifiers = []
 handlers = []
 status = "foundation"
-evidence = ["crates/application/bace-runtime/tests/network.rs", "crates/network/bace-session/tests/lifecycle.rs", "crates/network/bace-session/tests/registry.rs"]
+evidence = ["crates/application/bace-runtime/tests/network.rs", "crates/application/bace-runtime/src/game_runtime/tests/entered.rs", "crates/network/bace-session/tests/lifecycle.rs", "crates/network/bace-session/tests/registry.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/Handlers/CharacterHandler.cs"
@@ -5192,7 +5192,7 @@ owner = "bace-dat-service"
 identifiers = []
 handlers = ["GameMessageOpcode.DDD_InterrogationResponse, SessionState.AuthConnected", "GameMessageOpcode.DDD_EndDDD, SessionState.AuthConnected", "GameMessageOpcode.DDD_RequestDataMessage, SessionState.WorldConnected"]
 status = "foundation"
-evidence = ["tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
+evidence = ["crates/assets/bace-dat-service/tests/archive_catalog.rs", "crates/application/bace-runtime/src/game_runtime/tests/entered.rs", "crates/network/bace-transport/tests/peer.rs", "tools/bace-compat/tests/message_inventory.rs", "tools/bace-compat/tests/message_movement.rs", "tools/bace-compat/tests/message_objects.rs", "tools/bace-compat/tests/message_requests.rs", "tools/bace-compat/tests/message_social.rs", "tools/bace-compat/tests/message_vectors.rs"]
 
 [[sources]]
 source = "Source/ACE.Server/Network/Handlers/FriendsOldHandler.cs"

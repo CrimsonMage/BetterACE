@@ -5,7 +5,8 @@ use crate::{
     RetransmitCache, TransportError, decode_transport_packet,
 };
 use bace_wire::{
-    ClientKeys, Datagram, Isaac, OptionalHeaders, PacketHeader, encode_server_packet, flags,
+    ClientKeys, Datagram, Isaac, OptionalHeaders, PacketHeader, SERVER_DATAGRAM_LIMIT,
+    encode_server_packet, flags,
 };
 use std::collections::VecDeque;
 
@@ -44,6 +45,9 @@ impl Peer {
             || config.message_window == 0
             || config.max_outgoing_messages == 0
             || config.max_outgoing_bytes < 4
+            || config.max_outgoing_message_bytes < 4
+            || config.max_outgoing_message_bytes > usize::from(u16::MAX) * 448
+            || config.max_outgoing_message_bytes > config.max_outgoing_bytes
             || config.max_cached_packets == 0
             || config.max_cached_bytes < 484
             || config.max_control_packets == 0
@@ -71,7 +75,7 @@ impl Peer {
             outgoing: Bundler::new(
                 config.max_outgoing_messages,
                 config.max_outgoing_bytes,
-                config.reassembly.max_message_bytes,
+                config.max_outgoing_message_bytes,
             ),
             cache: RetransmitCache::new(
                 config.max_cached_packets,
@@ -101,6 +105,15 @@ impl Peer {
     }
     pub fn queued_message_bytes(&self) -> usize {
         self.outgoing.buffered_bytes()
+    }
+    /// Preflight a reliable batch without mutating or closing the peer.
+    /// `Ok(false)` is temporary queue pressure; an error means invalid input,
+    /// an intrinsically oversized batch, or an already closed peer.
+    pub fn can_enqueue_batch(&self, batch: &[(u16, Vec<u8>)]) -> Result<bool, TransportError> {
+        if self.closed {
+            return Err(TransportError::Closed);
+        }
+        self.outgoing.can_enqueue_batch(batch)
     }
     pub fn enqueue(&mut self, queue: u16, bytes: Vec<u8>) -> Result<(), TransportError> {
         if self.closed {
@@ -295,12 +308,16 @@ impl Peer {
                 optional.ack = Some(self.packets.last_received());
                 self.next_ack_ms = now_ms.saturating_add(2000);
             }
-            if self.time_sync_enabled && now_ms > self.next_sync_ms {
-                optional.time_sync = Some(portal_time);
-                self.next_sync_ms = now_ms.saturating_add(20_000);
-            }
-            if let Some(time) = self.echo.take() {
-                optional.echo_response = Some((time, portal_time as f32 - time));
+            // ACK-only control does not consume a sequence or cache slot. Keep
+            // sync/echo due until reliable cache capacity returns.
+            if self.cache.can_store(SERVER_DATAGRAM_LIMIT) {
+                if self.time_sync_enabled && now_ms > self.next_sync_ms {
+                    optional.time_sync = Some(portal_time);
+                    self.next_sync_ms = now_ms.saturating_add(20_000);
+                }
+                if let Some(time) = self.echo.take() {
+                    optional.echo_response = Some((time, portal_time as f32 - time));
+                }
             }
             if optional != OptionalHeaders::default() {
                 let encrypted = optional.time_sync.is_some() || optional.echo_response.is_some();
@@ -313,6 +330,12 @@ impl Peer {
             while result.len() < self.config.max_datagrams_per_poll
                 && self.outgoing.has_active_bundle()
             {
+                // An unacknowledged DAT message can span thousands of packets.
+                // Keep its remaining fragments queued until ACKs free cache
+                // capacity; losing a fragment would make the transfer fail.
+                if !self.cache.can_store(SERVER_DATAGRAM_LIMIT) {
+                    break;
+                }
                 let fragments = self.outgoing.next_fragments();
                 result.push(self.encode(
                     OptionalHeaders::default(),

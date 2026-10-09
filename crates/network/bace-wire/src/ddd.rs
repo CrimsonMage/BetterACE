@@ -147,6 +147,15 @@ pub enum DddControl {
     End,
 }
 impl DddControl {
+    /// The client acknowledges a completed DAT patch with an opcode-only EndDDD.
+    /// Keep this separate from outbound encoding so the session can reject a
+    /// malformed completion before it advances its DDD state.
+    pub fn decode_end(bytes: &[u8]) -> Result<(), WireError> {
+        let mut reader = Reader::new(bytes);
+        expect_opcode(&mut reader, GameMessageOpcode::DDD_EndDDD)?;
+        finish(&reader)
+    }
+
     pub fn encode(self) -> Vec<u8> {
         let opcode = match self {
             Self::Interrogation { .. } => GameMessageOpcode::DDD_Interrogation,

@@ -102,3 +102,36 @@ pub fn prepare_archive_record(
         limits,
     )
 }
+
+/// Cell DAT files are sent on demand. Their startup catalog uses exact raw
+/// lengths without scanning 800,000+ payloads; this matching worker entry
+/// point deliberately sends them uncompressed.
+pub fn prepare_archive_record_uncompressed(
+    archive: &mut DatArchive,
+    database: DddDatabase,
+    object_id: u32,
+    resource_type: u32,
+    limits: DddLimits,
+) -> Result<PreparedRecord, DddError> {
+    limits.validate()?;
+    let record = *archive
+        .records()
+        .get(&object_id)
+        .ok_or(DddError::NotFound)?;
+    if record.size as usize > limits.max_record_bytes {
+        return Err(DddError::Capacity);
+    }
+    let bytes = archive.read(object_id)?;
+    Ok(PreparedRecord {
+        metadata: RecordMetadata {
+            database,
+            object_id,
+            resource_type,
+            iteration: record.iteration,
+            raw_size: bytes.len() as u32,
+            transfer_size: bytes.len() as u32,
+            compressed: false,
+        },
+        bytes,
+    })
+}

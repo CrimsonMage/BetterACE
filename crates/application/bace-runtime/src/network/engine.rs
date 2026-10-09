@@ -530,13 +530,19 @@ impl Engine {
                         .filter(|c| c.closing_deadline.is_none())
                         .and_then(|c| c.peer.as_mut())
                 {
-                    accepted = true;
-                    for (queue, bytes) in messages {
-                        if peer.enqueue(queue, bytes).is_err() {
-                            accepted = false;
-                            overloaded = true;
-                            break;
+                    match peer.can_enqueue_batch(&messages) {
+                        Ok(true) => {
+                            accepted = true;
+                            for (queue, bytes) in messages {
+                                if peer.enqueue(queue, bytes).is_err() {
+                                    accepted = false;
+                                    overloaded = true;
+                                    break;
+                                }
+                            }
                         }
+                        Ok(false) => {} // Bounded queue pressure; caller retains exact output.
+                        Err(_) => overloaded = true,
                     }
                 }
                 if overloaded {

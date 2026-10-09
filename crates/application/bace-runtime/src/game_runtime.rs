@@ -3,6 +3,7 @@
 mod allegiance;
 mod combat;
 mod crafting;
+mod ddd;
 mod deaths;
 mod pets;
 mod pve_deaths;
@@ -82,6 +83,7 @@ pub struct GameRuntimeOwners {
     pub regions: RegionService,
     pub generators: GeneratorService,
     pub preparation: PlayerPreparationWorker,
+    dat: Option<ddd::DatRuntime>,
 }
 #[derive(Clone)]
 pub struct GameRuntimeAssets {
@@ -168,6 +170,7 @@ pub struct GameRuntime {
     world: Option<world::Owners>,
     world_job: Option<Job<(world::Owners, Result<(), String>)>>,
     preparation: PlayerPreparationWorker,
+    dat: Option<ddd::DatRuntime>,
     unexpected_cold: Option<crate::player_preparation_worker::PlayerPreparationCompletion>,
     assets: GameRuntimeAssets,
     limits: GameRuntimeLimits,
@@ -233,6 +236,12 @@ impl GameRuntime {
                 Box::new(owners),
             ));
         }
+        if owners.bootstrap.config.dat_directory.is_some() != owners.dat.is_some() {
+            return Err((
+                "approved DAT catalog owner missing or unexpected".into(),
+                Box::new(owners),
+            ));
+        }
         let allegiance = match allegiance::AllegianceRuntime::new(&owners.bootstrap) {
             Ok(value) => value,
             Err(error) => return Err((error, Box::new(owners))),
@@ -269,6 +278,7 @@ impl GameRuntime {
             regions,
             generators,
             preparation,
+            dat,
         } = owners;
         players.enable_turbine_chat();
         Ok(Box::new(Self {
@@ -314,6 +324,7 @@ impl GameRuntime {
             }),
             world_job: None,
             preparation,
+            dat,
             unexpected_cold: None,
             assets,
             limits,
@@ -399,6 +410,7 @@ impl GameRuntime {
             self.poll_combat(unix),
             self.poll_allegiance(),
             self.poll_lifecycle(elapsed, unix),
+            self.poll_ddd(elapsed),
             self.poll_creation(unix),
             self.poll_logout(elapsed, unix),
             self.poll_world(elapsed, unix),
@@ -517,6 +529,7 @@ impl GameRuntime {
             || !self.logout.is_empty()
             || self.unexpected_detach.is_some()
             || self.preparation.pending() != 0
+            || self.dat.as_ref().is_some_and(ddd::DatRuntime::pending)
             || self.unexpected_cold.is_some()
             || self.snapshot.is_some()
             || self.unexpected_snapshot.is_some()
@@ -548,6 +561,8 @@ impl GameRuntime {
             "waiting for NPC lifecycle"
         } else if self.players.requires_drain() || self.online_saves.requires_drain() {
             "waiting for player saves"
+        } else if self.dat.as_ref().is_some_and(ddd::DatRuntime::pending) {
+            "waiting for DAT negotiation or preparation"
         } else if !self.sessions.is_empty() {
             "waiting for admitted sessions"
         } else {

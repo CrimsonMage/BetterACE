@@ -227,7 +227,7 @@ fn approved_manifest(directory: &std::path::Path) -> RegionAssetManifest {
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
     }
 }
-fn verify_assets(
+pub(crate) fn verify_assets(
     manifest: &RegionAssetManifest,
     directory: &std::path::Path,
 ) -> Result<(), String> {

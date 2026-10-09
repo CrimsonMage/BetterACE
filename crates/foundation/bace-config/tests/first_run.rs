@@ -41,6 +41,8 @@ fn creates_readable_valid_template_with_conventional_gameplay_paths() {
     let (config, created) = ServerConfig::load_or_create_default(&path).unwrap();
 
     assert!(created);
+    assert_eq!(config.world_name, "BetterACE");
+    assert!(!config.dat_distribution.enabled);
     assert_eq!(config.dat_directory, Some(PathBuf::from("data/dats")));
     assert_eq!(
         config.pack_directory,
@@ -53,6 +55,8 @@ fn creates_readable_valid_template_with_conventional_gameplay_paths() {
     assert!(config.database_url.is_none());
     let source = std::fs::read_to_string(&path).unwrap();
     assert!(source.contains("dat_directory = \"data/dats\""));
+    assert!(source.contains("world_name = \"BetterACE\""));
+    assert!(source.contains("[dat_distribution]\nenabled = false"));
     assert!(source.contains("pack_directory = \".local/world-packs\""));
     assert!(source.contains("random_key_file = \"state/random-key\""));
     assert!(source.contains("# database_url ="));

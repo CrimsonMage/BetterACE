@@ -11,6 +11,9 @@ pub struct PeerConfig {
     pub message_window: u32,
     pub reassembly: ReassemblyLimits,
     pub max_outgoing_messages: usize,
+    /// Largest encoded outbound application message. Independent of the
+    /// incoming reassembly budget so DAT patches need not enlarge client input.
+    pub max_outgoing_message_bytes: usize,
     pub max_outgoing_bytes: usize,
     pub max_cached_packets: usize,
     pub max_cached_bytes: usize,
@@ -29,6 +32,7 @@ impl Default for PeerConfig {
             message_window: 1024,
             reassembly: ReassemblyLimits::default(),
             max_outgoing_messages: 512,
+            max_outgoing_message_bytes: 256 * 1024,
             max_outgoing_bytes: 1024 * 1024,
             max_cached_packets: 4096,
             max_cached_bytes: 2 * 1024 * 1024,

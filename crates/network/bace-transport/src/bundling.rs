@@ -65,6 +65,34 @@ impl Bundler {
         self.queues[usize::from(queue)].push_back(bytes);
         Ok(())
     }
+    /// Validate a whole batch without changing sequence numbers, queues, or
+    /// failure state. `false` means existing buffered work is using capacity;
+    /// an error means the batch cannot fit even into an empty bundler.
+    pub fn can_enqueue_batch(&self, batch: &[(u16, Vec<u8>)]) -> Result<bool, TransportError> {
+        if batch.len() > self.max_messages {
+            return Err(TransportError::Capacity);
+        }
+        let mut batch_bytes = 0usize;
+        for (queue, bytes) in batch {
+            if *queue >= 12 || bytes.len() < 4 || bytes.len() > self.max_message {
+                return Err(TransportError::InvalidFragment);
+            }
+            batch_bytes = batch_bytes
+                .checked_add(bytes.len())
+                .ok_or(TransportError::Capacity)?;
+        }
+        if batch_bytes > self.max_bytes {
+            return Err(TransportError::Capacity);
+        }
+        Ok(self
+            .messages
+            .checked_add(batch.len())
+            .is_some_and(|count| count <= self.max_messages)
+            && self
+                .bytes
+                .checked_add(batch_bytes)
+                .is_some_and(|bytes| bytes <= self.max_bytes))
+    }
     pub fn buffered_bytes(&self) -> usize {
         self.bytes
     }

@@ -4,6 +4,7 @@
 use bace_dat::DatArchive;
 use bace_dat_service::{
     DddError, DddJob, DddLimits, DddSession, PreparedRecord, prepare_archive_record,
+    prepare_archive_record_uncompressed,
 };
 use bace_wire::DddDatabase;
 use std::{
@@ -293,7 +294,12 @@ fn drive(
                 {
                     return Err(DddError::PreparedRecordMismatch);
                 }
-                let prepared = prepare_archive_record(
+                let prepare = if work.job.record.database == DddDatabase::Cell {
+                    prepare_archive_record_uncompressed
+                } else {
+                    prepare_archive_record
+                };
+                let prepared = prepare(
                     archive,
                     work.job.record.database,
                     work.job.record.object_id,

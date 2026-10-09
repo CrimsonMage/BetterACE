@@ -148,6 +148,9 @@ impl GameRuntime {
                 correlation,
                 accepted,
             } => {
+                if self.accept_ddd_admission(key, correlation, accepted) {
+                    return Ok(());
+                }
                 if self.reliable_admissions.len() >= self.limits.messages {
                     return Err(NetworkEvent::ReliableBatchAdmission {
                         key,
@@ -219,6 +222,23 @@ impl GameRuntime {
                 Ok(())
             }
             NetworkEvent::Message { key, message } => {
+                match self.handle_ddd_message(key, &message) {
+                    Ok(ddd::DddIngress::Accepted) => return Ok(()),
+                    Ok(ddd::DddIngress::Blocked) => {
+                        return Err(NetworkEvent::Message { key, message });
+                    }
+                    Ok(ddd::DddIngress::Unsupported) => {}
+                    Err(error) => {
+                        self.sessions
+                            .get_mut(&key)
+                            .ok_or_else(|| NetworkEvent::Message {
+                                key,
+                                message: message.clone(),
+                            })?
+                            .failure = Some(error);
+                        return Err(NetworkEvent::Message { key, message });
+                    }
+                }
                 match self.handle_portal_control(key, &message) {
                     Ok(progression::ProgressionIngress::Accepted) => return Ok(()),
                     Ok(progression::ProgressionIngress::Blocked) => {
@@ -396,12 +416,28 @@ impl GameRuntime {
                         return Err(NetworkEvent::Message { key, message });
                     }
                 }
-                let session = self.sessions.get(&key).expect("retained session");
                 let decoded = CharacterLifecycleRequest::decode(
                     &message.bytes,
                     self.limits.message_bytes,
                     1024,
                 );
+                if matches!(
+                    decoded.as_ref().map(|request| &request.action),
+                    Ok(CharacterLifecycleAction::EnterWorld { .. })
+                ) && self
+                    .dat
+                    .as_ref()
+                    .is_some_and(|dat| !dat.ready_for_world(key))
+                {
+                    return match self.reject_ddd(key, "DAT negotiation is not complete") {
+                        Ok(ddd::DddIngress::Accepted) => Ok(()),
+                        Ok(ddd::DddIngress::Blocked) => Err(NetworkEvent::Message { key, message }),
+                        Ok(ddd::DddIngress::Unsupported) | Err(_) => {
+                            Err(NetworkEvent::Message { key, message })
+                        }
+                    };
+                }
+                let session = self.sessions.get(&key).expect("retained session");
                 match decoded.map(|r| r.action) {
                     Ok(CharacterLifecycleAction::EnterWorldRequest) => {
                         if self.network_output.len() >= self.limits.messages {
@@ -579,6 +615,9 @@ impl GameRuntime {
                 if let Some(session) = self.sessions.get_mut(&key) {
                     session.terminated = true;
                     session.disconnected = true;
+                    if let Some(dat) = self.dat.as_mut() {
+                        dat.forget(key);
+                    }
                     Ok(())
                 } else if self.network_output.len() < self.limits.messages {
                     if self.auth_inflight.contains(&key) {

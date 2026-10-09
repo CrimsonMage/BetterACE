@@ -23,6 +23,9 @@ pub struct ServerConfig {
     pub dat_distribution: crate::DatDistributionConfig,
     #[serde(default)]
     pub host: crate::HostConfig,
+    /// Name shown to authenticated clients during the login handshake.
+    #[serde(default = "default_world_name")]
+    pub world_name: String,
     pub bind_address: String,
     pub database_url_env: String,
     /// Optional PostgreSQL URL; the named environment variable takes precedence.
@@ -56,6 +59,7 @@ impl Default for ServerConfig {
             accounts: crate::AccountConfig::default(),
             dat_distribution: crate::DatDistributionConfig::default(),
             host: crate::HostConfig::default(),
+            world_name: default_world_name(),
             bind_address: "127.0.0.1:9000".into(),
             database_url_env: "BACE_DATABASE_URL".into(),
             database_url: None,
@@ -156,6 +160,18 @@ impl ServerConfig {
         self.world.validate()?;
         self.host.validate()?;
         self.network.validate()?;
+        if self.world_name.is_empty()
+            || self.world_name.len() > 128
+            || !self
+                .world_name
+                .bytes()
+                .all(|byte| (0x20..=0x7e).contains(&byte))
+            || self.world_name.trim().is_empty()
+        {
+            return Err(ConfigError::Invalid(
+                "world_name must be 1-128 printable ASCII characters",
+            ));
+        }
         if self.dat_distribution.enabled && self.dat_directory.is_none() {
             return Err(ConfigError::Invalid(
                 "DAT distribution requires dat_directory",
@@ -211,6 +227,9 @@ impl ServerConfig {
 
 fn default_content_inbox_directory() -> PathBuf {
     "state/content-inbox".into()
+}
+fn default_world_name() -> String {
+    "BetterACE".into()
 }
 fn default_treasure_table_set_id() -> u32 {
     1

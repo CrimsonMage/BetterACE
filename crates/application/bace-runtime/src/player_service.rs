@@ -730,6 +730,37 @@ impl PlayerService {
         let key = *self.actors.get(&actor)?;
         self.sessions.get_mut(&key)?.replication.as_mut()
     }
+    /// The roster SQL completion has just appended its canonical CharacterList.
+    /// Extend that exact output with ServerName before the network owner can
+    /// observe any part of the UIQueue prefix.
+    pub fn complete_roster_handshake(
+        &mut self,
+        key: SessionKey,
+        correlation: u64,
+        server_name: Vec<u8>,
+    ) -> Result<Vec<(u16, Vec<u8>)>, String> {
+        let Some(NetworkCommand::Send {
+            key: last_key,
+            queue: 9,
+            ..
+        }) = self.network.back()
+        else {
+            return Err("roster output missing before DDD handshake".into());
+        };
+        if *last_key != key {
+            return Err("roster output session mismatch".into());
+        }
+        let Some(NetworkCommand::Send { bytes, .. }) = self.network.pop_back() else {
+            unreachable!("validated roster output")
+        };
+        let messages = vec![(9, bytes), (9, server_name)];
+        self.network.push_back(NetworkCommand::SendReliableBatch {
+            key,
+            correlation,
+            messages: messages.clone(),
+        });
+        Ok(messages)
+    }
     pub fn flush_network(&mut self, network: &NetworkThread, budget: usize) -> usize {
         let mut sent = 0;
         for _ in 0..budget {

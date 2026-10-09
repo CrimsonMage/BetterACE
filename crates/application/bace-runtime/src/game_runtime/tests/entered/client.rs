@@ -13,6 +13,8 @@ pub(in crate::game_runtime) struct Client {
     received: std::collections::BTreeSet<u32>,
     highest: u32,
     reassembly: bace_transport::OrderedMessages,
+    first_server_message: bace_transport::Reassembly,
+    first_server_complete: bool,
     pub messages: Vec<bace_transport::ReceivedMessage>,
 }
 impl Client {
@@ -63,6 +65,8 @@ impl Client {
             received: Default::default(),
             highest: 1,
             reassembly: bace_transport::OrderedMessages::new(Default::default(), 1024),
+            first_server_message: bace_transport::Reassembly::new(Default::default()),
+            first_server_complete: false,
             messages: Vec::new(),
         }
     }
@@ -70,9 +74,18 @@ impl Client {
         self.key = Some(key);
     }
     pub fn send_message(&mut self, runtime: &GameRuntime, key: SessionKey, bytes: &[u8]) {
+        self.send_message_on_queue(runtime, key, 9, bytes);
+    }
+    pub fn send_message_on_queue(
+        &mut self,
+        runtime: &GameRuntime,
+        key: SessionKey,
+        queue: u16,
+        bytes: &[u8],
+    ) {
         let fragments = bace_transport::fragment_message(
             self.message_sequence,
-            9,
+            queue,
             bytes,
             runtime.limits.message_bytes,
         )
@@ -235,6 +248,31 @@ impl Client {
             }
             changed = true;
             for fragment in packet.fragments {
+                if fragment.header.sequence == 0 {
+                    if !self.first_server_complete {
+                        let header = fragment.header;
+                        if let Some(bytes) = self
+                            .first_server_message
+                            .insert(
+                                fragment,
+                                runtime.clock.monotonic.elapsed().as_millis() as u64,
+                            )
+                            .unwrap()
+                        {
+                            self.first_server_complete = true;
+                            self.messages.insert(
+                                0,
+                                bace_transport::ReceivedMessage {
+                                    sequence: 0,
+                                    id: header.id,
+                                    queue: header.queue,
+                                    bytes,
+                                },
+                            );
+                        }
+                    }
+                    continue;
+                }
                 for message in self
                     .reassembly
                     .insert(
