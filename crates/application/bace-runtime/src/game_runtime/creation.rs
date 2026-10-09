@@ -418,25 +418,3 @@ impl GameRuntime {
 }
 #[cfg(test)]
 mod tests;
-
-#[cfg(test)]
-impl CreationRuntime {
-    pub(in crate::game_runtime) fn diagnostic(&self) -> String {
-        format!(
-            "work={:?} item_job={} worker_pending={} unexpected={}",
-            self.work
-                .iter()
-                .map(|(key, work)| (
-                    *key,
-                    work.phase,
-                    work.cold_pending,
-                    work.entity,
-                    work.failure.as_deref()
-                ))
-                .collect::<Vec<_>>(),
-            self.item_job.is_some(),
-            self.worker.as_ref().map_or(0, |w| w.pending()),
-            self.unexpected.is_some()
-        )
-    }
-}

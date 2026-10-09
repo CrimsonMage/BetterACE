@@ -148,6 +148,7 @@ impl Kernel {
                     template,
                     children,
                     durable: false,
+                    acquired: false,
                 },
             );
         }

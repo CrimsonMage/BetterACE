@@ -12,6 +12,53 @@ use bace_runtime::{
 };
 use bace_session::{SessionKey, SessionState};
 use bace_types::{AccountId, EntityId};
+#[test]
+fn accepted_admission_friend_event_waits_for_exact_entered_receipt() {
+    let mut service = SocialService::new(None);
+    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+    sender
+        .send(SocialEvent::Friends {
+            recipient: EntityId(1),
+            kind: 0,
+            entries: vec![],
+        })
+        .unwrap();
+    let mut projected = 0;
+    let waiting = service
+        .pump_events_ready(
+            &receiver,
+            4,
+            |recipient| {
+                assert_eq!(recipient, EntityId(1));
+                false
+            },
+            |_, _| {
+                projected += 1;
+                Ok(None)
+            },
+            |_| Ok(()),
+        )
+        .unwrap();
+    assert!(waiting.blocked);
+    assert!(service.has_pending());
+    assert_eq!(projected, 0);
+    let entered = service
+        .pump_events_ready(
+            &receiver,
+            4,
+            |_| true,
+            |_, event| {
+                assert!(matches!(event, SocialEvent::Friends { kind: 0, .. }));
+                projected += 1;
+                Ok(None)
+            },
+            |_| Ok(()),
+        )
+        .unwrap();
+    assert_eq!(entered.events, 1);
+    assert_eq!(projected, 1);
+    assert!(!service.has_pending());
+}
 #[tokio::test]
 async fn accepted_public_feed_and_exact_network_batch_survive_pressure_without_duplicate_projection()
  {

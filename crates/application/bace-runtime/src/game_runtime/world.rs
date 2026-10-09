@@ -90,6 +90,20 @@ impl GameRuntime {
         if self.draining {
             world.generators.quiesce();
         }
+        // Once the simulation confirms region quiescence and both host owners
+        // have drained, leave the idle world in this adapter. An unconditional
+        // replacement job would keep `world_job` outstanding forever and make
+        // the final shutdown proof unreachable.
+        if self.draining
+            && self.regions_quiesced
+            && world.pending.is_none()
+            && world.events.is_empty()
+            && !world.regions.has_pending()
+            && !world.generators.has_pending()
+        {
+            self.world = Some(world);
+            return Ok(());
+        }
         // Give lifecycle preparation its immutable region view between I/O turns.
         let worker = self.simulation.clone();
         let saves = self.saves.handle.clone();

@@ -215,6 +215,15 @@ impl Kernel {
         {
             return Err(E::Stale);
         }
+        if self
+            .corpse_expiry
+            .pending
+            .values()
+            .any(|pending| pending.ticket.corpse == corpse)
+            || self.corpse_expiry.retiring.contains_key(&corpse)
+        {
+            return Err(E::Stale);
+        }
         if let Some(existing) = self.player_deaths.corpse_access.get(&corpse) {
             return if existing.operation == death_operation && existing.profile == profile {
                 Ok(())
@@ -275,6 +284,19 @@ impl Kernel {
             shares_killer_fellowship,
             remaining,
         );
+        // Once WorldObject_Decay has reserved this corpse's inventory tree,
+        // a new Open would race its durable tombstone. A viewer already
+        // attached before that reservation may still Close.
+        if matches!(decision, D::Open { .. })
+            && (self
+                .corpse_expiry
+                .pending
+                .values()
+                .any(|pending| pending.ticket.corpse == corpse)
+                || self.corpse_expiry.retiring.contains_key(&corpse))
+        {
+            return Err(E::Stale);
+        }
         if matches!(
             decision,
             D::Open {

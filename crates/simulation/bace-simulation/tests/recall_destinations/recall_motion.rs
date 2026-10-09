@@ -7,6 +7,14 @@ use bace_motion::{
 };
 
 fn motion(kind: RecallKind, frames: u32) -> Arc<PreparedMotionChain> {
+    motion_command(kind.motion(), frames)
+}
+
+pub(super) fn binding_motion(frames: u32) -> Arc<PreparedMotionChain> {
+    motion_command(0x1000_0057, frames)
+}
+
+fn motion_command(command: u32, frames: u32) -> Arc<PreparedMotionChain> {
     let ready = SourceMotionState {
         style: 0x8000003d,
         substate: 0x41000003,
@@ -36,7 +44,7 @@ fn motion(kind: RecallKind, frames: u32) -> Arc<PreparedMotionChain> {
             .unwrap(),
     );
     Arc::new(
-        PreparedMotionChain::prepare(vec![clip.clone(), clip], 1, 1, physics, kind.motion(), 1.)
+        PreparedMotionChain::prepare(vec![clip.clone(), clip], 1, 1, physics, command, 1.)
             .unwrap()
             .with_source_transition(SourceMotionTransition {
                 before: ready,

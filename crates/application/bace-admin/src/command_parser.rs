@@ -23,6 +23,8 @@ pub enum CommandError {
     ConsoleOnly,
     NotInWorld,
     InvalidParameterCount,
+    /// Syntax is source-valid, but this command form lacks its live owner.
+    UnsupportedVariant,
     SourceUnimplemented,
     Incompatible(&'static str),
 }

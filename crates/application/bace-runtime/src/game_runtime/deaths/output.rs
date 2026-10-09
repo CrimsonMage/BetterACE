@@ -5,6 +5,8 @@ mod completed;
 mod corpse_location;
 mod equipped_corpse;
 mod equipped_no_corpse;
+mod pk_status;
+mod protection;
 use bace_replication::InventoryProjection as P;
 use bace_replication::{BatchLimits, ReplicationMessage, SessionBatch};
 use bace_wire::{CombatEffect, CombatEvent};
@@ -214,6 +216,48 @@ impl GameRuntime {
                 self.acknowledge_death_delivery(sequence)?;
                 self.forget_death_portal_materialization(actor, operation, accepted.epoch);
                 self.deaths.completed_presentations.remove(&operation);
+                continue;
+            }
+            let protection = match &delivery.work {
+                DeathDeliveryWork::Event(PlayerDeathEvent::ProtectionExpired {
+                    actor,
+                    recipient,
+                }) => Some((
+                    delivery.sequence,
+                    *actor,
+                    *recipient,
+                    protection::Kind::Expired,
+                )),
+                DeathDeliveryWork::Event(PlayerDeathEvent::ProtectionDispelled {
+                    actor,
+                    recipient,
+                }) => Some((
+                    delivery.sequence,
+                    *actor,
+                    *recipient,
+                    protection::Kind::Dispelled,
+                )),
+                _ => None,
+            };
+            if let Some((sequence, actor, recipient, kind)) = protection {
+                if !self.project_death_protection_notice(actor, recipient, kind)? {
+                    break;
+                }
+                self.acknowledge_death_delivery(sequence)?;
+                continue;
+            }
+            if let DeathDeliveryWork::Event(PlayerDeathEvent::PkStatus {
+                actor,
+                status,
+                recipient,
+            }) = &delivery.work
+            {
+                let (sequence, actor, status, recipient) =
+                    (delivery.sequence, *actor, *status, *recipient);
+                if !self.project_death_pk_status(actor, status, recipient)? {
+                    break;
+                }
+                self.acknowledge_death_delivery(sequence)?;
                 continue;
             }
             let (sequence, actor, announcement) = match &delivery.work {

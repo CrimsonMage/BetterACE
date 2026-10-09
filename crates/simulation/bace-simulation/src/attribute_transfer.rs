@@ -57,6 +57,11 @@ pub enum AttributeTransferDeviceError {
 }
 #[derive(Clone, Debug)]
 pub enum AttributeTransferCommand {
+    RequestInactive {
+        context: ActionContext,
+        item: EntityId,
+        revision: u64,
+    },
     RequestPrepared {
         context: ActionContext,
         item: EntityId,
@@ -83,6 +88,7 @@ pub enum AttributeTransferCommand {
 impl AttributeTransferCommand {
     pub fn valid_bounds(&self) -> bool {
         match self {
+            Self::RequestInactive { item, revision, .. } => item.0 != 0 && *revision != 0,
             Self::RequestPrepared {
                 item,
                 revision,
@@ -107,6 +113,7 @@ impl AttributeTransferCommand {
 }
 #[derive(Debug)]
 pub enum AttributeTransferResult {
+    Inactive,
     Confirmation(AttributeTransferConfirmation),
     Proposed(Option<AttributeTransferDeviceTicket>),
     Committed(AttributeTransferDeviceTicket),

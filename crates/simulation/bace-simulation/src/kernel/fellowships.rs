@@ -182,13 +182,34 @@ impl Kernel {
                     if actor != before.leader() {
                         return Err(E::NotLeader);
                     }
+                    // ACE Fellowship.QuitFellowship sends Disband and then this
+                    // Broadcast notice to each member when loot sharing is on.
+                    // Reserve the complete event batch before removing the group.
+                    let needed = 1 + if before.share_loot() {
+                        before.members().len()
+                    } else {
+                        0
+                    };
+                    if self.social.events.len().saturating_add(needed) > self.social.capacity {
+                        return Err(E::Capacity);
+                    }
                     let recipients = self.fellowships.disband(before.id)?;
                     self.social.events.push_back(SocialEvent::FellowshipLeft {
-                        recipients,
+                        recipients: recipients.clone(),
                         actor,
                         dismissed: false,
                         disbanded: true,
                     });
+                    if before.share_loot() {
+                        for recipient in recipients {
+                            self.social.events.push_back(SocialEvent::System {
+                                recipient,
+                                text: "You no longer have permission to loot anyone else's kills."
+                                    .into(),
+                                chat_type: 0,
+                            });
+                        }
+                    }
                     Ok(())
                 } else {
                     self.remove_fellowship_member(actor, false, now)

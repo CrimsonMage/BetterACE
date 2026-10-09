@@ -41,6 +41,7 @@ struct ConstructedCreature {
     template: crate::GeneratedNpcTemplate,
     children: Vec<EntityId>,
     durable: bool,
+    acquired: bool,
 }
 impl ConstructedCreatures {
     pub(super) fn contains(&self, actor: EntityId) -> bool {
@@ -52,7 +53,7 @@ impl ConstructedCreatures {
     pub(super) fn transient_in_region(&self, landblock: u16) -> bool {
         self.entries
             .values()
-            .any(|entry| entry.landblock == landblock && !entry.durable)
+            .any(|entry| entry.landblock == landblock && !entry.acquired && !entry.durable)
     }
     pub(super) fn remove(&mut self, actor: EntityId) {
         if let Some(entry) = self.entries.remove(&actor) {
@@ -61,6 +62,67 @@ impl ConstructedCreatures {
     }
 }
 impl Kernel {
+    pub(super) fn preflight_constructed_acquisition(
+        &self,
+        operation: u64,
+        transient: &BTreeSet<EntityId>,
+    ) -> Result<Vec<EntityId>, bace_gameplay_api::InventoryRejection> {
+        use bace_gameplay_api::InventoryRejection as E;
+        let ticket = self
+            .inventory
+            .pending_ticket(operation)
+            .ok_or(E::InvalidState)?;
+        let roots = self
+            .inventory
+            .constructed_acquisition_roots(operation)
+            .ok_or(E::InvalidState)?;
+        let changes: BTreeSet<_> = ticket.proposal.changes.iter().map(|c| c.after.id).collect();
+        let mut covered = BTreeSet::new();
+        for root in roots {
+            let entry = self
+                .constructed_creatures
+                .entries
+                .get(root)
+                .ok_or(E::InvalidState)?;
+            if entry.durable || entry.acquired || !transient.contains(root) {
+                return Err(E::DurabilityPending);
+            }
+            let subtree: BTreeSet<_> = entry
+                .children
+                .iter()
+                .copied()
+                .chain(std::iter::once(*root))
+                .collect();
+            let actual: BTreeSet<_> = self.inventory.tree_members(*root)?.into_iter().collect();
+            if subtree.len() != entry.children.len() + 1
+                || subtree != actual
+                || !subtree.is_subset(&changes)
+                || !subtree.is_subset(transient)
+            {
+                return Err(E::InvalidState);
+            }
+            covered.extend(subtree);
+        }
+        if roots.is_empty()
+            || transient
+                .iter()
+                .any(|id| self.inventory.constructed_ancestor(*id) && !covered.contains(id))
+        {
+            return Err(E::InvalidState);
+        }
+        Ok(roots.to_vec())
+    }
+    pub(super) fn adopt_constructed_acquisition(&mut self, roots: &[EntityId]) {
+        for root in roots {
+            let entry = self
+                .constructed_creatures
+                .entries
+                .get_mut(root)
+                .expect("preflighted constructed acquisition");
+            entry.durable = true;
+            entry.acquired = true;
+        }
+    }
     pub fn has_constructed_creature(&self, actor: EntityId) -> bool {
         self.constructed_creatures.contains(actor)
     }
@@ -75,7 +137,7 @@ impl Kernel {
             .constructed_creatures
             .entries
             .iter()
-            .filter(|(_, entry)| entry.landblock == landblock)
+            .filter(|(_, entry)| entry.landblock == landblock && !entry.acquired)
         {
             if !entry.durable
                 || !saved.contains(&actor)
@@ -94,7 +156,9 @@ impl Kernel {
             .constructed_creatures
             .entries
             .iter()
-            .filter_map(|(&actor, entry)| (entry.landblock == landblock).then_some(actor))
+            .filter_map(|(&actor, entry)| {
+                (entry.landblock == landblock && !entry.acquired).then_some(actor)
+            })
             .collect();
         for actor in actors {
             self.constructed_creatures.remove(actor);
@@ -209,6 +273,7 @@ impl Kernel {
                     template: entry.template,
                     children: entry.children,
                     durable: true,
+                    acquired: false,
                 },
             );
         }

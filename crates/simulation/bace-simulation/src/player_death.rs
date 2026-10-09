@@ -337,13 +337,16 @@ pub enum PlayerDeathEvent {
     },
     ProtectionExpired {
         actor: EntityId,
+        recipient: Option<bace_gameplay_api::CharacterBinding>,
     },
     ProtectionDispelled {
         actor: EntityId,
+        recipient: Option<bace_gameplay_api::CharacterBinding>,
     },
     PkStatus {
         actor: EntityId,
         status: u32,
+        recipient: Option<bace_gameplay_api::CharacterBinding>,
     },
 }
 

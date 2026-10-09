@@ -230,6 +230,33 @@ fn tree_receipt_requires_complete_root_partition_and_all_descendants() {
 }
 
 #[test]
+fn rejected_world_npc_root_without_item_source_cannot_leave_orphan_publication() {
+    let def = definition::definition();
+    let key = bace_gameplay_api::GeneratorSpawnKey {
+        generator: def.identity,
+        profile_id: 0,
+        occurrence: 1,
+    };
+    let rejected = EntityId(100);
+    let accepted = EntityId(200);
+    let rejected_gear = EntityId(101);
+    let accepted_gear = EntityId(201);
+    // NPC roots are prepared as public descriptions, while only their gear
+    // enters the transient RegionItemSource batch. The authoritative admission
+    // explicitly rejected one root and admitted the other root with its gear.
+    let receipt = bace_simulation::GeneratorItemAdmission {
+        key,
+        roots: vec![accepted],
+        entities: vec![accepted, accepted_gear],
+        failed_roots: vec![rejected],
+    };
+    assert_eq!(
+        delivery::failed_sources(&[rejected_gear, accepted_gear], &receipt),
+        vec![rejected, rejected_gear]
+    );
+}
+
+#[test]
 fn id_reservation_receipt_reuses_materialization_and_retains_unexpected_outcomes() {
     let (_dir, mut service, regions) = service();
     let def = definition::definition();

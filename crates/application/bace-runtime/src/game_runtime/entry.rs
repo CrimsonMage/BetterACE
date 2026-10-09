@@ -85,6 +85,11 @@ impl GameRuntime {
                     self.unexpected_snapshot = Some(outcome);
                     return Err("unmatched pet Use capture retained".into());
                 }
+            } else if self.vendors.buy_owns_capture(&outcome) {
+                if let Err(outcome) = self.vendors.accept_buy_capture(outcome, unix) {
+                    self.unexpected_snapshot = Some(outcome);
+                    return Err("unmatched vendor Buy capture retained".into());
+                }
             } else if self.skill_devices.owns_capture(&outcome) {
                 self.skill_devices
                     .accept_capture(outcome, unix)

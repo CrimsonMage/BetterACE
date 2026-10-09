@@ -17,7 +17,10 @@ fn status(spec: &CommandSpec) -> String {
             "regen" => {
                 "native selected-generator route; generator lifecycle retains effects".into()
             }
-            "targetloc" | "getenchantments" => {
+            "targetloc" => {
+                "native selected-target four-line route; explicit GUID lookup unsupported".into()
+            }
+            "getenchantments" => {
                 "native selected-target route; target owner state may be unavailable".into()
             }
             "myloc" => "native authoritative three-line self-position route".into(),
@@ -178,7 +181,7 @@ mod tests {
             ("myloc", "three-line self-position route"),
             ("gps", "one-line Developer GPS route"),
             ("time", "native in-world route"),
-            ("targetloc", "selected-target route"),
+            ("targetloc", "selected-target four-line route"),
             ("getenchantments", "selected-target route"),
             ("teleloc", "parsed only"),
             ("regen", "native selected-generator route"),

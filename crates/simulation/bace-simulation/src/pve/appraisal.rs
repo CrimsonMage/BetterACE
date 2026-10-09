@@ -2,6 +2,112 @@
 //! Live Identify stays unsupported until the response profile, these ordered
 //! emotes, and AlertFriendly have one retained completion path.
 use super::*;
+use bace_gameplay_api::selection::TargetSelection;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AppraisalResponseKind {
+    None,
+    Empty,
+    Object { success: bool },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AppraisalSelectionResult {
+    pub next: TargetSelection,
+    pub response: AppraisalResponseKind,
+    pub consumed_draw: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AppraisalSelectionError {
+    InvalidTime,
+    InvalidRandom,
+}
+
+/// Pinned Player.HandleActionIdentifyObject state order. `known` is an
+/// authoritative FindObject(Everywhere) result. The caller supplies a single
+/// explicit draw only for a new recognized target; repeats consume none.
+pub fn select_appraisal(
+    selection: TargetSelection,
+    target: EntityId,
+    known: bool,
+    now: f64,
+    chance: f32,
+    draw: Option<f32>,
+) -> Result<AppraisalSelectionResult, AppraisalSelectionError> {
+    use AppraisalSelectionError as E;
+    if !now.is_finite()
+        || now < 0.0
+        || !selection.appraisal_requested_at.is_finite()
+        || selection.appraisal_requested_at < 0.0
+    {
+        return Err(E::InvalidTime);
+    }
+    let mut next = selection;
+    if target.0 == 0 {
+        if draw.is_some() {
+            return Err(E::InvalidRandom);
+        }
+        next.requested_appraisal = None;
+        next.current_appraisal = None;
+        return Ok(AppraisalSelectionResult {
+            next,
+            response: AppraisalResponseKind::None,
+            consumed_draw: false,
+        });
+    }
+    if !known {
+        if draw.is_some() {
+            return Err(E::InvalidRandom);
+        }
+        return Ok(AppraisalSelectionResult {
+            next,
+            response: AppraisalResponseKind::Empty,
+            consumed_draw: false,
+        });
+    }
+    if selection.requested_appraisal == Some(target) {
+        if selection.current_appraisal == Some(target) {
+            if draw.is_some() {
+                return Err(E::InvalidRandom);
+            }
+            return Ok(AppraisalSelectionResult {
+                next,
+                response: AppraisalResponseKind::Object { success: true },
+                consumed_draw: false,
+            });
+        }
+        if now < selection.appraisal_requested_at + 5.0 {
+            if draw.is_some() {
+                return Err(E::InvalidRandom);
+            }
+            return Ok(AppraisalSelectionResult {
+                next,
+                response: AppraisalResponseKind::Object { success: false },
+                consumed_draw: false,
+            });
+        }
+    }
+    let draw = draw.ok_or(E::InvalidRandom)?;
+    if !draw.is_finite()
+        || !(0.0..1.0).contains(&draw)
+        || !chance.is_finite()
+        || !(0.0..=1.0).contains(&chance)
+    {
+        return Err(E::InvalidRandom);
+    }
+    let success = chance > draw;
+    next.requested_appraisal = Some(target);
+    next.appraisal_requested_at = now;
+    if success {
+        next.current_appraisal = Some(target);
+    }
+    Ok(AppraisalSelectionResult {
+        next,
+        response: AppraisalResponseKind::Object { success },
+        consumed_draw: true,
+    })
+}
 
 /// Source WakeUp calls OnWakeUp (Scream=18), then OnNewEnemy (17).
 /// This is an obligation for the authored NPC emote owner, not a packet.
@@ -222,5 +328,64 @@ mod tests {
         assert_eq!(ace::source_tolerance(&source), 64);
         source.properties.ints[0].value = 66;
         assert_eq!(ace::source_tolerance(&source), 66);
+    }
+
+    #[test]
+    fn pinned_selection_repeats_success_and_throttles_failure_for_five_seconds() {
+        let a = EntityId(20);
+        let b = EntityId(21);
+        let empty = TargetSelection::default();
+        // A missing object replies empty and leaves the current selection.
+        let missing = select_appraisal(empty, a, false, 100.0, 0.0, None).unwrap();
+        assert_eq!(missing.response, AppraisalResponseKind::Empty);
+        assert_eq!(missing.next, empty);
+        let failed = select_appraisal(empty, a, true, 100.0, 0.2, Some(0.5)).unwrap();
+        assert_eq!(
+            failed.response,
+            AppraisalResponseKind::Object { success: false }
+        );
+        assert!(failed.consumed_draw);
+        let repeat = select_appraisal(failed.next, a, true, 104.999, 1.0, None).unwrap();
+        assert_eq!(repeat.response, failed.response);
+        assert!(!repeat.consumed_draw);
+        let success = select_appraisal(failed.next, a, true, 105.0, 1.0, Some(0.9)).unwrap();
+        assert_eq!(
+            success.response,
+            AppraisalResponseKind::Object { success: true }
+        );
+        assert_eq!(success.next.current_appraisal, Some(a));
+        let repeated_success = select_appraisal(success.next, a, true, 200.0, 0.0, None).unwrap();
+        assert_eq!(repeated_success.response, success.response);
+        assert!(!repeated_success.consumed_draw);
+        // New failed targets do not erase a previously successful target.
+        let failed_b = select_appraisal(success.next, b, true, 201.0, 0.0, Some(0.1)).unwrap();
+        assert_eq!(failed_b.next.current_appraisal, Some(a));
+        let cleared =
+            select_appraisal(failed_b.next, EntityId(0), false, 202.0, 0.0, None).unwrap();
+        assert_eq!(cleared.response, AppraisalResponseKind::None);
+        assert_eq!(cleared.next.current_appraisal, None);
+        assert_eq!(cleared.next.requested_appraisal, None);
+    }
+
+    #[test]
+    fn invalid_time_or_draw_never_produces_selection() {
+        let target = EntityId(20);
+        let state = TargetSelection::default();
+        assert_eq!(
+            select_appraisal(state, target, true, f64::NAN, 1.0, Some(0.5)),
+            Err(AppraisalSelectionError::InvalidTime)
+        );
+        assert_eq!(
+            select_appraisal(state, target, true, 10.0, 1.0, Some(1.0)),
+            Err(AppraisalSelectionError::InvalidRandom)
+        );
+        assert_eq!(
+            select_appraisal(state, target, true, 10.0, 1.0, None),
+            Err(AppraisalSelectionError::InvalidRandom)
+        );
+        assert_eq!(
+            select_appraisal(state, EntityId(0), false, 10.0, 0.0, Some(0.5)),
+            Err(AppraisalSelectionError::InvalidRandom)
+        );
     }
 }

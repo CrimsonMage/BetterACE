@@ -1,7 +1,11 @@
 //! Retained first-Use Shop owner. Buy/Sell stay closed until their complete
 //! player currency and stock transaction has an exact durable receipt.
+#[allow(dead_code)] // Live Buy waits for a joined authenticated PostgreSQL runtime transcript.
+mod buy;
 #[allow(dead_code)] // Joined default Buy remains held until its output obligation is connected.
 mod buy_freezing;
+#[allow(dead_code)] // Cold Buy preparation is admitted only with the full retained route.
+mod buy_preparation;
 mod preparation;
 #[cfg(test)]
 mod tests;
@@ -21,6 +25,7 @@ use std::sync::mpsc::TrySendError;
 
 pub(super) struct VendorRuntime {
     pending: Option<Pending>,
+    buy: Option<buy::Pending>,
     completion: Option<VendorCompletion>,
     unexpected: Option<VendorOutcome>,
     publication: Option<(u64, SessionKey, Vec<u8>)>,
@@ -97,6 +102,7 @@ impl VendorRuntime {
     pub(super) fn new() -> Self {
         Self {
             pending: None,
+            buy: None,
             completion: None,
             unexpected: None,
             publication: None,
@@ -106,6 +112,7 @@ impl VendorRuntime {
 
     pub(super) fn has_pending(&self) -> bool {
         self.pending.is_some()
+            || self.buy.is_some()
             || self.completion.is_some()
             || self.unexpected.is_some()
             || self.publication.is_some()
@@ -115,6 +122,7 @@ impl VendorRuntime {
         self.pending
             .as_ref()
             .is_some_and(|pending| pending.key == key)
+            || self.buy.as_ref().is_some_and(|pending| pending.key == key)
             || self
                 .completion
                 .as_ref()
@@ -126,6 +134,9 @@ impl VendorRuntime {
     }
 
     pub(super) fn failure(&self) -> Option<&str> {
+        if let Some(error) = self.buy.as_ref().and_then(buy::Pending::failure) {
+            return Some(error);
+        }
         match self.pending.as_ref().map(|pending| &pending.phase) {
             Some(Phase::Blocked(error) | Phase::RetrySave { error, .. }) => Some(error),
             _ => None,
@@ -252,6 +263,13 @@ impl VendorRuntime {
         &mut self,
         outcome: VendorOutcome,
     ) -> Result<(), Box<VendorOutcome>> {
+        if self
+            .buy
+            .as_ref()
+            .is_some_and(|pending| pending.correlation == outcome.correlation)
+        {
+            return self.accept_buy_outcome(outcome);
+        }
         let Some(pending) = self.pending.as_mut() else {
             return Err(Box::new(outcome));
         };
@@ -510,8 +528,9 @@ impl GameRuntime {
         };
         let generation = registration.generation.clone();
         if !matches!(request.action, InventoryAction::Use(_)) {
-            // Commerce requires the stock marker, player currency and item
-            // forest to share an exact receipt; no partial success is emitted.
+            // The joined Buy freezer and retained output are prepared, but a
+            // connected authenticated ingress-to-receipt transcript is still
+            // required before this route can publish success.
             return Ok(I::Unsupported);
         }
         if self.vendors.has_pending() {
@@ -573,10 +592,12 @@ impl GameRuntime {
         }
         self.vendors
             .poll(&self.simulation.input(), &self.saves.handle)?;
+        self.poll_vendor_buy()?;
         if let Some(error) = self.vendors.failure() {
             return Err(format!("vendor retained: {error}"));
         }
-        self.project_vendor_output()
+        self.project_vendor_output()?;
+        self.project_vendor_buy_output()
     }
 
     fn project_vendor_output(&mut self) -> Result<(), String> {

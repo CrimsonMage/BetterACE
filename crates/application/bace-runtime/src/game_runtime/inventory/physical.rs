@@ -47,6 +47,25 @@ pub(super) async fn prepare(
             return Err("inspected inventory source fence mismatch".into());
         }
     }
+    let mut constructed_acquisition = false;
+    for item in &evidence.rows {
+        let source = metadata
+            .get(&item.id.0)
+            .ok_or("inspected constructed source metadata missing")?;
+        let creature =
+            crate::generator_preparation::is_creature_template(source.entity.state.weenie_type);
+        match (creature, source.construction.as_ref()) {
+            (true, Some(construction)) => {
+                construction
+                    .validate(item.id.0, source.entity.state.weenie_type)
+                    .map_err(|error| format!("constructed source companion: {error}"))?;
+                constructed_acquisition = true;
+            }
+            (true, None) => return Err("creature source lacks construction companion".into()),
+            (false, Some(_)) => return Err("noncreature construction companion".into()),
+            (false, None) => {}
+        }
+    }
     let split = matches!(
         evidence.request,
         InventoryRequest::SplitToContainer { .. }
@@ -71,10 +90,8 @@ pub(super) async fn prepare(
             .ok_or("physical source metadata missing")?
             .entity
             .state;
-        if source.properties.bools.iter().any(|p| p.id == 1 && p.value)
-            || crate::generator_preparation::is_creature_template(source.weenie_type)
-        {
-            return Err("stuck/creature inventory source".into());
+        if source.properties.bools.iter().any(|p| p.id == 1 && p.value) {
+            return Err("stuck inventory source".into());
         }
         let mut assets = VerifiedRegionAssets::open(&manifest)?;
         let avatar = assets.prepare_avatar_dat(&actor)?;
@@ -201,6 +218,7 @@ pub(super) async fn prepare(
             motions,
             drop_shape,
             use_radius,
+            constructed_acquisition,
         }));
         Ok(cold::Prepared {
             request: Some(command),

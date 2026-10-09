@@ -3,6 +3,7 @@
 mod ace;
 mod admission;
 mod appraisal;
+mod appraisal_profile;
 mod corpse_expiry;
 mod death_lifecycle;
 mod native;
@@ -13,7 +14,11 @@ mod shared_rewards;
 use crate::characters::Characters;
 use crate::combat::{Combat, CombatEvent};
 pub use ace::AceCreatureLootPolicy;
-pub use appraisal::AppraisalWake;
+pub use appraisal::{
+    AppraisalResponseKind, AppraisalSelectionError, AppraisalSelectionResult, AppraisalWake,
+    select_appraisal,
+};
+pub use appraisal_profile::AppraisalSourceTables;
 use bace_ai::{Awareness, MonsterLeash, ReturnHome, TargetCandidate};
 use bace_character::ExperienceCredit;
 use bace_combat::{DamageShare, kill_rewards};

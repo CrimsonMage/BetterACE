@@ -100,6 +100,17 @@ fn pinned_developer_myloc_keeps_its_three_line_owner_distinct_from_targetloc() {
             kind: bace_admin::Inspection::Position,
         })
     ));
+    // HandleTargetLoc also accepts a GUID. Until the current-landblock and
+    // global-object lookup owners are connected, this remains unsupported.
+    let explicit = authorize_command(
+        parse_command("@targetloc 0x50000001").unwrap(),
+        Some(principal),
+    )
+    .unwrap();
+    assert!(matches!(
+        bace_admin::prepare_staff_operation(&explicit),
+        Err(CommandError::UnsupportedVariant)
+    ));
 }
 
 #[test]

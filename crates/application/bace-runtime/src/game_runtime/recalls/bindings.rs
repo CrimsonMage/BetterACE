@@ -31,6 +31,7 @@ pub(super) struct BindingPending {
     phase: BindingPhase,
     prepared: Option<BindingPrepared>,
     staged: Option<(u64, bool, Arc<str>, Option<u32>)>,
+    cancelling: bool,
 }
 pub(super) struct BindingRuntime {
     pub(super) pending: BTreeMap<SessionKey, BindingPending>,
@@ -203,6 +204,9 @@ impl GameRuntime {
         let Some(session) = self.sessions.get(&key) else {
             return Ok(ProgressionIngress::Blocked);
         };
+        if session.terminated || session.disconnected {
+            return Ok(ProgressionIngress::Blocked);
+        }
         let Some(loading) = session.loading.as_ref() else {
             return Ok(ProgressionIngress::Unsupported);
         };
@@ -265,6 +269,7 @@ impl GameRuntime {
                 phase: BindingPhase::Capture,
                 prepared: None,
                 staged: None,
+                cancelling: false,
             },
         );
         Ok(ProgressionIngress::Accepted)
@@ -298,6 +303,43 @@ impl GameRuntime {
             .take(self.limits.work_per_poll)
             .collect();
         for key in keys {
+            if self.binding_session_closing(key) {
+                let phase = &self.recalls.bindings.pending[&key].phase;
+                if matches!(
+                    phase,
+                    BindingPhase::Capture
+                        | BindingPhase::Captured(..)
+                        | BindingPhase::Ready
+                        | BindingPhase::Failed(_)
+                ) {
+                    self.recalls.bindings.pending.remove(&key);
+                    continue;
+                }
+                if matches!(phase, BindingPhase::Submitted | BindingPhase::Running)
+                    && !self.recalls.bindings.pending[&key].cancelling
+                {
+                    let actor = self.recalls.bindings.pending[&key].context.actor;
+                    match self
+                        .simulation
+                        .input()
+                        .try_submit(Command::Recall(RecallCommand::Cancel { actor }))
+                    {
+                        Ok(()) => {
+                            self.recalls
+                                .bindings
+                                .pending
+                                .get_mut(&key)
+                                .expect("retained binding")
+                                .cancelling = true
+                        }
+                        Err(TrySendError::Full(_)) => {}
+                        Err(TrySendError::Disconnected(_)) => {
+                            return Err("binding cancel owner channel closed".into());
+                        }
+                    }
+                }
+                continue;
+            }
             self.advance_binding(key)?;
         }
         self.project_completed_bindings()?;
@@ -382,6 +424,11 @@ impl GameRuntime {
         }
         Ok(())
     }
+    fn binding_session_closing(&self, key: SessionKey) -> bool {
+        self.sessions
+            .get(&key)
+            .is_none_or(|s| s.terminated || s.disconnected)
+    }
     pub(super) fn project_binding_event(&mut self, event: RecallEvent) -> Result<(), String> {
         let context = match &event {
             RecallEvent::Retry { context }
@@ -405,6 +452,7 @@ impl GameRuntime {
             .pending
             .get(&key)
             .ok_or("binding event owner missing")?;
+        let closing = self.binding_session_closing(key);
         let mut terminal = false;
         let mut steps = Vec::new();
         let mut started = false;
@@ -413,6 +461,10 @@ impl GameRuntime {
             RecallEvent::Retry { .. } => {
                 if !matches!(p.phase, BindingPhase::Submitted) {
                     return Err("binding retry phase".into());
+                }
+                if closing {
+                    self.recalls.bindings.pending.remove(&key);
+                    return Ok(());
                 }
                 let p = self
                     .recalls
@@ -481,6 +533,10 @@ impl GameRuntime {
                 return Ok(());
             }
             RecallEvent::Rejected { error, .. } => {
+                if *error == RecallError::Stale || closing {
+                    self.recalls.bindings.pending.remove(&key);
+                    return Ok(());
+                }
                 let code = match error {
                     RecallError::NoAllegiance => 0x414,
                     RecallError::Invalid if p.kind == BindingKind::Allegiance => 0x535,
@@ -497,13 +553,14 @@ impl GameRuntime {
             RecallEvent::Cancelled { .. } => terminal = true,
             _ => unreachable!(),
         }
-        if !steps.is_empty() || started {
+        if (!steps.is_empty() || started) && !closing {
             let observer_count = if action_started && p.kind == BindingKind::Allegiance {
                 2
             } else {
                 1
             };
-            if self.network_output.len() >= self.limits.messages
+            if self.visibility.service.pending()
+                || self.network_output.len() >= self.limits.messages
                 || !self.observer_room(observer_count, 16 * 1024)
             {
                 return Err("binding output pressure retained".into());
@@ -611,6 +668,11 @@ impl GameRuntime {
             self.recalls.bindings.pending.remove(&key);
             return Ok(());
         }
+        if self.binding_session_closing(key) {
+            self.recalls.bindings.completions.remove(&operation);
+            self.recalls.bindings.pending.remove(&key);
+            return Ok(());
+        }
         if self.network_output.len() >= self.limits.messages {
             return Ok(());
         }
@@ -704,3 +766,7 @@ fn binding_objects(bytes: usize) -> bace_wire::ObjectCodecLimits {
         max_string_bytes: 4096,
     }
 }
+
+#[cfg(test)]
+#[path = "bindings/tests.rs"]
+mod tests;

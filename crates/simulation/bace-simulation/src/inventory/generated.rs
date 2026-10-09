@@ -207,6 +207,19 @@ impl Inventory {
         Ok(())
     }
     pub(crate) fn generated_tree(&self, root: EntityId) -> Result<Vec<EntityId>, Error> {
+        let ids = self.tree_members(root)?;
+        if ids
+            .iter()
+            .any(|id| !self.transient.contains(id) || self.reserved(*id))
+        {
+            return Err(Error::DurabilityPending);
+        }
+        Ok(ids)
+    }
+    pub(crate) fn tree_members(&self, root: EntityId) -> Result<Vec<EntityId>, Error> {
+        if !self.items.contains_key(&root) {
+            return Err(Error::MissingItem);
+        }
         let mut ids = BTreeSet::from([root]);
         for depth in 0..64 {
             let previous = ids.len();
@@ -226,12 +239,6 @@ impl Inventory {
             if depth == 63 {
                 return Err(Error::InvalidState);
             }
-        }
-        if ids
-            .iter()
-            .any(|id| !self.transient.contains(id) || self.reserved(*id))
-        {
-            return Err(Error::DurabilityPending);
         }
         Ok(ids.into_iter().collect())
     }

@@ -7,6 +7,29 @@ use bace_gameplay_api::{
     GeneratorSpawnMember, GeneratorSpawnReceipt, GeneratorSpawnResult,
 };
 impl Kernel {
+    /// Only an authenticated Move into the actor's inventory can first persist a
+    /// constructed Creature/Cow. The ordinary inventory lane keeps rejecting it.
+    pub fn propose_constructed_acquisition(
+        &mut self,
+        context: bace_gameplay_api::ActionContext,
+        request: bace_gameplay_api::InventoryRequest,
+        authority: bace_inventory::InventoryAuthority,
+    ) -> Result<u64, E> {
+        self.authorize_inventory(context, authority)?;
+        let operation = self.stage_inventory(context.actor, |inventory| {
+            inventory.acquire_constructed(context.actor, request, authority)
+        })?;
+        let transient: std::collections::BTreeSet<_> = self
+            .inventory
+            .generated_changes(operation)?
+            .into_iter()
+            .collect();
+        if let Err(error) = self.preflight_constructed_acquisition(operation, &transient) {
+            self.reject_inventory_inner(operation)?;
+            return Err(error);
+        }
+        Ok(operation)
+    }
     pub fn generated_inventory_items(&self, operation: u64) -> Result<Vec<EntityId>, E> {
         self.inventory.generated_changes(operation)
     }
@@ -203,7 +226,22 @@ impl Kernel {
         receipt: &crate::InventoryReceipt,
         transient: &[EntityId],
     ) -> Result<crate::InventoryTicket, E> {
-        if self.inventory_commands.owns(receipt.operation)
+        self.confirm_generated_inventory_committed_inner(receipt, transient, false)
+    }
+    pub(super) fn confirm_command_constructed_inventory_committed(
+        &mut self,
+        receipt: &crate::InventoryReceipt,
+        transient: &[EntityId],
+    ) -> Result<crate::InventoryTicket, E> {
+        self.confirm_generated_inventory_committed_inner(receipt, transient, true)
+    }
+    fn confirm_generated_inventory_committed_inner(
+        &mut self,
+        receipt: &crate::InventoryReceipt,
+        transient: &[EntityId],
+        command_owner: bool,
+    ) -> Result<crate::InventoryTicket, E> {
+        if self.inventory_commands.owns(receipt.operation) != command_owner
             || self.generated_retirements.contains_key(&receipt.operation)
         {
             return Err(E::DurabilityPending);
@@ -215,6 +253,25 @@ impl Kernel {
         if expected.is_empty() || expected != supplied {
             return Err(E::InvalidState);
         }
+        let constructed = if self
+            .inventory
+            .constructed_acquisition_roots(receipt.operation)
+            .is_some_and(|roots| !roots.is_empty())
+        {
+            self.preflight_constructed_acquisition(
+                receipt.operation,
+                &expected.iter().copied().collect(),
+            )?
+        } else {
+            Vec::new()
+        };
+        if expected
+            .iter()
+            .any(|id| self.inventory.constructed_ancestor(*id))
+            && constructed.is_empty()
+        {
+            return Err(E::InvalidState);
+        }
         let accepted = self.confirm_inventory_committed_inner(receipt)?;
         for id in &expected {
             if self.inventory.owned(accepted.actor, *id) || self.inventory.item(*id).is_none() {
@@ -222,6 +279,7 @@ impl Kernel {
             }
         }
         self.inventory.adopt_generated_durability(&expected);
+        self.adopt_constructed_acquisition(&constructed);
         Ok(accepted)
     }
     pub(super) fn prepare_generated_inventory_transition(

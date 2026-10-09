@@ -27,6 +27,15 @@ impl GameRuntime {
         {
             return Err("staff authenticated binding mismatch".into());
         }
+        // The pinned targetloc handler also accepts an explicit GUID. Until
+        // current-landblock/global lookup has an owner, leave that form outside
+        // the staff capture lane so it cannot pin an unsubmitted request.
+        if let GameplayDispatch::StaffLine { line, .. } = &dispatch
+            && bace_admin::parse_command(line)
+                .is_ok_and(|parsed| parsed.name == "targetloc" && !parsed.arguments.is_empty())
+        {
+            return Ok(SocialIngress::Unsupported);
+        }
         let token = self.token()?;
         let request = match dispatch {
             GameplayDispatch::TargetQuery { kind, target, .. } => StaffRequest::Query(kind, target),

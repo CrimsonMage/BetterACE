@@ -17,6 +17,7 @@ use bace_gameplay_api::{
 use bace_session::{DispatchError, SessionState};
 use bace_simulation::Command;
 use bace_transport::ReceivedMessage;
+use std::collections::BTreeSet;
 use std::sync::mpsc::TrySendError;
 
 #[derive(Clone)]
@@ -333,11 +334,13 @@ impl GameRuntime {
             max_message_bytes: self.limits.message_bytes,
             max_string_bytes: 4096,
         };
+        let awaiting_entry: BTreeSet<_> = self.players.awaiting_entry_actors().collect();
         let players = &mut self.players;
         let network = &self.network;
-        self.social.output.pump(
+        self.social.output.pump_ready(
             &self.simulation,
             self.limits.work_per_poll,
+            |recipient| !awaiting_entry.contains(&recipient),
             |recipient, event| players.project_social(recipient, event, limits),
             |command| {
                 network.try_send(command).map_err(|error| match error {

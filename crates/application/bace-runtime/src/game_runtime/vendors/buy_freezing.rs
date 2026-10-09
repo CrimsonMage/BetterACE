@@ -126,12 +126,17 @@ pub(super) fn freeze(input: BuyFreezeInput<'_>) -> Result<VendorStockOperation, 
             let Some(before) = &change.before else {
                 return Some(total);
             };
-            (before.template == 273
-                && change.after.template == 273
-                && before.id == change.after.id
-                && change.after.stack < before.stack)
-                .then(|| before.stack - change.after.stack)
-                .and_then(|amount| total.checked_add(amount))
+            if before.template != 273
+                || change.after.template != 273
+                || before.id != change.after.id
+                || change.after.stack >= before.stack
+                || change.after.revision != before.revision.checked_add(1)?
+                || (change.after.stack == 0 && change.after.place != ItemPlace::Removed)
+                || (change.after.stack != 0 && change.after.place != before.place)
+            {
+                return None;
+            }
+            total.checked_add(before.stack - change.after.stack)
         });
     if spent != Some(ticket.quote.total_cost) {
         return Err("vendor Buy currency debit mismatch".into());
@@ -406,7 +411,7 @@ fn clone_identity(source: &bace_content::WeenieV1) -> bace_content::WeenieV1 {
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use bace_content::{Position, Property, WeenieV1};
     use bace_inventory::{InventoryItem, InventoryProposal, ItemChange};
@@ -504,7 +509,7 @@ mod tests {
         }
     }
 
-    fn fixture() -> (
+    pub(in crate::game_runtime::vendors) fn fixture() -> (
         VendorBuyReservation,
         PlayerSaveV6,
         Vec<FrozenInventoryItem>,
@@ -573,11 +578,12 @@ mod tests {
             }],
             unique: vec![],
         };
-        let vendor = saved(
-            VENDOR,
-            state(50, 12, &[(77, 0), (79, 0)]),
-            ItemPlacementV2::World(position()),
-        );
+        let mut vendor_state = state(50, 12, &[(74, 1), (75, 0), (76, 1000), (77, 0), (79, 0)]);
+        vendor_state.properties.floats = vec![
+            Property { id: 37, value: 0.5 },
+            Property { id: 38, value: 1.0 },
+        ];
+        let vendor = saved(VENDOR, vendor_state, ItemPlacementV2::World(position()));
         let state = StoredVendorState {
             source: StoredVendorSource {
                 aggregate: StoredAggregate {

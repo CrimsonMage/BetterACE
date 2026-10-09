@@ -12,7 +12,7 @@ mod kernel;
 mod pve;
 mod scenario;
 
-pub use bace_economy::{VendorBuyLine, VendorBuyQuote};
+pub use bace_economy::{VendorBuyLine, VendorBuyQuote, VendorBuyRequest};
 pub use characters::CharacterRegistrationError;
 pub use combat::{CombatEvent, DeathBlow};
 pub use kernel::{Command, Kernel, SimulationError};
@@ -22,7 +22,9 @@ pub use player_death::{
     CorpseConsentError, CorpseConsentOutcome,
 };
 pub use pve::{
-    AppraisalWake, DeathProposal, LootDrop, NpcBlueprint, NpcLootEntry, PveError, PveEvent,
+    AppraisalResponseKind, AppraisalSelectionError, AppraisalSelectionResult,
+    AppraisalSourceTables, AppraisalWake, DeathProposal, LootDrop, NpcBlueprint, NpcLootEntry,
+    PveError, PveEvent, select_appraisal,
 };
 pub use scenario::synthetic_scenario;
 

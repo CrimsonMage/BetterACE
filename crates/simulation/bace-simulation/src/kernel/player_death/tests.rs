@@ -844,6 +844,71 @@ fn empty_corpse_waits_for_exact_tombstone_and_preserves_bonded_possessions() {
 }
 
 #[test]
+fn due_corpse_cannot_reopen_during_pending_or_destroying_expiry() {
+    let mut k = fixture();
+    let mut prepared = prepare(&mut k);
+    prepared.possessions[0].bonded = 1;
+    k.prepare_player_death(prepared).map_err(|e| e.0).unwrap();
+    let death = k.take_player_death_proposal().unwrap();
+    let committed = crate::PlayerDeathReceipt {
+        operation: death.operation,
+        actor: ACTOR,
+        after_revision: death.after_revision,
+        inventory: crate::InventoryReceipt {
+            operation: death.inventory.operation,
+            revisions: death
+                .inventory
+                .proposal
+                .changes
+                .iter()
+                .map(|change| (change.after.id, change.after.revision))
+                .collect(),
+        },
+    };
+    k.confirm_player_death_committed_at(&committed, 40).unwrap();
+    for _ in 0..50 {
+        k.step().unwrap();
+        drain(&mut k);
+    }
+    let expiry = k.take_corpse_expiry_proposal().unwrap();
+    let profile = k
+        .player_deaths
+        .corpse_access
+        .get(&death.corpse)
+        .unwrap()
+        .profile
+        .clone();
+    assert_eq!(
+        k.inspect_corpse_access(death.corpse, ACTOR, false, false),
+        Err(crate::CorpseAccessError::Stale)
+    );
+    let receipt = crate::InventoryReceipt {
+        operation: expiry.inventory.operation,
+        revisions: expiry
+            .inventory
+            .proposal
+            .changes
+            .iter()
+            .map(|change| (change.after.id, change.after.revision))
+            .collect(),
+    };
+    k.confirm_corpse_expiry_committed(&receipt).unwrap();
+    assert_eq!(
+        k.take_corpse_expiry_event().unwrap().phase,
+        crate::CorpseExpiryPhase::Destroying
+    );
+    assert!(k.world.corpse(death.corpse).is_some());
+    assert_eq!(
+        k.inspect_corpse_access(death.corpse, ACTOR, false, false),
+        Err(crate::CorpseAccessError::Missing)
+    );
+    assert_eq!(
+        k.register_corpse_access(death.corpse, death.operation, profile),
+        Err(crate::CorpseAccessError::Stale)
+    );
+}
+
+#[test]
 fn trusted_death_rejection_returns_exact_corpse_and_retries_after_output_pressure() {
     let mut k = fixture();
     let mut prepared = prepare(&mut k);

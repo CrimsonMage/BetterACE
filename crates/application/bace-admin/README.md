@@ -80,7 +80,10 @@ compatible candidates are labelled separately in live command help. In particula
 the selected-target `@targetloc` route. Its simulation owner emits the three
 private Broadcast lines in pinned `DeveloperCommands.HandleMyLoc`; parser and
 owner tests cover the distinction. This does not qualify `@targetloc`'s full
-source presentation.
+source presentation. Selected `@targetloc` now emits the four pinned source
+lines from accepted world pose. Its optional explicit-GUID form remains
+unsupported until current-landblock and global-object resolution are owned;
+it does not silently inspect the selected object.
 
 `@whoami` parses to a separate Developer self-identity inspection. It requires
 an entered world binding and retains the pinned `ObjectGuid.ToString()` X8

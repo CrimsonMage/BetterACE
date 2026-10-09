@@ -21,10 +21,19 @@ impl Kernel {
         command: C,
     ) -> AttributeTransferOutcome {
         let context = match &command {
-            C::RequestPrepared { context, .. } | C::Confirm { context, .. } => Some(*context),
+            C::RequestInactive { context, .. }
+            | C::RequestPrepared { context, .. }
+            | C::Confirm { context, .. } => Some(*context),
             C::Commit { .. } | C::Rollback { .. } => None,
         };
         let result = match command {
+            C::RequestInactive {
+                context,
+                item,
+                revision,
+            } => self
+                .request_inactive_attribute_transfer(context, item, revision)
+                .map(|()| R::Inactive),
             C::RequestPrepared {
                 context,
                 item,
@@ -57,6 +66,30 @@ impl Kernel {
 
     pub fn take_attribute_transfer_outcome(&mut self) -> Option<AttributeTransferOutcome> {
         self.attribute_transfer_outcomes.pop_front()
+    }
+
+    /// Pinned WorldObject_Use.OnActivate returns for Int119 Active=0 before
+    /// requirements or ActOnUse; the outer player action still sends UseDone.
+    fn request_inactive_attribute_transfer(
+        &mut self,
+        context: bace_gameplay_api::ActionContext,
+        item: EntityId,
+        revision: u64,
+    ) -> Result<(), E> {
+        self.characters
+            .authorize(context, self.world.body(context.actor).is_ok())
+            .map_err(|_| E::Ownership)?;
+        if !self.inventory.owned(context.actor, item) {
+            return Err(E::Ownership);
+        }
+        if self
+            .inventory
+            .item(item)
+            .is_none_or(|current| current.revision != revision)
+        {
+            return Err(E::Stale);
+        }
+        Ok(())
     }
 
     #[expect(

@@ -507,3 +507,80 @@ fn cow_uses_the_same_constructed_creature_lifecycle() {
     k.step_generated_enchantments(k.tick + 3).unwrap();
     assert_eq!(k.magic.registry(actor).unwrap().entries().len(), 1);
 }
+
+#[test]
+fn constructed_acquisition_receipt_detaches_region_owner_without_losing_children() {
+    let (mut kernel, key, prepared) = prepared();
+    let actor = prepared.root.id;
+    let children: Vec<_> = prepared.loadout.items.iter().map(|item| item.id).collect();
+    let landblock = kernel.generators.requests[&key].landblock;
+    kernel.admit_contained_creature(key, prepared).unwrap();
+    let player_id = EntityId(2);
+    let mut player = container(player_id);
+    player.root_owner = Some(player_id);
+    kernel.register_inventory_container(player).unwrap();
+    let authority = bace_inventory::InventoryAuthority {
+        actor: player_id,
+        busy: false,
+        in_range: true,
+        clear_path: true,
+        geometry_ready: true,
+        drop_validated: false,
+        source_view: Some(1),
+        destination_view: None,
+        new_item: None,
+    };
+    let request = bace_gameplay_api::InventoryRequest::Move {
+        item: actor,
+        container: player_id,
+        placement: 0,
+    };
+    assert_eq!(
+        kernel.inventory.apply(request, authority),
+        Err(bace_gameplay_api::InventoryRejection::InvalidState)
+    );
+    let operation = kernel
+        .inventory
+        .acquire_constructed(player_id, request, authority)
+        .unwrap();
+    kernel.reserve_inventory_registries(operation, &[]).unwrap();
+    let ticket = kernel.inventory.take_proposal().unwrap();
+    assert_eq!(ticket.proposal.changes.len(), children.len() + 1);
+    let transient = kernel.generated_inventory_items(operation).unwrap();
+    let receipt = crate::InventoryReceipt {
+        operation,
+        revisions: ticket
+            .proposal
+            .changes
+            .iter()
+            .map(|change| (change.after.id, change.after.revision))
+            .collect(),
+    };
+    let mut incomplete = receipt.clone();
+    incomplete.revisions.pop();
+    assert!(
+        kernel
+            .confirm_generated_inventory_committed(&incomplete, &transient)
+            .is_err()
+    );
+    assert!(kernel.constructed_creatures.transient_in_region(landblock));
+    assert_eq!(
+        kernel.preflight_restored_constructed_unload(landblock, &Default::default()),
+        Err(G::Busy)
+    );
+    kernel
+        .confirm_generated_inventory_committed(&receipt, &transient)
+        .unwrap();
+    assert!(kernel.has_constructed_creature(actor));
+    assert!(!kernel.constructed_creatures.transient_in_region(landblock));
+    assert!(kernel.inventory.owned(player_id, actor));
+    for child in children {
+        assert!(kernel.inventory.owned(player_id, child));
+    }
+    assert_eq!(
+        kernel.preflight_restored_constructed_unload(landblock, &Default::default()),
+        Ok(())
+    );
+    kernel.retire_restored_constructed_region(landblock);
+    assert!(kernel.has_constructed_creature(actor));
+}

@@ -402,6 +402,21 @@ simulation, runtime and real PostgreSQL tests pass. A DAT-backed composed
 bind/admission/cold-reload test remains outstanding, as do specialized
 subclasses, nested generators and equipped Creature children. No creature is
 restored as a generic item.
+The constructed acquisition owner now reserves a whole transient nested
+Creature/Cow subtree only for authenticated live Move after the existing
+world approach, motion, range and current open-container generation checks.
+The exact constructed promotion receipt marks its simulation owners durable
+and excludes them from the old region's unload retirement; ordinary inventory
+proposals still reject those roots. Focused graph, callback-view and receipt
+tests pass. The approved real-DAT fixture qualifies creature motion, health
+and body-part preparation, but does not exercise the composed bind/admit/save/
+player cold-login transaction. Player logout and cold-login reconstruction of
+acquired constructed owners remain held.
+
+Committed split-to-wield output now selects the fresh equipped ID from the
+exact proposal and verifies both source and created rows before private
+publication and observer visibility. Two focused runtime output tests pass;
+stock-client equipment playback remains deferred.
 
 The generator stash review found no missing generator implementation to restore:
 stash `500c62799cde7f6bf6efbdbf9f181b7ad3f7e48a` contains 34 relevant files,
@@ -439,6 +454,15 @@ and its continuation together, preserving earlier stages after later failure.
 Workflow-only queued-XP admission changes no player snapshot. These tested adapters
 still need the production save/lifecycle/service loop; they are not an assertion
 that routine online saving or every offline continuation is fully composed.
+The composed synthetic entry exposed two lifecycle ordering faults. Admission-time
+friend events now wait for the exact entered receipt without consuming the event
+or its output counters. Geometry-settled player spawn poses acquire a dirty
+character revision before entry freeze, so the accepted changed pose can enter
+the routine save owner. Failed NPC placement removes only the rejected roots'
+prepared publications; successful roots keep their later Spawned handoff. The
+world adapter leaves an idle, quiesced owner out of the shutdown worker queue
+and counts an outstanding world operation during drain. The approved-DAT
+creation, login, reliable UDP entry and graceful shutdown fixture passes.
 
 Recall/portal integration checkpoint (2026-10-08): command recalls have bounded
 cold preparation, destination geometry requests, source-timed authored motion and
@@ -485,7 +509,23 @@ Client testing remains deliberately deferred by the project owner.
 Newer live-tree work has since connected authenticated binding-object Use through
 range, source motion/sound/message, and durable sanctuary/stamina completion;
 generator-created creature V4 restoration now retains creature identity and
-pre-spawn occupancy. Inventory has a fresh split-to-wield proposal and receipt-
+pre-spawn occupancy. New backend binding tests cover authenticated/stale Use,
+authoritative range, authored stance/action cancellation, copied stationary
+stone pose, source sound/chat/stamina output and exact lifestone/allegiance
+durable receipts. Stale or disconnected packetless cancellation now releases
+the binding output owner without private capacity; a rejected simulation auth
+handoff no longer leaves Submitted pending. The full entered-world DAT transcript
+remains unqualified. A private test-only pack delta supplies the missing authored
+treasure key 52:1. With accepted placement failures removing only their exact
+prepared NPC publication roots, the approved-DAT synthetic fixture now reaches
+the entered owner, delivers reliable UDP entry output and drains through graceful
+shutdown. It does not yet exercise an authenticated stone Use. The accepted
+content generations remain unchanged. An ignored approved-DAT probe finds a
+registered authored lifestone in the entered region. Its separate accepted
+cell cannot yet be reached by the test's authoritative ServerTeleport; the
+simulation reports a rejected command count without a per-command reason, so
+the joined near-stone Use and durable output remain unqualified.
+Inventory has a fresh split-to-wield proposal and receipt-
 gated combat equipment modes. Portal output covers additional blocked, aborted,
 linked, summoned and completion paths. The summoned visual now uses ACE's
 `portalgateway` template 1955; the linked original portal remains the
@@ -613,6 +653,27 @@ as a canonical private PropertyInt 5 after the durable receipt; absent recipient
 or output capacity retains completion. The deliberate source discrepancy and
 positive/negative regression evidence are recorded in `docs/divergences.toml`.
 Other equipped NoCorpse cases and ordinary world-container Open remain separate obligations.
+The corpse access owner now rejects a new Open once the exact due-expiry
+ticket is reserved or the corpse enters Destroying; an attached viewer may
+still Close. A focused owner test covers both phases and cold re-registration.
+This is an intentional transaction-race correction to ACE's Container.IsOpen
+decay deferral, recorded in `docs/divergences.toml`.
+Retained `DeathDelivery` protection expiry and dispel events now carry the
+entered session binding frozen by the simulation. The runtime emits the pinned
+Magic-channel queue-9 system chat, keeps the event under queue pressure or a
+same-generation disconnect, and discards it only after detach or when no
+entered recipient existed. Source-layout and generation-policy tests pass;
+missing Prepare blow metadata remains a retained obligation.
+The restored PK status values 4 and 64 now also leave `DeathDelivery` through
+the pinned public PropertyInt 134 update followed by the private WeenieError
+0x04F1/0x0508. The adapter preflights copied actor/event counters, observer
+fanout and private capacity before admitting either packet. Focused source
+layout, generation and low-capacity regressions pass. Unsupported status
+values and missing Prepare blow metadata stay retained.
+The fellowship owner now emits the pinned ShareLoot disband Broadcast notice
+for each member after departure, with the whole batch preflighted before
+group removal. A focused source-order owner test passes; other loot permission
+notices and reward origins remain open.
 Shop stock now has a frozen V1 unplaced marker and a relational vendor mapping.
 Its world-epoch/vendor-version fenced PostgreSQL operation commits the marker
 and item forest together, rejects missing descendants without a journal
@@ -643,27 +704,36 @@ retains an authenticated default Buy reservation with source, stock and marker
 fences, one claimed inventory proposal, exact joint receipt admission and
 definite-rejection release. Generic inventory retry/reject/confirm cannot bypass
 the pending Buy. Focused inventory 5/5 and simulation 3/3 tests plus strict
-Clippy pass. This remains a prerequisite: live Buy still needs joined player
-CoinValue/vendor counter and item save, exact durable submission and retained
-receipt/output. A real PostgreSQL composite Buy regression exercises one
+Clippy pass. This owner route precedes the composed live Buy adapter. A real PostgreSQL composite Buy regression exercises one
 operation across vendor counters, player V6 currency/burden, coin V5 debit,
 fresh V5 grant and marker CAS, including rollback, replay and atomic cold read.
 The simulation command boundary now carries bounded default Buy Reserve,
 Reject and exact Confirm actions through its worker decision channel. The
 reservation stays held on a stale receipt and releases only on its matching
 joint receipt or definite rejection; six focused command/owner tests and
-strict targeted Clippy pass. Live Buy ingress remains closed: the joined
-player snapshot/critical lease, uncertain save retry, online baseline and
-reliable source output are not connected.
+strict targeted Clippy pass. Live Buy ingress remains closed pending the
+joined runtime regression described below.
 The continuation branch adds a character revision hold to the Buy reservation,
 an exact player/vendor/marker/coin/grant freezer, and a bounded critical
 `SaveHandle` lane for vendor stock operations. A full lane retains the exact
 operation; malformed markers fail before admission. The canonical inventory
 sequencer now supports a private ApproachVendor listing between the pickup
 sound and UseDone with one shared session event sequence. Focused simulation,
-freezer, save-lane and replication tests pass. These are prerequisites only:
-fresh grant asset preparation, joined capture and submission, durable baseline
-adoption, and one retained committed output batch still gate live Buy.
+freezer, save-lane and replication tests pass. The retained adapter described
+below now composes these pieces behind a closed ingress gate.
+The retained default Buy adapter now prepares source-cloned fresh V5 leaves and
+appearance from the accepted vendor forest, then owns reservation, critical
+player snapshot, exact freezer, bounded save/replay, confirmation and a
+source-ordered private batch. Focused source/output and queue pressure plus
+disconnect tests pass; the real PostgreSQL composite operation passes commit,
+rollback and replay. Authenticated Buy ingress is still Unsupported because a
+joined ingress-to-reservation-to-save-to-publication/baseline regression has
+not passed. A private immutable test delta supplies the missing authored treasure
+key 52:1 without changing accepted content. The newer local candidate then passes
+startup, authentication, character creation, entered-world reliable output and
+graceful shutdown. A joined Shop/Pyreal Buy test still requires seeded vendor
+and player currency, then must prove the complete durable publication and
+baseline handoff before ingress opens. Sell remains unsupported.
 The Pet output owner now clears a disconnected, definitively rejected summon
 only when its pending Saving phase, actor, device and rejected completion match;
 a mismatched result remains retained. Its focused backend test and strict
@@ -688,6 +758,11 @@ response flags remain held across skill and attribute devices. Pinned Int119
 Active=0 on an authenticated skill-device Use now checks the accepted item
 revision, skips cooldown and all activation effects, and emits only UseDone;
 focused simulation/runtime tests and strict all-target Clippy pass.
+The same pinned Active=0 rule now reaches authenticated
+AttributeTransferDevice Use. Simulation checks the accepted item revision and
+runtime emits only UseDone; stale or replayed input returns cannot-use without
+a quote or consumption. Focused simulation (2/2) and runtime (5/5) tests plus
+strict target Clippy pass. Active generic effects remain held.
 Sentinel `@boot` now has typed source selector parsing, online character/account/
 IID resolution, source private result, final AccountBoot packet and session
 termination, plus retained external Audit feed publication. Focused parser,
@@ -704,6 +779,12 @@ uses the authenticated inspection route to read accepted world cell, position
 and yaw, then emits the pinned one-line private Broadcast. Parser, simulation
 owner and runtime dispatch tests plus strict targeted Clippy pass; arbitrary
 quaternion/locale presentation and stock-client playback remain unqualified.
+Selected-target Developer `@targetloc` now emits the pinned four Broadcast
+lines (CurrentLandblock, LOC, Physics, CurCell) from accepted world pose. Its
+explicit-GUID form remains unsupported until current-landblock and global
+object resolution are connected; it no longer silently substitutes the last
+appraised selection. The yaw-only pose and absent client playback still limit
+the compatibility claim.
 The broader catalog still has
 unimplemented compatible families. Pinned `@show-allegiances` is held because
 its console-only full-chain output needs a complete allegiance-registry snapshot and host-console
@@ -744,6 +825,14 @@ tests pass. Live Identify ingress remains unsupported because source-filtered
 AppraiseInfo, friendly alerts, authored emote completion and reliable output
 retention are not yet one complete action; codecs and a wake owner alone do
 not establish live appraisal parity.
-The continuation tree's full workspace QA passed after these changes. Approved
+The appraisal foundation now also has the pinned 176 numeric assessment-property
+IDs across six source families and an explicit owner cache decision for missing,
+cleared, repeated success and the five-second failed-attempt boundary. It takes
+the roll and time as inputs; the focused source extraction and cache tests pass.
+Effective AssessCreature/Deception and modified profiles, FindObject membership,
+friendly alerts, authored emote completion and reliable publication still gate
+live Identify.
+The prior `a10d3f4` continuation checkpoint passed full workspace QA. The
+current changes require fresh workspace validation. Approved
 DAT-backed nested source admission/cold reload and stock-client transcripts
 remain separate acceptance work; no game client was used.

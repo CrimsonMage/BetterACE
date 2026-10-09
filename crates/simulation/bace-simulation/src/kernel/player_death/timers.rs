@@ -28,6 +28,7 @@ impl Kernel {
         {
             return Err(E::Busy);
         }
+        let recipient = self.characters.entered_binding(actor);
         self.characters
             .touch_auxiliary(actor)
             .map_err(|_| E::Invalid)?;
@@ -39,7 +40,7 @@ impl Kernel {
         self.synchronize_death_projection(actor);
         self.player_deaths
             .events
-            .push_back(PlayerDeathEvent::ProtectionDispelled { actor });
+            .push_back(PlayerDeathEvent::ProtectionDispelled { actor, recipient });
         Ok(())
     }
     pub(super) fn step_player_death_timers(&mut self, now: u64) -> Result<(), SimulationError> {
@@ -104,7 +105,10 @@ impl Kernel {
                 if before.protection_elapsed.is_some() && state.protection_elapsed.is_none() {
                     self.player_deaths
                         .events
-                        .push_back(PlayerDeathEvent::ProtectionExpired { actor });
+                        .push_back(PlayerDeathEvent::ProtectionExpired {
+                            actor,
+                            recipient: self.characters.entered_binding(actor),
+                        });
                 }
                 if before.pk_status != state.pk_status {
                     self.player_deaths
@@ -112,6 +116,7 @@ impl Kernel {
                         .push_back(PlayerDeathEvent::PkStatus {
                             actor,
                             status: state.pk_status,
+                            recipient: self.characters.entered_binding(actor),
                         });
                 }
                 self.player_deaths.states.insert(actor, state);

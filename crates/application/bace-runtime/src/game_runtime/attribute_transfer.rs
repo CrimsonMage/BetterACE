@@ -34,6 +34,7 @@ enum Phase {
     Proposed,
     Saving,
     Finished(SkillCompletion),
+    Inactive,
     Rejected(bace_simulation::AttributeTransferDeviceError),
     Cancelled,
 }
@@ -152,6 +153,11 @@ impl AttributeTransferRuntime {
                 pending.phase = Phase::Proposed;
             }
             Ok(AttributeTransferResult::Proposed(None)) => pending.phase = Phase::Cancelled,
+            Ok(AttributeTransferResult::Inactive)
+                if pending.use_action && pending.quote.is_none() =>
+            {
+                pending.phase = Phase::Inactive;
+            }
             Err(bace_simulation::AttributeTransferDeviceError::Busy)
                 if pending.request_retry.is_some() =>
             {
@@ -244,7 +250,10 @@ impl GameRuntime {
                 else {
                     return Ok(I::Unsupported);
                 };
-                if preparation::device(&saved.entity.state)?.is_none() {
+                let inactive = preparation::inactive(&saved.entity.state);
+                if !inactive && preparation::device(&saved.entity.state)?.is_none()
+                    || inactive && saved.entity.state.weenie_type != 63
+                {
                     return Ok(I::Unsupported);
                 }
                 if self.attribute_transfers.has_pending() {
@@ -446,6 +455,22 @@ impl GameRuntime {
             .iter()
             .find(|row| row.entity.object_id == pending.item.0)
             .ok_or("attribute device not in accepted inventory")?;
+        if preparation::inactive(&row.entity.state) {
+            if row.entity.state.weenie_type != 63 {
+                return Err("inactive attribute device subtype changed".into());
+            }
+            let pending = self
+                .attribute_transfers
+                .pending
+                .as_mut()
+                .expect("captured owner");
+            pending.phase = Phase::Ready(Some(AttributeTransferCommand::RequestInactive {
+                context: pending.context,
+                item: pending.item,
+                revision: row.entity.mutation_revision,
+            }));
+            return Ok(());
+        }
         let device = preparation::device(&row.entity.state)?
             .ok_or("accepted item no longer an attribute transfer device")?;
         let activation =

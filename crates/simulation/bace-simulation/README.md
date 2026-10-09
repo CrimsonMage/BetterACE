@@ -8,7 +8,9 @@ The character proposal and one-item inventory take remain reserved until the
 same durable operation's exact receipt is submitted. A forged or premature
 receipt cannot release either owner. `tests/attribute_transfer.rs` exercises the
 bounded owner and combined receipt; it is a synthetic owner test, not a client
-playback claim. Generic activation effects beyond plain requirements remain held.
+playback claim. Int119 Active=0 returns before requirements or consumption after
+the authenticated accepted item-revision check; stale/replayed Use is rejected.
+Generic activation effects beyond plain requirements remain held.
 
 Status: foundation.
 
@@ -304,6 +306,11 @@ one-hour expiry and the 20-person list bound documented in pinned ACE; grants re
 offline display/removal and are discarded on recipient logout. Corpse Inspect
 derives the permit from that owner at an explicit adapter-supplied wall time;
 only a committed Open consumes it and records the durable one-corpse permittee.
+New Open is rejected once the exact expiry ticket is reserved or Destroying
+begins; an attached viewer may still Close. Protection expiry/dispel and PK
+respite events freeze the current entered binding before runtime publication,
+so a later login generation cannot receive the old death notice. Only source
+restored PK status values 4/64 currently have canonical delivery.
 
 Command recalls read current housing/allegiance permissions, prepare destination
 geometry before debiting mana, and recheck source movement/permissions at completion.
@@ -400,7 +407,10 @@ The owner reads accepted world cell, origin, and yaw and emits the source
 landblock, LOC, and physics lines in order. The live world stores yaw rather
 than an arbitrary full quaternion, so this is an authoritative yaw projection,
 not a claim of universal source position formatting. `@targetloc` remains a
-separate selected-target route.
+separate selected-target route. Its selected form emits pinned
+`HandleTargetLoc`'s four lines from accepted world pose, with the same yaw-only
+qualification. Explicit-GUID and unloaded/global object resolution remain
+unsupported.
 
 Native cold casting programs are admitted per actor with an exact live binding
 and captured character revision. Shared effect/flag/target metadata must agree
@@ -464,8 +474,14 @@ creature-valued Contain trees retain each creature as a distinct cold simulation
 owner with its exact equipment order, enchantments and death roster. Promotion
 still waits if source slot compaction needs a separate companion. Generator teardown
 removes the retained construction; a detach-only unload stays visibly blocked
-instead of serializing an incomplete generic item. Specialized Creature subtypes,
-Shop commerce, nested generators and DAT-backed composed recursive admission
+instead of serializing an incomplete generic item.
+
+Promotion through authenticated live Move now waits for accepted approach/motion/range,
+rechecks the current open source-container generation, reserves the complete
+transient subtree and adopts only the exact committed graph receipt. Generic
+inventory proposals still reject constructed roots. Acquired player-owned
+constructed roots lack a completed logout/cold-login owner handoff. Specialized
+Creature subtypes, Shop commerce, nested generators and DAT-backed composed recursive admission
 remain unsupported or unqualified as documented in the runtime README.
 Multiple mixed Creature/Cow and item Contain roots now preflight and adopt one
 complete forest with one source-ordered receipt; rejected roots leave the whole
