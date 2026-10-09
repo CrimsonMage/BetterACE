@@ -15,7 +15,8 @@ use crate::characters::Characters;
 use crate::combat::{Combat, CombatEvent};
 pub use ace::AceCreatureLootPolicy;
 pub use appraisal::{
-    AppraisalResponseKind, AppraisalSelectionError, AppraisalSelectionResult, AppraisalWake,
+    AppraisalCreatureKind, AppraisalResponseKind, AppraisalRoll, AppraisalSelectionError,
+    AppraisalSelectionResult, AppraisalTargetCheck, AppraisalWake, evaluate_appraisal_roll,
     select_appraisal,
 };
 pub use appraisal_profile::AppraisalSourceTables;

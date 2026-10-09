@@ -300,6 +300,12 @@ Olthoi's separate death selection leaves player possessions in place and admits
 generated container descendants with source parent and final slot order in the
 same inventory proposal. The corpse's direct-child roster contains roots only;
 descendants remain owned by those roots through expiry and spill.
+Bool29 NoCorpse uses a separate player checkpoint and world-drop transaction.
+Its freshly generated treasure must form a bounded source-ordered forest rooted
+in the copied world drops. Admission rejects actor-contained, orphaned,
+cyclic/out-of-order and unrooted fresh rows before the exact inventory hold;
+the connected owner test follows a valid generated container and child through
+receipt and WorldDrops adoption. Multiple selected equipped output remains open.
 Corpse consent grants belong to the online recipient's transient simulation
 state. Authenticated add/revoke/list/clear/remove commands use the source
 one-hour expiry and the 20-person list bound documented in pinned ACE; grants retain the granter's name for
@@ -511,6 +517,14 @@ order and the examiner target across the next AI scan. Focused owner tests
 cover tolerance exclusion, single wake and target retention. Live Identify
 remains unsupported until its filtered profile, friendly alerts, authored
 emotes and reliable publication form one retained action.
+The prepared appraisal evaluator now follows pinned `Player.Examine` and
+`SkillCheck.GetSkillChance` for AssessCreature/AssessPerson versus Deception,
+including the modified untrained creature skill, one draw, resistance and final
+Pet/CombatPet override. `oracle/appraisal_roll.py` checks exact pinned source
+hashes and operation order and emits 16 source-derived fixed vectors; set
+`BACE_ACE_SOURCE` when the pinned ACE checkout is not beside BetterACE. No C#
+runtime was executed. This evaluator is not wired to Identify ingress while
+accepted profile inputs and the full output obligations remain incomplete.
 
 Creature-origin mana is charged once before its first motion when AIUsesMana
 permits it; otherwise neither phase charges. The pinned GDLE

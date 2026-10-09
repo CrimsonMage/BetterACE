@@ -121,7 +121,8 @@ impl Kernel {
             return Err(E::Stale);
         }
         let root_ids: Vec<_> = p.world_roots.iter().map(|root| root.id).collect();
-        let mut unique: BTreeSet<_> = root_ids.iter().copied().collect();
+        let root_set: BTreeSet<_> = root_ids.iter().copied().collect();
+        let mut unique = root_set.clone();
         if root_ids.len() != unique.len()
             || p.existing.iter().any(|id| !unique.contains(id))
             || p.existing.iter().copied().collect::<BTreeSet<_>>().len() != p.existing.len()
@@ -216,6 +217,11 @@ impl Kernel {
         {
             return Err(E::Invalid);
         }
+        // Every freshly generated item must be in a topological tree rooted
+        // at one of the copied world drops. Otherwise an orphan could be
+        // minted directly into the dead player's inventory by this receipt.
+        let mut fresh_containers = BTreeSet::new();
+        let mut selected_roots: BTreeSet<_> = p.existing.iter().copied().collect();
         for item in &p.fresh_items {
             if !unique.insert(item.id) && !root_ids.contains(&item.id)
                 || item.revision != 0
@@ -224,17 +230,28 @@ impl Kernel {
             {
                 return Err(E::Invalid);
             }
+            match item.place {
+                ItemPlace::World => {
+                    if !selected_roots.insert(item.id) || !root_ids.contains(&item.id) {
+                        return Err(E::Invalid);
+                    }
+                }
+                ItemPlace::Contained {
+                    container,
+                    equipped: 0,
+                    ..
+                } if fresh_containers.contains(&container) => {}
+                _ => return Err(E::Invalid),
+            }
+            if item.is_container {
+                fresh_containers.insert(item.id);
+            }
             changes.push(ItemChange {
                 before: None,
                 after: item.clone(),
             });
         }
-        if root_ids.iter().any(|id| {
-            !p.existing.contains(id) && !fresh_ids.contains(id)
-                || p.fresh_items
-                    .iter()
-                    .any(|item| item.id == *id && item.place != ItemPlace::World)
-        }) {
+        if selected_roots != root_set {
             return Err(E::Invalid);
         }
         let mut containers: Vec<_> = self.inventory.containers().copied().collect();

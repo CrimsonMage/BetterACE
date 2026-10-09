@@ -623,8 +623,15 @@ frozen by preserved DestinationType, then a PlayerSaveV6 checkpoint and
 ItemSaveV5 world placements commit under one operation before world-root
 adoption. The zero-drop case still commits the player checkpoint; an owner
 test covers stale pose rejection, exact replay and delayed respawn; the real
-PostgreSQL zero-drop checkpoint replay test also passes. A direct, noncontainer
-selected pack root now completes only after exact V5 origin, revision and
+PostgreSQL zero-drop checkpoint replay test also passes. Fresh NoCorpse items
+now must form a bounded source-ordered forest rooted
+exactly in the copied world drops. Simulation rejects actor-contained,
+missing-parent, cyclic/out-of-order and unrooted fresh items before reserving
+the inventory operation. A connected test accepts a generated container and
+nested child through the exact receipt and `WorldDrops` adoption; all 30
+focused player-death unit tests pass in an isolated worktree. This does not
+complete multiple equipped-root output.
+The direct, noncontainer selected pack root now completes only after exact V5 origin, revision and
 world-placement checks; source emits no private dequip packet for that branch,
 and WorldDrops owns its CreateObject visibility. A single eligible equipped
 NoCorpse root now preflights the observer projection, confirms exact V5 origin,
@@ -731,6 +738,12 @@ open and releases it after the viewer handoff. The test seeds the accepted V5
 corpse source and does not join physical Use, simulation Inspect/Adopt, logout
 or peer delivery. The full live Close transcript
 remains open.
+An appearance-worker DAT failure during corpse Open now retains the exact
+pending Inspect/Save/Cache/Adopt/Present phase and reports degraded progress
+instead of losing the request. Exact viewer logout cancels only private DAT
+presentation and resumes durable work before cleanup; a focused failure and
+detach regression passes. Physical Use through adopted Open/Close and peer
+delivery still need one entered-world transcript.
 Retained `DeathDelivery` protection expiry and dispel events now carry the
 entered session binding frozen by the simulation. The runtime emits the pinned
 Magic-channel queue-9 system chat, keeps the event under queue pressure or a
@@ -940,14 +953,25 @@ The appraisal foundation now also has the pinned 176 numeric assessment-property
 IDs across six source families and an explicit owner cache decision for missing,
 cleared, repeated success and the five-second failed-attempt boundary. It takes
 the roll and time as inputs; the focused source extraction and cache tests pass.
-Effective AssessCreature/Deception and modified profiles, FindObject membership,
+Connected effective AssessCreature/Deception and modified profiles, FindObject membership,
 friendly alerts, authored emote completion and reliable publication still gate
 live Identify.
-The current live-tree checkpoint passed `cargo fmt --all -- --check`, strict
-workspace all-target Clippy, `cargo test --workspace` (including PostgreSQL
-and per-character imbue statistics), `cargo xtask check` (52 crates, 2,012 Rust
-files; largest 1,439 lines), TOML parse and diff checks. Ignored approved-DAT
-synthetic authenticated lifestone Use, Shop fail-closed Use and staff command
-response tests also passed separately. Approved DAT-backed nested source
+The prepared appraisal roll now follows pinned `Player.Examine` and
+`SkillCheck.GetSkillChance` for AssessCreature/AssessPerson versus Deception,
+untrained creature Focus/Self modification, one source draw, resist and final
+Pet/CombatPet override. An oracle checks exact pinned source hashes and method
+order and emits 16 fixed source-derived vectors; it did not execute C#.
+The focused evaluator test and strict simulation Clippy pass. Authoritative
+profile collection, FindObject, friendly alerts, emotes and reliable response
+retention still gate live Identify ingress.
+The isolated implementation checkpoint passed
+`cargo fmt --all -- --check`, strict workspace all-target Clippy,
+`cargo test --workspace` (498 suites, 1,908 passed, 61 ignored, including
+PostgreSQL and per-character imbue statistics), `cargo xtask check` (52 crates,
+2,013 Rust files; largest 1,439 lines), TOML parse and diff checks. Ignored
+approved-DAT synthetic authenticated lifestone Use, relocated bindstone Use
+and nearby Shop tests passed separately at the preceding checkpoint.
+Concurrent unstaged creation, generator, geometry and lifecycle work is not
+part of this frozen validation. Approved DAT-backed nested source
 admission/cold reload and stock-client transcripts remain separate acceptance
 work; no game client was used.

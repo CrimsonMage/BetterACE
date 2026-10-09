@@ -22,9 +22,10 @@ pub use player_death::{
     CorpseConsentError, CorpseConsentOutcome,
 };
 pub use pve::{
-    AppraisalResponseKind, AppraisalSelectionError, AppraisalSelectionResult,
-    AppraisalSourceTables, AppraisalWake, DeathProposal, LootDrop, NpcBlueprint, NpcLootEntry,
-    PveError, PveEvent, select_appraisal,
+    AppraisalCreatureKind, AppraisalResponseKind, AppraisalRoll, AppraisalSelectionError,
+    AppraisalSelectionResult, AppraisalSourceTables, AppraisalTargetCheck, AppraisalWake,
+    DeathProposal, LootDrop, NpcBlueprint, NpcLootEntry, PveError, PveEvent,
+    evaluate_appraisal_roll, select_appraisal,
 };
 pub use scenario::synthetic_scenario;
 
