@@ -374,3 +374,321 @@ async fn confirmed_shop_use_waits_for_private_reliable_admission() {
     assert!(runtime.vendors.completion.is_none());
     assert!(runtime.vendors.publication.is_none());
 }
+
+#[test]
+#[ignore = "requires approved DATs and accepted full native pack"]
+fn approved_academy_shop_and_shoushi_location_are_source_backed() {
+    use bace_content::WorldRecordV1;
+    use bace_storage_codec::{PackKey, PackLookup};
+    let dat = std::path::PathBuf::from(
+        std::env::var_os("BACE_DAT_DIRECTORY").expect("approved DAT directory"),
+    )
+    .join("client_portal.dat");
+    assert_eq!(
+        bace_dat::fingerprint(&dat).unwrap(),
+        "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4"
+    );
+    let mut archive = bace_dat::DatArchive::open(dat).unwrap();
+    let chargen =
+        bace_dat::CharGen::decode(&archive.read(bace_dat::CharGen::RECORD_ID).unwrap()).unwrap();
+    let (index, shoushi) = chargen
+        .starter_areas
+        .iter()
+        .enumerate()
+        .find(|(_, area)| area.name == "Shoushi")
+        .unwrap();
+    let start = shoushi.locations.first().unwrap();
+    let path = std::path::PathBuf::from(
+        std::env::var_os("BACE_WORLD_MANIFEST").expect("accepted native pack"),
+    );
+    let manifest = bace_storage_codec::load_manifest(&path, Default::default()).unwrap();
+    let generation = manifest
+        .open(path.parent().unwrap(), Default::default())
+        .unwrap();
+    let record = |namespace, id| match generation.lookup(PackKey { namespace, id }).unwrap() {
+        PackLookup::Record(record) => record.bytes().to_vec(),
+        _ => panic!("accepted source {namespace}:{id} missing"),
+    };
+    let WorldRecordV1::LandblockInstance(vendor) =
+        bace_content_tools::decode_world_record(&record(20, 2012229732)).unwrap()
+    else {
+        panic!("academy provisioner instance");
+    };
+    let template: bace_content::WeenieV1 =
+        bace_content_tools::decode(&record(1, vendor.weenie_class_id as u64)).unwrap();
+    assert_eq!(template.weenie_type, 12);
+    assert_eq!(vendor.obj_cell_id >> 16, start.cell >> 16);
+    assert!(
+        template
+            .properties
+            .create_list
+            .iter()
+            .any(|entry| entry.destination_type == 4)
+    );
+    eprintln!(
+        "Shoushi DAT area={index} start={start:?}; authored vendor={} pose=({},{},{}) radius={:?}",
+        vendor.guid,
+        vendor.origin_x,
+        vendor.origin_y,
+        vendor.origin_z,
+        template
+            .properties
+            .floats
+            .iter()
+            .find(|p| p.id == 54)
+            .map(|p| p.value)
+    );
+}
+
+/// The accepted template and DAT start stay immutable. Only one placement and
+/// its copied landblock index are published into this test's private pack.
+fn nearby_academy_shop_records() -> (Vec<bace_storage_codec::PackRecord>, u32) {
+    use bace_content::{LandblockInstanceRowV1, WorldRecordV1};
+    use bace_storage_codec::{PackKey, PackLookup, PackRecord};
+    const VENDOR: u32 = 0x7f00_a001;
+    const TEMPLATE: u32 = 12718;
+    let dat = std::path::PathBuf::from(std::env::var_os("BACE_DAT_DIRECTORY").unwrap());
+    let manifest = crate::region_activation::RegionAssetManifest {
+        portal: dat.join("client_portal.dat"),
+        cell: dat.join("client_cell_1.dat"),
+        portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
+        cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+    };
+    let mut portal = bace_dat::DatArchive::open(&manifest.portal).unwrap();
+    let chargen =
+        bace_dat::CharGen::decode(&portal.read(bace_dat::CharGen::RECORD_ID).unwrap()).unwrap();
+    let (start_area, area) = chargen
+        .starter_areas
+        .iter()
+        .enumerate()
+        .find(|(_, a)| a.name == "Shoushi")
+        .unwrap();
+    let start = area.locations[0];
+    let block = (start.cell >> 16) as u16;
+    let path = std::path::PathBuf::from(std::env::var_os("BACE_WORLD_MANIFEST").unwrap());
+    let accepted = bace_storage_codec::load_manifest(&path, Default::default()).unwrap();
+    let generation = accepted
+        .open(path.parent().unwrap(), Default::default())
+        .unwrap();
+    let lookup = |namespace, id| match generation.lookup(PackKey { namespace, id }).unwrap() {
+        PackLookup::Record(record) => record.bytes().to_vec(),
+        _ => panic!("accepted Shop source {namespace}:{id} missing"),
+    };
+    assert!(matches!(
+        generation
+            .lookup(PackKey {
+                namespace: 20,
+                id: VENDOR as u64
+            })
+            .unwrap(),
+        PackLookup::Missing
+    ));
+    let template: bace_content::WeenieV1 =
+        bace_content_tools::decode(&lookup(1, TEMPLATE as u64)).unwrap();
+    assert_eq!(template.weenie_type, 12);
+    let mut assets = crate::region_activation::VerifiedRegionAssets::open(&manifest).unwrap();
+    let (geometry, visibility) = assets.prepare_geometry_with_visibility(block).unwrap();
+    let physical = assets.prepare_template(&template).unwrap();
+    let visible = visibility
+        .iter()
+        .find(|row| row.cell.0 == start.cell)
+        .map(|row| {
+            row.visible_cells
+                .iter()
+                .map(|cell| cell.0)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let existing = crate::world_content::prepare(&generation, block).unwrap();
+    let (cell, position) = [
+        (2.0, 0.0),
+        (-2.0, 0.0),
+        (0.0, 2.0),
+        (0.0, -2.0),
+        (1.8, 1.8),
+        (-1.8, 1.8),
+        (1.8, -1.8),
+        (-1.8, -1.8),
+    ]
+    .into_iter()
+    .find_map(|(dx, dy)| {
+        let position =
+            bace_geometry::Vec3::new(start.origin[0] + dx, start.origin[1] + dy, start.origin[2]);
+        if existing.instances.iter().any(|root| {
+            let source = &root.source;
+            (source.origin_z - position.z).abs() < 2.0
+                && (source.origin_x - position.x).powi(2) + (source.origin_y - position.y).powi(2)
+                    < 2.25
+        }) {
+            return None;
+        }
+        let cell = geometry
+            .placement_cell(start.cell, position, &physical.shape, &visible)
+            .ok()?;
+        geometry
+            .validate_placement(cell, position, &physical.shape, &[], VENDOR)
+            .ok()?;
+        Some((cell, position))
+    })
+    .expect("approved DAT has a clear Shop placement inside source use radius");
+    let mut index = bace_content_tools::decode_landblock_index(&lookup(2, block as u64)).unwrap();
+    assert!(!index.instance_ids.contains(&VENDOR));
+    index.instance_ids.push(VENDOR);
+    index.instance_ids.sort_unstable();
+    let instance = WorldRecordV1::LandblockInstance(LandblockInstanceRowV1 {
+        guid: VENDOR,
+        landblock: i32::from(block),
+        weenie_class_id: TEMPLATE,
+        obj_cell_id: cell,
+        origin_x: position.x,
+        origin_y: position.y,
+        origin_z: position.z,
+        angles_w: 1.0,
+        angles_x: 0.0,
+        angles_y: 0.0,
+        angles_z: 0.0,
+        is_link_child: false,
+        last_modified: "2021-11-01 00:00:00".into(),
+    });
+    (
+        vec![
+            PackRecord {
+                key: PackKey {
+                    namespace: 2,
+                    id: block as u64,
+                },
+                schema: 1,
+                value: Some(bace_content_tools::compile_landblock_index(&index).unwrap()),
+            },
+            PackRecord {
+                key: PackKey {
+                    namespace: 20,
+                    id: VENDOR as u64,
+                },
+                schema: 1,
+                value: Some(bace_content_tools::compile_world_record(&instance).unwrap()),
+            },
+        ],
+        start_area as u32,
+    )
+}
+
+#[test]
+#[ignore = "requires approved DATs and accepted full native pack"]
+fn approved_dat_nearby_academy_shop_placement() {
+    let (records, area) = nearby_academy_shop_records();
+    assert_eq!(area, 1);
+    assert_eq!(records.len(), 2);
+    assert_eq!(records[0].key.namespace, 2);
+    assert_eq!(records[1].key.namespace, 20);
+}
+
+#[tokio::test]
+#[ignore = "requires PostgreSQL, approved DATs, and accepted full native pack"]
+async fn authenticated_nearby_academy_shop_use_fails_closed_without_durable_source() {
+    use bace_wire::opcode::{GameActionType, GameEventType, GameMessageOpcode};
+    const VENDOR: u32 = 0x7f00_a001;
+    let (records, area) = nearby_academy_shop_records();
+    let mut fixture =
+        crate::game_runtime::tests::entered::fixture_with_start_area(records, area).await;
+    tokio::time::timeout(std::time::Duration::from_secs(30), async {
+        loop {
+            fixture
+                .runtime
+                .poll(fixture.runtime.clock.monotonic.elapsed())
+                .unwrap();
+            fixture.client.drain(&fixture.runtime);
+            if fixture.client.has_create(VENDOR, 0)
+                && fixture
+                    .runtime
+                    .npc
+                    .vendor_registration(EntityId(VENDOR))
+                    .is_some()
+            {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        }
+    })
+    .await
+    .expect("source-authored nearby Shop reaches authenticated visibility and NPC admission");
+
+    let output_start = fixture.client.messages.len();
+    let packet = GameActionEnvelope {
+        sequence: 2,
+        action: GameActionType::Use,
+        payload: &VENDOR.to_le_bytes(),
+    }
+    .encode(4096)
+    .unwrap();
+    fixture
+        .client
+        .send_message(&fixture.runtime, fixture.key, &packet);
+    let mut reached_cold = false;
+    tokio::time::timeout(std::time::Duration::from_secs(15), async {
+        loop {
+            fixture
+                .runtime
+                .poll(fixture.runtime.clock.monotonic.elapsed())
+                .unwrap();
+            fixture.client.drain(&fixture.runtime);
+            if let Some(pending) = fixture.runtime.vendors.pending.as_ref() {
+                reached_cold |= matches!(&pending.phase, Phase::Cold(_));
+            }
+            if fixture
+                .runtime
+                .sessions
+                .get(&fixture.key)
+                .and_then(|session| session.failure.as_deref())
+                == Some("vendor has no durable world source")
+            {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        }
+    })
+    .await
+    .expect("missing durable world source produces an explicit retained failure");
+    assert!(
+        reached_cold,
+        "authenticated Use reached the vendor's cold owner"
+    );
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        while !fixture.runtime.sessions[&fixture.key].terminated {
+            fixture
+                .runtime
+                .poll(fixture.runtime.clock.monotonic.elapsed())
+                .unwrap();
+            fixture.client.drain(&fixture.runtime);
+            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        }
+    })
+    .await
+    .expect("missing source closes the authenticated Shop Use without success");
+    assert!(
+        fixture.runtime.sessions[&fixture.key].terminated,
+        "rejected unsupported Shop cannot publish a success"
+    );
+    assert!(
+        !fixture.client.messages[output_start..]
+            .iter()
+            .any(|message| {
+                message.queue == 9
+                    && message
+                        .bytes
+                        .starts_with(&GameMessageOpcode::GameEvent.0.to_le_bytes())
+                    && message.bytes.get(12..16)
+                        == Some(GameEventType::ApproachVendor.0.to_le_bytes().as_slice())
+                    && message.bytes.get(16..20) == Some(VENDOR.to_le_bytes().as_slice())
+            }),
+        "unsupported Shop cannot fabricate an ApproachVendor listing"
+    );
+    let source = fixture
+        .runtime
+        .bootstrap
+        .store
+        .load_vendor_state(VENDOR)
+        .await
+        .unwrap();
+    assert!(source.is_none(), "static Shop lacks a V5 world source");
+}

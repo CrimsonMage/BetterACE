@@ -1,6 +1,9 @@
 //! Authenticated stone Use and the retained source action/receipt transcript.
 use super::*;
 use crate::game_runtime::progression::ProgressionIngress;
+use crate::player_preparation_worker::{
+    BindingMotionPreparationCompletion, BindingMotionPreparationRequest,
+};
 use bace_interactions::{BindingKind, RecallError};
 use bace_replication::{BatchLimits, InventoryProjection as P};
 use bace_types::EntityId;
@@ -10,7 +13,7 @@ enum BindingPhase {
     Capture,
     Capturing(u64),
     Captured(Arc<bace_simulation::PlayerReadSnapshot>, u64),
-    Preparing,
+    Preparing { correlation: u64, revision: u64 },
     Ready,
     Submitted,
     Running,
@@ -36,7 +39,7 @@ pub(super) struct BindingPending {
 pub(super) struct BindingRuntime {
     pub(super) pending: BTreeMap<SessionKey, BindingPending>,
     objects: BTreeMap<EntityId, BindingKind>,
-    cold: Option<Job<(SessionKey, Result<BindingPrepared, String>)>>,
+    unmatched: Option<BindingMotionPreparationCompletion>,
     completions: BTreeMap<u64, bool>,
     failures: BTreeMap<SessionKey, String>,
 }
@@ -45,13 +48,13 @@ impl BindingRuntime {
         Self {
             pending: BTreeMap::new(),
             objects: BTreeMap::new(),
-            cold: None,
+            unmatched: None,
             completions: BTreeMap::new(),
             failures: BTreeMap::new(),
         }
     }
     pub(super) fn has_pending(&self) -> bool {
-        !self.pending.is_empty() || self.cold.is_some() || !self.completions.is_empty()
+        !self.pending.is_empty() || self.unmatched.is_some() || !self.completions.is_empty()
     }
     pub(super) fn output_pending(&self) -> bool {
         self.pending.values().any(|p| {
@@ -122,6 +125,43 @@ impl BindingRuntime {
     }
 }
 impl GameRuntime {
+    pub(in crate::game_runtime) fn accept_binding_motion_completion(
+        &mut self,
+        done: BindingMotionPreparationCompletion,
+    ) -> Result<(), String> {
+        if self.recalls.bindings.unmatched.is_some() {
+            return Err("binding motion completion already retained".into());
+        }
+        let Some(p) = self
+            .recalls
+            .bindings
+            .pending
+            .values_mut()
+            .find(|p| p.context == done.context)
+        else {
+            self.recalls.bindings.unmatched = Some(done);
+            return Err("binding motion completion owner missing; receipt retained".into());
+        };
+        if !matches!(p.phase, BindingPhase::Preparing { correlation, revision }
+            if correlation == done.correlation && revision == done.before_revision)
+        {
+            self.recalls.bindings.unmatched = Some(done);
+            return Err("binding motion completion fence mismatch; receipt retained".into());
+        }
+        match done.result {
+            Ok(prepared) => {
+                p.prepared = Some(BindingPrepared {
+                    revision: done.before_revision,
+                    style: prepared.style,
+                    motion: prepared.motion,
+                    seconds: prepared.seconds,
+                });
+                p.phase = BindingPhase::Ready;
+            }
+            Err(error) => p.phase = BindingPhase::Failed(error),
+        }
+        Ok(())
+    }
     pub fn binding_failure(&self, key: SessionKey) -> Option<&str> {
         if let Some(error) = self.recalls.bindings.failures.get(&key) {
             return Some(error);
@@ -279,20 +319,8 @@ impl GameRuntime {
             .bindings
             .failures
             .retain(|key, _| self.sessions.contains_key(key));
-        if let Some((key, result)) = ready(&mut self.recalls.bindings.cold) {
-            let p = self
-                .recalls
-                .bindings
-                .pending
-                .get_mut(&key)
-                .ok_or("binding cold owner missing")?;
-            match result {
-                Ok(prepared) => {
-                    p.prepared = Some(prepared);
-                    p.phase = BindingPhase::Ready;
-                }
-                Err(error) => p.phase = BindingPhase::Failed(error),
-            }
+        if self.recalls.bindings.unmatched.is_some() {
+            return Err("binding motion completion receipt retained".into());
         }
         let keys: Vec<_> = self
             .recalls
@@ -367,7 +395,7 @@ impl GameRuntime {
                     return Err("binding capture channel closed".into());
                 }
             },
-            BindingPhase::Captured(snapshot, unix) if self.recalls.bindings.cold.is_none() => {
+            BindingPhase::Captured(snapshot, unix) => {
                 let saved = crate::player_saves::freeze_player_snapshot(
                     self.online_saves
                         .baseline(p.binding.actor.0)
@@ -381,26 +409,20 @@ impl GameRuntime {
                     .entry_motion()
                     .ok_or("binding accepted motion missing")?;
                 let revision = snapshot.character().progression().revision();
-                let manifest = self.bootstrap.assets.clone();
-                self.recalls.bindings.cold = Some(Box::pin(async move {
-                    let result = tokio::task::spawn_blocking(move || {
-                        let mut assets =
-                            crate::region_activation::VerifiedRegionAssets::open(&manifest)?;
-                        let prepared =
-                            assets.prepare_binding_motion(&saved.player.entity.state, current)?;
-                        Ok(BindingPrepared {
-                            revision,
-                            style: prepared.style,
-                            motion: prepared.motion,
-                            seconds: prepared.seconds,
-                        })
-                    })
-                    .await
-                    .map_err(|error| error.to_string())
-                    .and_then(|value| value);
-                    (key, result)
-                }));
-                p.phase = BindingPhase::Preparing;
+                let request = BindingMotionPreparationRequest {
+                    correlation: token,
+                    context: p.context,
+                    before_revision: revision,
+                    source_object: EntityId(saved.player.entity.object_id),
+                    source: saved.player.entity.state.clone(),
+                    current,
+                };
+                if self.preparation.try_submit_binding(request).is_ok() {
+                    p.phase = BindingPhase::Preparing {
+                        correlation: token,
+                        revision,
+                    };
+                }
             }
             BindingPhase::Ready => {
                 let prepared = p.prepared.as_ref().ok_or("binding motion missing")?;

@@ -259,4 +259,57 @@ fn committed_corpse_open_consumes_transient_grant_and_keeps_corpse_right() {
     let access = &kernel.player_deaths.corpse_access[&corpse];
     assert_eq!(access.profile.permittees, vec![EntityId(2)]);
     assert_eq!(access.viewer, Some(EntityId(2)));
+
+    // Container.ActOnUse may close the prior viewer's corpse from elsewhere,
+    // but an Adopt receipt still belongs to that viewer's exact session.
+    let close = crate::CorpseAccessDecision::Close { mark_looted: true };
+    let stale = crate::CorpseAccessCommand::Adopt {
+        correlation: 81,
+        context: ActionContext {
+            actor: EntityId(2),
+            account: binding(2).account,
+            session: SessionId(99),
+            sequence: 0,
+        },
+        corpse,
+        has_loot_permit: false,
+        decision: close,
+    };
+    kernel.apply_corpse_access_command(stale);
+    assert!(matches!(
+        kernel.take_corpse_access_outcome(),
+        Some(crate::CorpseAccessOutcome::Adopted {
+            correlation: 81,
+            result: Err(crate::CorpseAccessError::Ownership),
+            ..
+        })
+    ));
+    assert_eq!(
+        kernel.player_deaths.corpse_access[&corpse].viewer,
+        Some(EntityId(2))
+    );
+    assert!(!kernel.player_deaths.corpse_access[&corpse].profile.looted);
+
+    kernel.apply_corpse_access_command(crate::CorpseAccessCommand::Adopt {
+        correlation: 82,
+        context: ActionContext {
+            actor: EntityId(2),
+            account: binding(2).account,
+            session: binding(2).session,
+            sequence: 0,
+        },
+        corpse,
+        has_loot_permit: false,
+        decision: close,
+    });
+    assert!(matches!(
+        kernel.take_corpse_access_outcome(),
+        Some(crate::CorpseAccessOutcome::Adopted {
+            correlation: 82,
+            result: Ok(crate::CorpseAccessDecision::Close { mark_looted: true }),
+            ..
+        })
+    ));
+    assert_eq!(kernel.player_deaths.corpse_access[&corpse].viewer, None);
+    assert!(kernel.player_deaths.corpse_access[&corpse].profile.looted);
 }

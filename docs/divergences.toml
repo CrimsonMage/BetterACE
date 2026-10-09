@@ -685,6 +685,18 @@ description = "Pinned ACE Corpse.cs keeps permitteeOpened in an ephemeral HashSe
 status = "confirmed_open_receipt_and_transient_grant_owner_regressions"
 
 [[regressions]]
+id = "ace-corpse-close-session-binding"
+owners = ["bace-simulation"]
+description = "Pinned ACE Container.Close detaches the currently open viewer and does not rerun Use range; BetterACE requires the exact active actor/account/session binding when adopting a durable corpse Close. This prevents a stale or forged session from clearing another viewer after the Open receipt, while the bound viewer may still close from elsewhere. It is an authenticated ownership fence, not a claim about ACE's session internals. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Container.cs."
+status = "stale_session_close_rejection_and_bound_auto_close_owner_regression"
+
+[[regressions]]
+id = "ace-no-corpse-burden-detach-fence"
+owners = ["bace-runtime"]
+description = "BetterACE retains a corrective NoCorpse burden output while the exact old player replica is disconnecting, then completes it packetlessly after detach rather than sending the old private update to a later login generation. This is a native session ownership fence around the pinned ACE Player_Death.cs burden effect, not a claim about ACE transport reconnect behavior. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Player_Death.cs."
+status = "old_session_detach_and_new_generation_exclusion_runtime_regression"
+
+[[regressions]]
 id = "ace-corpse-open-after-expiry-reservation"
 owners = ["bace-simulation"]
 description = "Pinned ACE WorldObject_Decay.cs defers corpse decay while its Container.IsOpen; Container.cs handles Use/Open/Close without a durable expiry reservation. BetterACE rejects a new Open after the simulation has reserved that corpse's exact durable expiry ticket or entered Destroying, while an already attached viewer may still Close. This closes the transactional race between an accepted Open and an in-flight expiry write; it is a durability correction, not a claim about ACE's one-second destroy window. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/WorldObject_Decay.cs and Source/ACE.Server/WorldObjects/Container.cs."

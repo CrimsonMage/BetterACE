@@ -9,15 +9,24 @@ impl GameRuntime {
             let Some(delivery) = self.portals.deliveries.front() else {
                 break;
             };
-            // A clean durable completion has no packet. The preceding effect
-            // has already transferred to its output owner before reaching the
-            // front of this queue, so observer or private output pressure must
-            // not pin its ticket indefinitely.
-            let silent_completion = matches!(
-                &delivery.work,
-                PortalDeliveryWork::Completed(completion) if completion.committed && !completion.aborted
-            );
-            if !silent_completion
+            // These transitions publish no portal packet. A failed spell has
+            // already transferred its terminal result to magic; binding owns
+            // its own exact receipt. Recall-origin failures still error below
+            // and retain the ticket because ACE has no post-Teleport callback.
+            let packetless = match &delivery.work {
+                PortalDeliveryWork::Completed(_)
+                | PortalDeliveryWork::Event(
+                    PortalServiceEvent::Blocked { .. }
+                    | PortalServiceEvent::AbortedAfterCommit { .. },
+                ) => true,
+                PortalDeliveryWork::Event(PortalServiceEvent::Linked { operation, .. }) => {
+                    self.portals.tickets.get(operation).is_some_and(|ticket| {
+                        ticket.origin == bace_simulation::PortalServiceOrigin::Binding
+                    })
+                }
+                _ => false,
+            };
+            if !packetless
                 && (self.visibility.service.pending()
                     || self.network_output.len() >= self.limits.messages)
             {

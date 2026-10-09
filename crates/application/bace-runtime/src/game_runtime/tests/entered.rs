@@ -19,6 +19,12 @@ pub(in crate::game_runtime) struct EnteredFixture {
     pub _cluster: crate::player_service::tests::cluster::Cluster,
 }
 pub(in crate::game_runtime) async fn fixture() -> EnteredFixture {
+    fixture_with_start_area(Vec::new(), 0).await
+}
+pub(in crate::game_runtime) async fn fixture_with_start_area(
+    records: Vec<bace_storage_codec::PackRecord>,
+    start_area: u32,
+) -> EnteredFixture {
     eprintln!(
         "entry fixture: runtime={} startup={}",
         std::mem::size_of::<GameRuntime>(),
@@ -82,6 +88,27 @@ pub(in crate::game_runtime) async fn fixture() -> EnteredFixture {
             .unwrap();
     }
     drop(source);
+    if !records.is_empty() {
+        assert!(records.len() <= 64, "bounded private test delta");
+        assert!(
+            records
+                .iter()
+                .map(|record| record.value.as_ref().map_or(0, Vec::len))
+                .sum::<usize>()
+                <= 4 * 1024 * 1024,
+            "bounded private test bytes"
+        );
+        let delta = bace_storage_codec::compile_pack(
+            directory.path(),
+            records.into_iter().map(Ok),
+            Default::default(),
+        )
+        .unwrap();
+        manifest.deltas.push(delta);
+        manifest.generation += 1;
+        bace_storage_codec::write_manifest(directory.path(), &manifest, Default::default())
+            .unwrap();
+    }
     let generation = Arc::new(manifest.open(directory.path(), Default::default()).unwrap());
     store
         .accept_mapped(
@@ -217,10 +244,11 @@ pub(in crate::game_runtime) async fn fixture() -> EnteredFixture {
     })
     .await;
     eprintln!("entry fixture: creating character");
-    let create = creation_message(
+    let create = creation_message_with_start_area(
         runtime.sessions[&key].account.name.as_str(),
         color,
         "Entryprobe",
+        start_area,
     );
     client.send_message(&runtime, key, &create);
     poll_until(&mut runtime, &mut client, |_, client| {
@@ -328,6 +356,14 @@ pub(in crate::game_runtime) async fn poll_until(
     .expect("bounded real entry progress");
 }
 fn creation_message(account: &str, color: u32, name: &str) -> Vec<u8> {
+    creation_message_with_start_area(account, color, name, 0)
+}
+fn creation_message_with_start_area(
+    account: &str,
+    color: u32,
+    name: &str,
+    start_area: u32,
+) -> Vec<u8> {
     let mut w = bace_wire::Writer::new();
     w.u32(0xf656);
     w.string16(account).unwrap();
@@ -376,7 +412,7 @@ fn creation_message(account: &str, color: u32, name: &str) -> Vec<u8> {
         );
     }
     w.string16(name).unwrap();
-    for value in [0, 0, 0] {
+    for value in [start_area, 0, 0] {
         w.u32(value);
     }
     w.into_bytes()

@@ -1,5 +1,7 @@
 use super::*;
-use crate::player_preparation_worker::{PlayerPreparationRequest, PreparedPlayerCold};
+use crate::player_preparation_worker::{
+    PlayerPreparationRequest, PlayerPreparationResult, PreparedPlayerCold,
+};
 use crate::player_service::PlayerIoResult;
 use bace_gameplay_api::social::SocialIdentity;
 use bace_persistence::{CharacterLease, OnlineLoginReceipt};
@@ -156,8 +158,15 @@ impl GameRuntime {
             return Err("unrelated cold preparation retained".into());
         }
         for _ in 0..self.limits.work_per_poll {
-            let Some(done) = self.preparation.try_recv()? else {
+            let Some(result) = self.preparation.try_recv()? else {
                 break;
+            };
+            let done = match result {
+                PlayerPreparationResult::Admission(done) => done,
+                PlayerPreparationResult::BindingMotion(done) => {
+                    self.accept_binding_motion_completion(done)?;
+                    continue;
+                }
             };
             let valid = self
                 .sessions
@@ -167,7 +176,7 @@ impl GameRuntime {
                     l.cold_token == Some(done.correlation) && l.loaded.binding == done.binding
                 });
             if !valid {
-                self.unexpected_cold = Some(done);
+                self.unexpected_cold = Some(*done);
                 return Err("cold player completion fence mismatch; preparation retained".into());
             }
             let session = self

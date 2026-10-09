@@ -67,7 +67,7 @@ impl Kernel {
             } => {
                 let shares_killer_fellowship = self.corpse_fellowship_right(corpse, context.actor);
                 let result = (if matches!(decision, D::Close { .. }) {
-                    Ok(())
+                    self.authorize_corpse_close(context)
                 } else {
                     self.authorize_corpse_use(context, corpse)
                 })
@@ -115,13 +115,7 @@ impl Kernel {
         context: bace_gameplay_api::ActionContext,
         corpse: EntityId,
     ) -> Result<(), E> {
-        self.characters
-            .can_take_complete(CharacterBinding {
-                actor: context.actor,
-                account: context.account,
-                session: context.session,
-            })
-            .map_err(|_| E::Ownership)?;
+        self.authorize_corpse_close(context)?;
         let (cell, actor) = self
             .world
             .actor_state(context.actor)
@@ -179,6 +173,20 @@ impl Kernel {
         {
             return Err(E::Obstructed);
         }
+        Ok(())
+    }
+
+    // Container.ActOnUse closes the actor's previously viewed container before
+    // using another, even when that old container is no longer in Use range.
+    // Its viewer identity still belongs to the authenticated character binding.
+    fn authorize_corpse_close(&self, context: bace_gameplay_api::ActionContext) -> Result<(), E> {
+        self.characters
+            .can_take_complete(CharacterBinding {
+                actor: context.actor,
+                account: context.account,
+                session: context.session,
+            })
+            .map_err(|_| E::Ownership)?;
         Ok(())
     }
 

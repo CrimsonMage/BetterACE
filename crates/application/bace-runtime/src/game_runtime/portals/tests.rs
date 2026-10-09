@@ -273,6 +273,18 @@ async fn rejected_portal_completion_requires_exact_ticket_and_never_projects_lin
         .portals
         .tickets
         .insert(ticket.operation, ticket.clone());
+    // Kernel portal completion hands spell failure to the magic terminal
+    // owner. Blocked and exact failed/aborted tickets publish no portal packet.
+    runtime.limits.messages = 0;
+    runtime
+        .portals
+        .push(PortalDeliveryWork::Event(PortalServiceEvent::Blocked {
+            operation: 70,
+            actor,
+        }));
+    runtime.project_portal_deliveries().unwrap();
+    assert!(runtime.portals.blocked_effects.contains(&70));
+    assert!(runtime.portals.deliveries.is_empty());
     let mut wrong = ticket.clone();
     wrong.cast = 78;
     runtime
@@ -296,6 +308,67 @@ async fn rejected_portal_completion_requires_exact_ticket_and_never_projects_lin
         panic!("retained exact completion")
     };
     completion.work.ticket = ticket.clone();
+    runtime.project_portal_deliveries().unwrap();
+    assert!(!runtime.portals.has_pending());
+    assert!(runtime.network_output.is_empty());
+
+    let mut aborted = ticket.clone();
+    aborted.operation = 72;
+    aborted.effect =
+        bace_simulation::PortalServiceEffect::Teleport(vec![bace_world::WorldTeleport {
+            actor,
+            expected_epoch: 1,
+            destination: bace_types::CellId(position.cell),
+            position: bace_geometry::Vec3::new(
+                position.origin[0],
+                position.origin[1],
+                position.origin[2],
+            ),
+            heading: 0.,
+        }]);
+    runtime.portals.tickets.insert(72, aborted.clone());
+    runtime.portals.push(PortalDeliveryWork::Event(
+        PortalServiceEvent::AbortedAfterCommit {
+            operation: 72,
+            actor,
+        },
+    ));
+    runtime
+        .portals
+        .push(PortalDeliveryWork::Completed(Box::new(PortalCompletion {
+            work: PortalWork {
+                epoch: 1,
+                bindings: vec![binding],
+                ticket: aborted,
+            },
+            committed: true,
+            aborted: true,
+        })));
+    runtime.project_portal_deliveries().unwrap();
+    assert!(!runtime.portals.has_pending());
+    assert!(runtime.network_output.is_empty());
+
+    let mut binding_link = ticket.clone();
+    binding_link.operation = 73;
+    binding_link.origin = bace_simulation::PortalServiceOrigin::Binding;
+    runtime.portals.tickets.insert(73, binding_link.clone());
+    runtime
+        .portals
+        .push(PortalDeliveryWork::Event(PortalServiceEvent::Linked {
+            operation: 73,
+            actor,
+        }));
+    runtime
+        .portals
+        .push(PortalDeliveryWork::Completed(Box::new(PortalCompletion {
+            work: PortalWork {
+                epoch: 1,
+                bindings: vec![binding],
+                ticket: binding_link,
+            },
+            committed: true,
+            aborted: false,
+        })));
     runtime.project_portal_deliveries().unwrap();
     assert!(!runtime.portals.has_pending());
     assert!(runtime.network_output.is_empty());

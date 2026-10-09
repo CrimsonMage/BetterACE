@@ -1,5 +1,49 @@
 use super::*;
 #[tokio::test]
+#[ignore = "requires approved DATs and PostgreSQL binaries"]
+async fn unavailable_staff_text_responds_privately_without_disconnecting() {
+    let mut fixture = Box::pin(crate::game_runtime::tests::entered::fixture()).await;
+    let context = ActionContext {
+        actor: fixture.binding.actor,
+        account: fixture.binding.account,
+        session: fixture.binding.session,
+        sequence: 31,
+    };
+    for line in ["@teleloc 0x01010000", "@sudo teleloc 0x01010000", "@deaf"] {
+        assert!(matches!(
+            fixture.runtime.handle_staff_dispatch(
+                fixture.key,
+                crate::gameplay_dispatch::GameplayDispatch::StaffLine {
+                    context,
+                    line: line.into(),
+                },
+            ),
+            Ok(crate::game_runtime::social::SocialIngress::Accepted)
+        ));
+        assert!(fixture.runtime.staff.pending.is_none());
+        assert!(!fixture.runtime.sessions[&fixture.key].terminated);
+        let Some(NetworkCommand::SendOrderedBatch { key, messages }) =
+            fixture.runtime.staff.output.pop_front()
+        else {
+            panic!("missing private unsupported response")
+        };
+        assert_eq!(key, fixture.key);
+        assert_eq!(
+            messages,
+            vec![(
+                9,
+                bace_wire::ChatMessage::System {
+                    text: "This command is unsupported.",
+                    chat_type: 0,
+                }
+                .encode()
+                .unwrap(),
+            )]
+        );
+    }
+    fixture.shutdown().await;
+}
+#[tokio::test]
 async fn staff_logout_cancels_only_unsubmitted_work() {
     let (_cluster, _directory, mut runtime) =
         Box::pin(crate::game_runtime::tests::fixture::fixture()).await;

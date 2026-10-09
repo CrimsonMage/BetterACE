@@ -307,7 +307,9 @@ offline display/removal and are discarded on recipient logout. Corpse Inspect
 derives the permit from that owner at an explicit adapter-supplied wall time;
 only a committed Open consumes it and records the durable one-corpse permittee.
 New Open is rejected once the exact expiry ticket is reserved or Destroying
-begins; an attached viewer may still Close. Protection expiry/dispel and PK
+begins; an attached viewer may still Close. Close adoption checks the exact
+actor/account/session binding without a new range test, so stale sessions
+cannot detach another viewer. Protection expiry/dispel and PK
 respite events freeze the current entered binding before runtime publication,
 so a later login generation cannot receive the old death notice. Only source
 restored PK status values 4/64 currently have canonical delivery.

@@ -599,9 +599,14 @@ sequence. The approved-DAT synthetic fixture now covers real character
 creation, authenticated UDP login, entered ownership, reliable entry output
 and graceful drain; it does not represent stock-client playback.
 An approved-DAT source probe also finds a registered authored lifestone in
-the entered region. Joined near-stone authenticated Use is still unqualified:
-the test's ServerTeleport to the stone's accepted cell is rejected without a
-per-command reason exposed by the simulation worker.
+the entered region. A geometry-valid authoritative ServerTeleport reaches a
+near-stone accepted pose without moving the stone, and authenticated UDP Use
+reaches binding cold preparation. The bounded player preparation worker reuses
+its verified DAT archives for authored stance/action motion. An approved-DAT,
+PostgreSQL synthetic authenticated Use now completes after revision retries;
+source sound, motion and chat order, private stamina output, accepted final
+actor and stationary stone views, and exact online/durable sanctuary and
+stamina values are asserted. Stock-client playback remains unqualified.
 
 Quiescing logs out admitted players, then sends correlated `QuiesceRegions` and
 continues the ordinary region save/retirement pipeline. Pausing the adapter loop or
@@ -655,6 +660,11 @@ source Broadcast rejection chat for nonplayers or missing landblock targets.
 Absent visible source descriptions cannot supply a nonplayer name and produce
 the source missing-target text. The simulation and wire regressions cover these
 paths; the catalog remains metadata, not proof of every staff family.
+The in-world ingress checks the concrete command owner list before reserving a
+snapshot. Catalog-only and parsed-only text commands remain Unsupported; `sudo`
+uses the same gate, and `@targetloc` accepts only its connected selected form.
+Unavailable text commands get a bounded private unsupported response without
+disconnecting the entered session.
 
 `AllegianceService` joins exact indexed ledger before-images, all participant lease
 fences (including offline ancestors), reserved player captures and item-XP/Vitae
