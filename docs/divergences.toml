@@ -686,9 +686,9 @@ status = "confirmed_open_receipt_and_transient_grant_owner_regressions"
 
 [[regressions]]
 id = "ace-corpse-close-session-binding"
-owners = ["bace-simulation"]
-description = "Pinned ACE Container.Close detaches the currently open viewer and does not rerun Use range; BetterACE requires the exact active actor/account/session binding when adopting a durable corpse Close. This prevents a stale or forged session from clearing another viewer after the Open receipt, while the bound viewer may still close from elsewhere. It is an authenticated ownership fence, not a claim about ACE's session internals. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Container.cs."
-status = "stale_session_close_rejection_and_bound_auto_close_owner_regression"
+owners = ["bace-simulation", "bace-runtime"]
+description = "Pinned ACE Container.Close detaches the currently open viewer and does not rerun Use range; BetterACE requires the exact active actor/account/session binding when adopting a durable corpse Close. Runtime private Close publication and packetless disconnect cleanup apply the same corpse/viewer fence, so a stale or forged session cannot clear another viewer or consume a canonical counter. The bound viewer may still close from elsewhere. This is an authenticated ownership fence, not a claim about ACE's session internals. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Container.cs."
+status = "stale_session_close_rejection_bound_auto_close_synthetic_projection_and_real_postgresql_save_worker_receipt_regressions; full_live_inspect_adopt_and_visibility_transcript_open"
 
 [[regressions]]
 id = "ace-no-corpse-burden-detach-fence"

@@ -1,5 +1,7 @@
 use super::*;
 use bace_motion::{ExecutionClip, MotionPhysics, PreparedMotionChain, RootFrame};
+#[path = "tests/allegiance.rs"]
+mod allegiance;
 
 fn use_message(object: EntityId, sequence: u32) -> bace_transport::ReceivedMessage {
     bace_transport::ReceivedMessage {

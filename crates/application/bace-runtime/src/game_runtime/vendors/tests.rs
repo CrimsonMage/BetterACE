@@ -366,11 +366,23 @@ async fn confirmed_shop_use_waits_for_private_reliable_admission() {
     assert_eq!(sent, key);
     assert_eq!(messages.len(), 1);
     assert_eq!(messages[0].0, 9);
+    assert_eq!(correlation & 0xff00_0000_0000_0000, 0x5800_0000_0000_0000);
+    assert!(runtime.vendors.completion.is_some());
+    let visibility_correlation = 0x5600_0000_0000_0001;
+    runtime
+        .reliable_admissions
+        .push_back((key, visibility_correlation, true));
+    runtime.project_vendor_output().unwrap();
+    assert_eq!(runtime.reliable_admissions.len(), 1);
     assert!(runtime.vendors.completion.is_some());
     runtime
         .reliable_admissions
         .push_back((key, correlation, true));
     runtime.project_vendor_output().unwrap();
+    assert_eq!(
+        runtime.reliable_admissions.pop_front(),
+        Some((key, visibility_correlation, true))
+    );
     assert!(runtime.vendors.completion.is_none());
     assert!(runtime.vendors.publication.is_none());
 }
@@ -585,7 +597,7 @@ fn approved_dat_nearby_academy_shop_placement() {
 
 #[tokio::test]
 #[ignore = "requires PostgreSQL, approved DATs, and accepted full native pack"]
-async fn authenticated_nearby_academy_shop_use_fails_closed_without_durable_source() {
+async fn authenticated_nearby_academy_shop_use_joins_durable_source_and_listing() {
     use bace_wire::opcode::{GameActionType, GameEventType, GameMessageOpcode};
     const VENDOR: u32 = 0x7f00_a001;
     let (records, area) = nearby_academy_shop_records();
@@ -624,64 +636,95 @@ async fn authenticated_nearby_academy_shop_use_fails_closed_without_durable_sour
     fixture
         .client
         .send_message(&fixture.runtime, fixture.key, &packet);
-    let mut reached_cold = false;
-    tokio::time::timeout(std::time::Duration::from_secs(15), async {
+    let published = tokio::time::timeout(std::time::Duration::from_secs(90), async {
         loop {
             fixture
                 .runtime
                 .poll(fixture.runtime.clock.monotonic.elapsed())
                 .unwrap();
             fixture.client.drain(&fixture.runtime);
-            if let Some(pending) = fixture.runtime.vendors.pending.as_ref() {
-                reached_cold |= matches!(&pending.phase, Phase::Cold(_));
-            }
-            if fixture
+            if let Some(failure) = fixture
                 .runtime
                 .sessions
                 .get(&fixture.key)
                 .and_then(|session| session.failure.as_deref())
-                == Some("vendor has no durable world source")
+            {
+                panic!("joined static Shop Use failed: {failure}");
+            }
+            if fixture.client.messages[output_start..]
+                .iter()
+                .any(|message| {
+                    message.queue == 9
+                        && message
+                            .bytes
+                            .starts_with(&GameMessageOpcode::GameEvent.0.to_le_bytes())
+                        && message.bytes.get(12..16)
+                            == Some(GameEventType::ApproachVendor.0.to_le_bytes().as_slice())
+                        && message.bytes.get(16..20) == Some(VENDOR.to_le_bytes().as_slice())
+                })
             {
                 break;
             }
             tokio::time::sleep(std::time::Duration::from_millis(2)).await;
         }
     })
-    .await
-    .expect("missing durable world source produces an explicit retained failure");
+    .await;
+    if published.is_err() {
+        let head = fixture
+            .runtime
+            .bootstrap
+            .store
+            .npc_source_head(VENDOR)
+            .await
+            .map(|head| head.map(|row| (row.source_version, row.completed)));
+        let durable = fixture
+            .runtime
+            .bootstrap
+            .store
+            .load_vendor_state(VENDOR)
+            .await
+            .map(|state| {
+                state.map(|state| {
+                    (
+                        state.source.aggregate.persisted_version,
+                        state
+                            .forest
+                            .as_ref()
+                            .map(|forest| forest.marker.persisted_version),
+                    )
+                })
+            });
+        let phase = fixture
+            .runtime
+            .vendors
+            .pending
+            .as_ref()
+            .map(|pending| match &pending.phase {
+                Phase::Cold(_) => "Cold",
+                Phase::SubmitReserve => "SubmitReserve",
+                Phase::AwaitReserve => "AwaitReserve",
+                Phase::SubmitAdopt => "SubmitAdopt",
+                Phase::AwaitAdopt => "AwaitAdopt",
+                Phase::ReadySave => "ReadySave",
+                Phase::Saving(_) => "Saving",
+                Phase::RetrySave { .. } => "RetrySave",
+                Phase::SubmitConfirm(_) => "SubmitConfirm",
+                Phase::AwaitConfirm => "AwaitConfirm",
+                Phase::Rejected(_) => "Rejected",
+                Phase::Blocked(_) => "Blocked",
+            });
+        panic!(
+            "Shop Use timed out: npc={} vendor_phase={phase:?} publication={} input={} ingress_head={:?} head={head:?} durable={durable:?} session_failure={:?}",
+            fixture.runtime.npc.static_shop_diagnostic(EntityId(VENDOR)),
+            fixture.runtime.vendors.publication.is_some(),
+            fixture.runtime.input.len(),
+            fixture.runtime.input.front(),
+            fixture.runtime.sessions[&fixture.key].failure.as_deref(),
+        );
+    }
     assert!(
-        reached_cold,
-        "authenticated Use reached the vendor's cold owner"
-    );
-    tokio::time::timeout(std::time::Duration::from_secs(5), async {
-        while !fixture.runtime.sessions[&fixture.key].terminated {
-            fixture
-                .runtime
-                .poll(fixture.runtime.clock.monotonic.elapsed())
-                .unwrap();
-            fixture.client.drain(&fixture.runtime);
-            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
-        }
-    })
-    .await
-    .expect("missing source closes the authenticated Shop Use without success");
-    assert!(
-        fixture.runtime.sessions[&fixture.key].terminated,
-        "rejected unsupported Shop cannot publish a success"
-    );
-    assert!(
-        !fixture.client.messages[output_start..]
-            .iter()
-            .any(|message| {
-                message.queue == 9
-                    && message
-                        .bytes
-                        .starts_with(&GameMessageOpcode::GameEvent.0.to_le_bytes())
-                    && message.bytes.get(12..16)
-                        == Some(GameEventType::ApproachVendor.0.to_le_bytes().as_slice())
-                    && message.bytes.get(16..20) == Some(VENDOR.to_le_bytes().as_slice())
-            }),
-        "unsupported Shop cannot fabricate an ApproachVendor listing"
+        !fixture.runtime.sessions[&fixture.key].terminated,
+        "confirmed Shop Use retains the authenticated session"
     );
     let source = fixture
         .runtime
@@ -689,6 +732,45 @@ async fn authenticated_nearby_academy_shop_use_fails_closed_without_durable_sour
         .store
         .load_vendor_state(VENDOR)
         .await
-        .unwrap();
-    assert!(source.is_none(), "static Shop lacks a V5 world source");
+        .unwrap()
+        .expect("Shop root has an exact durable V5 world source");
+    assert!(source.source.aggregate.persisted_version > 0);
+    let root = bace_storage_codec::ItemSaveV5::decode(&source.source.aggregate.bytes).unwrap();
+    assert_eq!(root.entity.object_id, VENDOR);
+    assert_eq!(root.entity.state.weenie_id, 12718);
+    assert_eq!(root.entity.state.weenie_type, 12);
+    assert!(root.construction.is_none());
+    let bace_storage_codec::ItemPlacementV2::World(position) = &root.placement else {
+        panic!("static Shop root has no world placement");
+    };
+    assert_eq!(position.obj_cell_id, source.source.cell);
+    let forest = source
+        .forest
+        .expect("Shop stock marker has an exact durable receipt");
+    assert_eq!(forest.marker.vendor_object_id, VENDOR);
+    assert!(forest.marker.persisted_version > 0);
+    tokio::time::timeout(std::time::Duration::from_secs(30), async {
+        while fixture.runtime.world.is_none() {
+            fixture.client.drain(&fixture.runtime);
+            fixture
+                .runtime
+                .poll(fixture.runtime.clock.monotonic.elapsed())
+                .unwrap();
+            fixture.client.drain(&fixture.runtime);
+            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        }
+    })
+    .await
+    .expect("joined Shop world owner returns after the durable publication handoff");
+    let cold_excluded = fixture
+        .runtime
+        .world
+        .as_ref()
+        .expect("joined Shop world owner")
+        .regions
+        .prove_static_shop_cold_restore(EntityId(VENDOR), source.source.cell)
+        .await
+        .expect("cold pinned Shop and SQL stock avoid generic Creature duplication");
+    assert_eq!(cold_excluded, forest.items.len() + 1);
+    fixture.shutdown().await;
 }

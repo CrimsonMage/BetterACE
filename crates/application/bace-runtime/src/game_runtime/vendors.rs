@@ -533,6 +533,15 @@ impl GameRuntime {
             // required before this route can publish success.
             return Ok(I::Unsupported);
         }
+        // The admitted static Shop's first terminal checkpoint owns creation
+        // of its V5 world source. Keep this exact authenticated Use in the
+        // bounded ingress queue until that transaction has a committed root.
+        // A different Shop subtype still needs its own durable source owner.
+        if crate::npc_persistence::is_authored_static_shop(registration)?
+            && self.npc.vendor_source_pending(vendor)
+        {
+            return Ok(I::Blocked);
+        }
         if self.vendors.has_pending() {
             return Ok(I::Blocked);
         }
@@ -601,7 +610,8 @@ impl GameRuntime {
     }
 
     fn project_vendor_output(&mut self) -> Result<(), String> {
-        const PREFIX: u64 = 0x5600_0000_0000_0000;
+        // Visibility owns 0x56; vendor listings need a distinct receipt lane.
+        const PREFIX: u64 = 0x5800_0000_0000_0000;
         const MASK: u64 = 0xff00_0000_0000_0000;
         if self
             .vendors

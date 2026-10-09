@@ -101,6 +101,41 @@ impl NpcRuntime {
             .filter(|source| source.admitted && source.source.authored.weenie_type == 12)
     }
 
+    pub(super) fn vendor_source_pending(&self, id: EntityId) -> bool {
+        self.coordinator.needs_terminal(id)
+            || self.coordinator.busy(id)
+            || self.idle.contains_key(&id)
+    }
+
+    fn committed_source_receipt(&self, event: &NpcCoordinatorEvent) -> bool {
+        use crate::npc_persistence::{
+            NpcCheckpointResolution as C, NpcHandInResolution as H, NpcStageResolution as S,
+        };
+        let source = match event {
+            NpcCoordinatorEvent::Checkpoint {
+                source,
+                resolution: C::Committed,
+            } => *source,
+            NpcCoordinatorEvent::Durable { source, resolution }
+                if matches!(resolution.as_ref(), S::Committed { .. }) =>
+            {
+                *source
+            }
+            NpcCoordinatorEvent::HandIn { source, resolution }
+                if matches!(resolution.as_ref(), H::Committed { .. }) =>
+            {
+                *source
+            }
+            _ => return false,
+        };
+        self.source_inventory.get(&source).is_some_and(|frozen| {
+            !frozen.snapshots().is_empty()
+                || (frozen.root_snapshot().is_some()
+                    && frozen.root_is_item()
+                    && !frozen.root_is_static_shop())
+        })
+    }
+
     pub(super) fn new() -> Self {
         Self {
             generated_turn: false,
@@ -246,7 +281,7 @@ impl GameRuntime {
                 .ok_or("NPC shared source receipt owner")?;
             world.regions.adopt_npc_item_snapshots(frozen.snapshots())?;
             if let Some(root) = frozen.root_snapshot() {
-                if frozen.root_is_item() {
+                if frozen.root_is_item() && !frozen.root_is_static_shop() {
                     world
                         .regions
                         .adopt_npc_item_snapshots(std::slice::from_ref(root))?;
@@ -364,6 +399,14 @@ impl GameRuntime {
             let Some(event) = self.npc.held_event.take() else {
                 break;
             };
+            // Entry temporarily lends the region owner to activation. A
+            // committed NPC checkpoint may arrive during that handoff, but
+            // its joined V5 rows must reach the region cache and root
+            // baseline before the coordinator can consume the event.
+            if self.world.is_none() && self.npc.committed_source_receipt(&event) {
+                self.npc.held_event = Some(event);
+                break;
+            }
             if let Err(error) = self.accept_npc_source_inventory(&event) {
                 self.npc.held_event = Some(event);
                 failure.get_or_insert(error);
@@ -599,9 +642,16 @@ impl GameRuntime {
                     .coordinator
                     .register_completed_source(&registration, snapshot)?;
             } else if registration.admitted {
+                let static_shop = crate::npc_persistence::is_authored_static_shop(&registration)?;
                 self.npc
                     .coordinator
                     .activate_admitted_source(&registration)?;
+                // A fresh authored Shop has no script activity to request the
+                // terminal checkpoint that gives its stock a durable world
+                // source. Reuse that held NPC owner before its first Use.
+                if static_shop {
+                    self.npc.coordinator.observe_activity(registration.actor);
+                }
             } else {
                 self.npc
                     .coordinator

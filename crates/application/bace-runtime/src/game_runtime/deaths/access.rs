@@ -596,6 +596,14 @@ impl GameRuntime {
                     return Ok(false);
                 }
                 if p.detaching {
+                    if self
+                        .deaths
+                        .viewers
+                        .get(&p.key)
+                        .is_some_and(|viewer| *viewer != (p.corpse, p.binding))
+                    {
+                        return Err("corpse detach exact viewer binding mismatch".into());
+                    }
                     self.deaths.viewers.remove(&p.key);
                     return Ok(true);
                 }

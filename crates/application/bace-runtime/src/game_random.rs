@@ -45,6 +45,12 @@ impl BoundGameplayRandom {
         kernel
             .configure_player_death_random(self.root(), execution_epoch)
             .map_err(|e| format!("death randomness: {e:?}"))?;
+        kernel
+            .configure_npc_services_without_catalogs(
+                self.root(),
+                u32::try_from(execution_epoch).map_err(|_| "NPC execution epoch overflow")?,
+            )
+            .map_err(|e| format!("NPC randomness: {e:?}"))?;
         Ok(())
     }
     pub fn version(&self) -> u32 {

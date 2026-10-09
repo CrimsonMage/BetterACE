@@ -498,8 +498,8 @@ behavior, full-pool prepayment, and ordinary player release costs. None of these
 checks involved a game client.
 
 The approved gameplay plan remains incomplete. In particular, complete
-constructed-creature promotion and remaining generator subtypes, a composed
-allegiance bindstone accepted-DAT transcript, remaining portal completion obligations, complete
+constructed-creature promotion and remaining generator subtypes, unmodified
+authored-region allegiance bindstone qualification, remaining portal completion obligations, complete
 corpse access/NoCorpse behavior, generic skill device activation effects, and
 the remaining compatible staff/social commands still require integration.
 Incompatible ACE backend commands
@@ -516,7 +516,7 @@ durable receipts. Stale or disconnected packetless cancellation now releases
 the binding output owner without private capacity; a rejected simulation auth
 handoff no longer leaves Submitted pending. The full entered-world DAT transcript
 is qualified for lifestone Use by the synthetic authenticated fixture below;
-allegiance bindstone and stock-client playback remain unqualified. A private
+stock-client playback remains unqualified. A private
 test-only pack delta supplies the missing authored
 treasure key 52:1. With accepted placement failures removing only their exact
 prepared NPC publication roots, the approved-DAT synthetic fixture now reaches
@@ -535,6 +535,16 @@ terminal in 6.6 seconds after Use. It checks source sound, motion and chat
 order, private stamina output, final accepted actor and stationary stone
 ObjectViews, and exact online/PostgreSQL sanctuary and decreased stamina.
 This is a synthetic authenticated transcript, not stock-client playback.
+An additional approved-DAT/PostgreSQL test moves one exact authored allegiance
+bindstone GUID and its unchanged template/UseMessage into validated starter
+geometry through an immutable test-only pack delta. The original indoor
+region was blocked by unrelated NPC assets, and the second indoor region did
+not prepare within a bounded wait; this is not unmodified-region proof. The
+relocated test passes authenticated UDP Use, authoritative range/teleport,
+authored action timing and chat order, exact durable AllegianceMetadata
+sanctuary copy/version, unchanged accepted stone pose, no lifestone sound or
+stamina debit, and graceful shutdown. Admission floor-snaps the authored
+stone Z before Use; the no-move check compares accepted poses before/after.
 Inventory has a fresh split-to-wield proposal and receipt-
 gated combat equipment modes. Portal output covers additional blocked, aborted,
 linked, summoned and completion paths. The summoned visual now uses ACE's
@@ -676,6 +686,13 @@ as a canonical private PropertyInt 5 after the durable receipt; absent recipient
 or output capacity retains completion. The deliberate source discrepancy and
 positive/negative regression evidence are recorded in `docs/divergences.toml`.
 Other equipped NoCorpse cases and ordinary world-container Open remain separate obligations.
+One selected equipped NoCorpse world root can now retain other worn items. The
+Committed output checks the exact pre-death equipment roster minus that root,
+then builds the surviving player model, children and attachment descriptions
+from committed V5 rows. Changed wield masks, a reused selected ID, missing
+gear and effectful or multiple selected roots remain held. A focused roster and
+visibility regression and strict runtime Clippy pass; this is not a full
+equipped-drop or game-client transcript.
 The corpse access owner now rejects a new Open once the exact due-expiry
 ticket is reserved or the corpse enters Destroying; an attached viewer may
 still Close. A focused owner test covers both phases and cold re-registration.
@@ -686,7 +703,20 @@ binding before detaching an open viewer. It does not reapply Use range, so an
 already authorized viewer may close from elsewhere. A revoked or stale session
 cannot clear another viewer or mark the corpse looted; a focused owner
 regression and strict simulation Clippy pass. The retained runtime V5 Close
-output still needs a joined client-free transcript.
+output now checks the exact corpse and authenticated viewer binding before
+advancing a private counter, publishing CloseGroundContainer or removing a
+viewer. Packetless disconnect cleanup has the same binding fence. A synthetic
+Open→Close projection test verifies the frozen V5 IsLooted row, ViewContents,
+CloseGroundContainer, and stale corpse/session rejection; it supplies the
+post-ack cache source rather than exercising a PostgreSQL save-worker receipt.
+A focused real PostgreSQL/save-worker test now commits the corpse permit Open and
+IsLooted Close with exact V5 revision/version acknowledgments, reloads both
+rows, and projects the private ViewContents and CloseGroundContainer packets.
+A separate runtime regression holds expiry load while the exact viewer remains
+open and releases it after the viewer handoff. These tests supply the post-ack
+cache source and do not join simulation Inspect/Adopt, in-memory region
+replacement, logout and visibility delivery. The full live Close transcript
+remains open.
 Retained `DeathDelivery` protection expiry and dispel events now carry the
 entered session binding frozen by the simulation. The runtime emits the pinned
 Magic-channel queue-9 system chat, keeps the event under queue pressure or a
@@ -715,8 +745,17 @@ forest under one hierarchy lock, avoiding a torn source/marker view. Pure
 default stock at later marker versions reconstructs its base items while
 retaining the advanced durable marker version/revision; repeat Use checks both.
 Unique contributions, mutated stock rows and wrong revision deltas remain held.
-Focused owner/runtime tests cover those steps,
-but the fixture lacks a full DAT-backed authenticated actor-range transcript.
+Focused owner/runtime tests cover those steps. A joined approved-DAT test now
+places the unchanged authored Shop template near the training start through an
+immutable test-only world delta. Authenticated entered-world Use reaches a
+private reliable ApproachVendor listing after the fresh Shop's held NPC idle
+checkpoint creates its exact V5 world source and stock marker. The same test
+loads the SQL source/head/forest into a fresh pinned region, checks no generic
+Creature or stock duplication, and rejects a forged generated-parent origin.
+Production NPC random composition now binds the authoritative root for this
+checkpoint; native quest/event catalogs remain absent and scripted definitions
+that require them stay fail closed. A distinct vendor listing correlation lane
+(`0x58`) prevents visibility receipt collision, with a concurrent receipt test.
 Buy/Sell and alternate currency remain unsupported. Transient-only vendors are
 held until a durable vendor parent exists.
 The economy owner now has a bounded default Buy quote for accepted stock IDs,
@@ -771,16 +810,13 @@ is about 66 metres from that start. The local joined Shop fixture needs an
 authoritative approach or a test-private authored placement at that training
 Location. The free-ride destination `0xDA55` is not an initial-login relocation.
 The private immutable nearby-Shop delta now proves accepted ObjectCreate and
-NPC source admission in the real training landblock. Authenticated Use reaches
-the vendor cold loader, which correctly refuses to create stock without a
-committed V5 world source. Fresh static Shops currently have a separate NPC
-script checkpoint but no V5 world placement, so this path is fail-closed and
-does not emit ApproachVendor. Completing it requires a held authoritative NPC
-source position and one exact durable source/stock operation, plus restart
-reconciliation: type-12 Vendors are creature templates, and generic world-item
-restore must not admit their new V5 roots as duplicate creatures. Buy ingress
-remains Unsupported until that source ownership and a joined receipt/output
-transcript pass.
+NPC source admission in the real training landblock. Fresh static Shops now
+freeze an authoritative idle NPC checkpoint and commit the world-positioned
+V5 root before their first Use can reserve lazy stock. The joined test verifies
+source, stock, listing, cold pinned recovery and no duplicate Creature owner.
+This remains a test-private nearby placement, not an unmodified authored Shop
+approach or stock-client playback. Buy ingress remains Unsupported until its
+own joined player/vendor receipt and output transcript passes.
 The Pet output owner now clears a disconnected, definitively rejected summon
 only when its pending Saving phase, actor, device and rejected completion match;
 a mismatched result remains retained. Its focused backend test and strict

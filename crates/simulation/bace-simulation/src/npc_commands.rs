@@ -61,6 +61,13 @@ pub enum NpcServiceAction {
         source: EntityId,
         operation: u64,
     },
+    /// First durable checkpoint for an admitted source with no emote invocation.
+    /// The simulation seeds its own random/event state and freezes it atomically.
+    FreezeBootstrapIdle {
+        source: EntityId,
+        operation: u64,
+        event: [u8; 16],
+    },
     CommitIdle {
         source: EntityId,
         operation: u64,
@@ -331,6 +338,11 @@ impl NpcServiceCommand {
             return false;
         }
         match &self.action {
+            NpcServiceAction::FreezeBootstrapIdle {
+                source,
+                operation,
+                event,
+            } => source.0 != 0 && *operation != 0 && *event != [0; 16],
             NpcServiceAction::RestoreObjectRegistry {
                 source, entries, ..
             } => source.0 != 0 && entries.len() <= 512,

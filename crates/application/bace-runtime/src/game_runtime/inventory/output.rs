@@ -227,7 +227,7 @@ impl GameRuntime {
         Ok(())
     }
 }
-pub(super) fn contained_state(
+pub(in crate::game_runtime) fn contained_state(
     source: &bace_content::WeenieV1,
     sequences: &Sequences,
 ) -> EntryObjectState {

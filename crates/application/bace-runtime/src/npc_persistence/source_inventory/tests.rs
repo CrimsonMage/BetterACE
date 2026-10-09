@@ -7,25 +7,67 @@ fn fixture() -> (
     crate::npc_sources::PreparedNpcRegistration,
     bace_simulation::NpcSourceCheckpoint,
 ) {
+    fixture_for(10, false)
+}
+fn fixture_for(
+    kind: u32,
+    static_shop: bool,
+) -> (
+    tempfile::TempDir,
+    crate::npc_sources::PreparedNpcRegistration,
+    bace_simulation::NpcSourceCheckpoint,
+) {
     let directory = tempfile::tempdir().unwrap();
     let source = WeenieV1 {
         schema_version: 1,
         weenie_id: 100,
         class_name: "npc_root".into(),
-        weenie_type: 10,
+        weenie_type: kind,
         last_modified: None,
         properties: Default::default(),
     };
-    let base = bace_storage_codec::compile_pack(
-        directory.path(),
-        [Ok(bace_storage_codec::PackRecord {
+    let mut records = vec![bace_storage_codec::PackRecord {
+        key: bace_storage_codec::PackKey {
+            namespace: 1,
+            id: 100,
+        },
+        schema: 1,
+        value: Some(bace_content_tools::compile_template(&source).unwrap()),
+    }];
+    if static_shop {
+        records.push(bace_storage_codec::PackRecord {
             key: bace_storage_codec::PackKey {
-                namespace: 1,
-                id: 100,
+                namespace: 20,
+                id: 2,
             },
             schema: 1,
-            value: Some(bace_content_tools::compile_template(&source).unwrap()),
-        })],
+            value: Some(
+                bace_content_tools::compile_world_record(
+                    &bace_content::WorldRecordV1::LandblockInstance(
+                        bace_content::LandblockInstanceRowV1 {
+                            guid: 2,
+                            landblock: 1,
+                            weenie_class_id: 100,
+                            obj_cell_id: 0x10001,
+                            origin_x: 1.,
+                            origin_y: 2.,
+                            origin_z: 0.5,
+                            angles_w: 1.,
+                            angles_x: 0.,
+                            angles_y: 0.,
+                            angles_z: 0.,
+                            is_link_child: false,
+                            last_modified: String::new(),
+                        },
+                    ),
+                )
+                .unwrap(),
+            ),
+        });
+    }
+    let base = bace_storage_codec::compile_pack(
+        directory.path(),
+        records.into_iter().map(Ok),
         Default::default(),
     )
     .unwrap();
@@ -242,4 +284,94 @@ fn held_gear_and_source_root_are_one_idempotent_joint_operation() {
         .unwrap();
     assert_eq!(proof.items[0].persisted_version, 1);
     assert_eq!(proof.source_persisted_version, 1);
+}
+
+#[test]
+fn held_static_shop_checkpoint_freezes_world_v5_and_exact_replay() {
+    let (_dir, mut registration, mut checkpoint) = fixture_for(12, true);
+    assert!(is_authored_static_shop(&registration).unwrap());
+    let frozen = freeze_source_inventory(
+        checkpoint.inventory.as_ref().unwrap(),
+        &[],
+        1,
+        &registration,
+    )
+    .unwrap();
+    assert!(frozen.root_is_static_shop());
+    let mut first = operation(&registration, checkpoint.clone(), 0);
+    frozen.attach(&mut first).unwrap();
+    assert!(joined(&first));
+    assert_eq!(first.inventory.snapshots.len(), 1);
+    assert_eq!(first.inventory.changes.len(), 1);
+    assert_eq!(first.inventory.changes[0].expected, None);
+    assert_eq!(
+        first.inventory.changes[0].destination,
+        bace_persistence::DurableItemPlace::World { cell: 0x10001 }
+    );
+    let root = frozen.root_snapshot().unwrap();
+    let saved = bace_storage_codec::ItemSaveV5::decode(&root.bytes).unwrap();
+    assert_eq!(saved.entity.object_id, 2);
+    assert_eq!(saved.entity.state.weenie_type, 12);
+    assert!(saved.construction.is_none());
+    assert_eq!(
+        saved.placement,
+        bace_storage_codec::ItemPlacementV2::World(bace_content::Position {
+            obj_cell_id: 0x10001,
+            position_x: 1.,
+            position_y: 2.,
+            position_z: 0.5,
+            rotation_w: 1.,
+            rotation_x: 0.,
+            rotation_y: 0.,
+            rotation_z: 0.,
+        })
+    );
+    let bytes = first.workflow.checkpoint.clone();
+    frozen.attach(&mut first).unwrap();
+    assert_eq!(first.workflow.checkpoint, bytes);
+    assert_eq!(first.inventory.snapshots[0], root.clone());
+
+    registration.baseline = Some(bace_persistence::StoredAggregate {
+        object_id: 2,
+        persisted_version: 1,
+        bytes: root.bytes.clone(),
+    });
+    checkpoint.event_id = [8; 16];
+    checkpoint.invocations[0].event_id = [8; 16];
+    checkpoint.inventory.as_mut().unwrap().ticket = 92;
+    let later = freeze_source_inventory(
+        checkpoint.inventory.as_ref().unwrap(),
+        &[],
+        1,
+        &registration,
+    )
+    .unwrap();
+    let mut next = operation(&registration, checkpoint, 1);
+    later.attach(&mut next).unwrap();
+    assert_eq!(later.root_snapshot().unwrap().expected_version, 1);
+    assert_eq!(later.root_snapshot().unwrap().mutation_revision, 2);
+    assert_eq!(
+        next.inventory.changes[0].expected,
+        Some(bace_persistence::DurableItemPlace::World { cell: 0x10001 })
+    );
+}
+
+#[test]
+fn generated_or_unindexed_shop_cannot_become_a_static_world_source() {
+    let (_dir, registration, checkpoint) = fixture_for(12, false);
+    assert!(!is_authored_static_shop(&registration).unwrap());
+    let frozen = freeze_source_inventory(
+        checkpoint.inventory.as_ref().unwrap(),
+        &[],
+        1,
+        &registration,
+    )
+    .unwrap();
+    assert!(!frozen.root_is_static_shop());
+    let mut operation = operation(&registration, checkpoint, 0);
+    frozen.attach(&mut operation).unwrap();
+    assert!(operation.inventory.changes.is_empty());
+    assert!(
+        bace_storage_codec::ItemSaveV5::decode(&frozen.root_snapshot().unwrap().bytes).is_err()
+    );
 }

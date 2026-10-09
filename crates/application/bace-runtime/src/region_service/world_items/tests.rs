@@ -1,4 +1,112 @@
 use super::*;
+use crate::region_activation::{RegionActivationRequest, VerifiedRegionAssets};
+use bace_persistence::InventoryLoadLimits;
+
+impl crate::region_service::RegionService {
+    /// Reopen the actual SQL source head, accepted historical pack, and world
+    /// forest through the cold preparation path. This read-only fixture checks
+    /// that the pinned NPC remains the one actor and stock is not generic loot.
+    pub(crate) async fn prove_static_shop_cold_restore(
+        &self,
+        shop: EntityId,
+        cell: u32,
+    ) -> Result<usize, String> {
+        let landblock = (cell >> 16) as u16;
+        let active = self
+            .active
+            .get(&landblock)
+            .ok_or("cold Shop proof requires active source region")?;
+        let head = self
+            .store
+            .npc_source_head(shop.0)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or("cold Shop proof source head missing")?;
+        if !head.completed {
+            return Err("cold Shop proof source head incomplete".into());
+        }
+        let mut source = crate::npc_region::request(&self.store, head).await?;
+        let request = RegionActivationRequest {
+            token: active.fence.token,
+            activation_epoch: active.fence.activation_epoch,
+            landblock,
+            generation: self.config.generation.clone(),
+            creature_policy: Some(self.config.creature_policy),
+            treasure_assets: Some(self.config.treasure_assets.clone()),
+            content_hash: self.config.content_hash,
+            aetheria_drop_rate: self.config.aetheria_drop_rate,
+        };
+        let mut assets = VerifiedRegionAssets::open(&self.config.assets)?;
+        let mut prepared = assets.prepare(&request)?;
+        let directory = self
+            .npc_directory
+            .as_ref()
+            .ok_or("cold Shop proof source directory missing")?;
+        let original_checkpoint = source.source.head.checkpoint.clone();
+        let mut forged =
+            bace_storage_codec::NpcWorkflowSaveV3::decode_or_migrate(&original_checkpoint)
+                .map_err(|e| e.to_string())?;
+        let origin = forged
+            .inventory
+            .as_mut()
+            .and_then(|inventory| inventory.origin.as_mut())
+            .ok_or("cold Shop proof self-origin missing")?;
+        if origin.generator != shop.0 {
+            return Err("cold Shop proof expected an authored self-origin".into());
+        }
+        origin.generator = shop
+            .0
+            .checked_add(1)
+            .ok_or("cold Shop proof generator bound")?;
+        source.source.head.checkpoint = forged.encode().map_err(|e| e.to_string())?;
+        let rejected = assets.prepare_pinned_npc_region(&prepared, &request, &source, directory);
+        source.source.head.checkpoint = original_checkpoint;
+        if !matches!(rejected, Err(ref error) if error.contains("exact parent membership admission"))
+        {
+            return Err("cold Shop proof accepted a forged parent generator".into());
+        }
+        let pin = assets.prepare_pinned_npc_region(&prepared, &request, &source, directory)?;
+        crate::npc_region::install(&mut prepared, pin)?;
+        let snapshots = self
+            .store
+            .load_world_item_tree(
+                cell,
+                InventoryLoadLimits {
+                    max_items: 4096,
+                    max_depth: 64,
+                    max_total_bytes: 64 * 1024 * 1024,
+                },
+            )
+            .await
+            .map_err(|e| e.to_string())?;
+        let excluded = static_shop_forest_ids(&snapshots, &prepared)?;
+        if !excluded.contains(&shop.0) {
+            return Err("cold Shop proof did not identify the durable root".into());
+        }
+        let spells = assets.prepare_world_spell_table()?;
+        let (items, sources) = prepare(
+            &snapshots,
+            &prepared,
+            &mut assets,
+            &spells,
+            WorldItemRestoreClock {
+                epoch: self.config.world_epoch,
+                unix_seconds: 1_800_000_000,
+                tick: 30,
+            },
+        )?;
+        if items
+            .roots
+            .iter()
+            .any(|root| excluded.contains(&root.entity.0))
+            || items.items.iter().any(|item| excluded.contains(&item.id.0))
+            || sources.keys().any(|id| excluded.contains(id))
+        {
+            return Err("cold Shop was duplicated as generic world loot".into());
+        }
+        Ok(excluded.len())
+    }
+}
 use bace_content::{Position, Property, WeenieV1};
 use bace_persistence::StoredAggregate;
 use bace_storage_codec::{

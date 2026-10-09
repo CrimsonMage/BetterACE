@@ -111,17 +111,24 @@ impl GameRuntime {
         };
         if let Some(frozen) = self.npc.source_inventory.get(&source) {
             if committed {
-                let world = self
-                    .world
-                    .as_mut()
-                    .ok_or("NPC source world receipt owner missing")?;
-                world.regions.adopt_npc_item_snapshots(frozen.snapshots())?;
-                if let Some(root) = frozen.root_snapshot() {
-                    if frozen.root_is_item() {
+                let adopt_root = frozen.root_snapshot().is_some()
+                    && frozen.root_is_item()
+                    && !frozen.root_is_static_shop();
+                if !frozen.snapshots().is_empty() || adopt_root {
+                    let world = self
+                        .world
+                        .as_mut()
+                        .ok_or("NPC source world receipt owner missing")?;
+                    world.regions.adopt_npc_item_snapshots(frozen.snapshots())?;
+                    if adopt_root {
                         world
                             .regions
-                            .adopt_npc_item_snapshots(std::slice::from_ref(root))?;
+                            .adopt_npc_item_snapshots(std::slice::from_ref(
+                                frozen.root_snapshot().expect("matched NPC root receipt"),
+                            ))?;
                     }
+                }
+                if let Some(root) = frozen.root_snapshot() {
                     self.npc
                         .definitions
                         .get_mut(&source)

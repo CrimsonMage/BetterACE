@@ -12,7 +12,7 @@ use bace_simulation::{
 use bace_storage_codec::{CorpseSaveV5, ItemPlacementV2, ItemSaveV2, ItemSaveV4, ItemSaveV5};
 use bace_types::EntityId;
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, VecDeque},
     sync::Arc,
 };
 pub(crate) struct DecodedWorldItem {
@@ -151,7 +151,11 @@ fn prepare_inner(
     let mut ancestry = BTreeMap::new();
     let mut saved_items = BTreeMap::new();
     let mut registry_entries = 0usize;
+    let static_shops = static_shop_forest_ids(snapshots, prepared)?;
     for snapshot in snapshots {
+        if static_shops.contains(&snapshot.aggregate.object_id) {
+            continue;
+        }
         let decoded = decode_for_restore(snapshot)?;
         let saved = decoded.item;
         registry_entries = registry_entries
@@ -326,6 +330,85 @@ fn prepare_inner(
         }
     }
     Ok((out, sources))
+}
+
+/// A Shop checkpoint root is the same admitted NPC, not a second constructed
+/// Creature. Its stock forest belongs to the vendor lazy owner and is loaded
+/// with the marker under that owner's hierarchy sequencer on first Use.
+fn static_shop_forest_ids(
+    snapshots: &[LocatedSnapshot],
+    prepared: &crate::region_activation::PreparedRegionActivation,
+) -> Result<BTreeSet<u32>, String> {
+    let mut roots = BTreeSet::new();
+    let mut children: BTreeMap<u32, Vec<u32>> = BTreeMap::new();
+    for snapshot in snapshots {
+        let id = snapshot.aggregate.object_id;
+        match snapshot.placement {
+            DurableItemPlace::World { .. } => {
+                let decoded = decode(snapshot)?;
+                if decoded.item.entity.state.weenie_type != 12
+                    || decoded.item.construction.is_some()
+                {
+                    continue;
+                }
+                let pin = prepared
+                    .npc_recovery
+                    .get(&EntityId(id))
+                    .ok_or("durable static Shop has no pinned NPC source")?;
+                let baseline = pin
+                    .registration
+                    .baseline
+                    .as_ref()
+                    .ok_or("durable static Shop has no NPC baseline")?;
+                let source = prepared
+                    .content
+                    .instances
+                    .iter()
+                    .find(|instance| instance.source.guid == id)
+                    .ok_or("durable static Shop has no admitted source")?;
+                let ItemPlacementV2::World(position) = &decoded.item.placement else {
+                    return Err("durable static Shop world placement".into());
+                };
+                let (sin, cos) = (pin.location.heading * 0.5).sin_cos();
+                if baseline != &snapshot.aggregate
+                    || source.source.is_link_child
+                    || source.template.weenie_id != decoded.item.entity.state.weenie_id
+                    || pin.registration.source.template != source.template.weenie_id
+                    || pin.registration.source.authored.weenie_type != 12
+                    || decoded.item.entity.template_revision
+                        != pin.registration.generation.revision()
+                    || position.obj_cell_id != pin.location.cell.0
+                    || position.position_x != pin.location.position.x
+                    || position.position_y != pin.location.position.y
+                    || position.position_z != pin.location.position.z
+                    || position.rotation_w != cos
+                    || position.rotation_x != 0.0
+                    || position.rotation_y != 0.0
+                    || position.rotation_z != sin
+                {
+                    return Err("durable static Shop NPC/source fence".into());
+                }
+                roots.insert(id);
+            }
+            DurableItemPlace::Contained { container, .. } => {
+                children.entry(container).or_default().push(id);
+            }
+            DurableItemPlace::Removed => return Err("removed world item".into()),
+        }
+    }
+    let mut excluded = roots.clone();
+    let mut queue: VecDeque<_> = roots.into_iter().collect();
+    while let Some(parent) = queue.pop_front() {
+        if let Some(descendants) = children.get(&parent) {
+            for &id in descendants {
+                if !excluded.insert(id) {
+                    return Err("static Shop stock forest cycle or duplicate".into());
+                }
+                queue.push_back(id);
+            }
+        }
+    }
+    Ok(excluded)
 }
 pub(crate) fn definition(
     table: &Arc<bace_dat::SpellTable>,

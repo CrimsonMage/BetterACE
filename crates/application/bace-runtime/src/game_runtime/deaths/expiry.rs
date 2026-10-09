@@ -416,6 +416,7 @@ impl GameRuntime {
         Ok(())
     }
 }
+
 fn freeze_loaded(
     epoch: u64,
     ticket: &CorpseExpiryTicket,
@@ -536,4 +537,56 @@ fn freeze_loaded(
         prepared: spill.prepared,
         presentation,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn active_corpse_viewer_defers_expiry_load_until_close_handoff() {
+        // ACE corpse retirement must not overtake the viewer's Close. The
+        // runtime's retained expiry ticket remains idle while the exact
+        // authenticated viewer is present; clearing that handoff admits load.
+        let (_cluster, _directory, mut runtime, key, binding) =
+            crate::game_runtime::portals::tests::output_runtime().await;
+        let corpse = EntityId(0x8000_0043);
+        runtime.deaths.expiry.pending = Some(Pending {
+            ticket: CorpseExpiryTicket {
+                corpse,
+                death_operation: 77,
+                expires_tick: 100,
+                inventory: bace_simulation::InventoryTicket {
+                    operation: 81,
+                    actor: corpse,
+                    proposal: bace_inventory::InventoryProposal {
+                        changes: vec![],
+                        participants: vec![],
+                        actor_burden: 0,
+                        requires_pickup_motion: false,
+                    },
+                },
+                transient: vec![],
+                spill: None,
+                enchantments: BTreeMap::new(),
+            },
+            frozen: None,
+            submitted: false,
+            correlation: None,
+            command: None,
+            acknowledged: false,
+            rejected: false,
+            event: None,
+            spill_prepared: false,
+            presentation: None,
+        });
+        runtime.deaths.viewers.insert(key, (corpse, binding));
+        runtime.poll_corpse_expiry(1800).unwrap();
+        assert!(runtime.deaths.expiry.pending.is_some());
+        assert!(runtime.deaths.expiry.load.is_none());
+        runtime.deaths.viewers.remove(&key);
+        runtime.poll_corpse_expiry(1800).unwrap();
+        assert!(runtime.deaths.expiry.pending.is_some());
+        assert!(runtime.deaths.expiry.load.is_some());
+    }
 }
