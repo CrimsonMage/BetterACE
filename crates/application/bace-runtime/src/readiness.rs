@@ -48,8 +48,7 @@ pub async fn inspect(config: &ServerConfig) -> ReadinessReport {
 }
 
 async fn inspect_world(config: &ServerConfig) -> Result<(u64, usize), String> {
-    let url = std::env::var(&config.database_url_env)
-        .map_err(|_| format!("{} is not set", config.database_url_env))?;
+    let url = config.resolve_database_url().map_err(|e| e.to_string())?;
     let store = PgStore::connect_bounded(&url, 1, std::time::Duration::from_secs(5))
         .await
         .map_err(|e| e.to_string())?;

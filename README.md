@@ -142,9 +142,16 @@ bace-server
 
 Without `--config`, the first run writes `server.toml` in the current working
 directory and later runs load your edits. An explicit `--config FILE` must
-already exist. The generated file is a starting template: configure DATs,
-accepted packs, the private RNG key and PostgreSQL before the game child can
-be ready. The local `server.toml` is ignored by Git.
+already exist. The generated file names conventional DAT, pack and private RNG
+key paths. Put verified DATs there, activate an accepted world pack, and
+provision the RNG key before the game child can be ready. The local
+`server.toml` is ignored by Git.
+
+On Unix, `cargo run -p bace-cli -- local-database` creates or restarts a
+private, passwordless PostgreSQL socket and prints its exact URL. Add that URL
+as `database_url` in your ignored `server.toml`, or set the
+`BACE_DATABASE_URL` environment variable. The environment variable takes
+precedence; keep password-bearing URLs out of TOML.
 
 Open the printed URL (default `http://127.0.0.1:8080`). Host privileges are separate from game accounts. The dashboard supervises a game child and reports its readiness independently.
 

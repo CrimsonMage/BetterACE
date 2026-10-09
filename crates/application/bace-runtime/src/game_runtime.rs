@@ -529,6 +529,31 @@ impl GameRuntime {
                     || !w.events.is_empty()
             })
     }
+    pub fn pending_drain_reason(&self) -> &'static str {
+        if self.draining && !self.regions_quiesced {
+            "waiting for simulation region quiescence"
+        } else if self.world_job.is_some() {
+            "waiting for world preparation"
+        } else if self.world.as_ref().is_some_and(|w| w.pending.is_some()) {
+            "waiting for a generator command receipt"
+        } else if self.world.as_ref().is_some_and(|w| w.regions.has_pending()) {
+            "waiting for region unload"
+        } else if self
+            .world
+            .as_ref()
+            .is_some_and(|w| w.generators.has_pending())
+        {
+            "waiting for generator lifecycle"
+        } else if self.npc.has_pending() {
+            "waiting for NPC lifecycle"
+        } else if self.players.requires_drain() || self.online_saves.requires_drain() {
+            "waiting for player saves"
+        } else if !self.sessions.is_empty() {
+            "waiting for admitted sessions"
+        } else {
+            "waiting for other retained game work"
+        }
+    }
 }
 fn ready<T>(job: &mut Option<Job<T>>) -> Option<T> {
     let future = job.as_mut()?;

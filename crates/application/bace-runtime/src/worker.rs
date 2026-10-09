@@ -6,8 +6,8 @@ use tokio::sync::mpsc;
 
 #[derive(Debug, thiserror::Error)]
 pub enum WorkerError {
-    #[error("{0} must contain the PostgreSQL URL")]
-    MissingUrl(String),
+    #[error("database configuration: {0}")]
+    DatabaseConfig(String),
     #[error(transparent)]
     Store(#[from] StoreError),
     #[error(transparent)]
@@ -21,8 +21,9 @@ pub enum WorkerError {
 }
 
 pub async fn run(config: ServerConfig) -> Result<(), WorkerError> {
-    let url = std::env::var(&config.database_url_env)
-        .map_err(|_| WorkerError::MissingUrl(config.database_url_env.clone()))?;
+    let url = config
+        .resolve_database_url()
+        .map_err(|e| WorkerError::DatabaseConfig(e.to_string()))?;
     run_until(
         &url,
         config.database_connections,

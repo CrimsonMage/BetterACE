@@ -82,8 +82,7 @@ impl GameBootstrap {
         tokio::task::spawn_blocking(move || verify_assets(&manifest, &directory))
             .await
             .map_err(|e| format!("asset validation worker: {e}"))??;
-        let url = std::env::var(&config.database_url_env)
-            .map_err(|_| format!("{} is not set", config.database_url_env))?;
+        let url = config.resolve_database_url().map_err(|e| e.to_string())?;
         let store =
             PgStore::connect_bounded(&url, config.database_connections, Duration::from_secs(30))
                 .await

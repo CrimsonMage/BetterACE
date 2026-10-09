@@ -79,8 +79,12 @@ Thin application composition plus working content publication and fair dedicated
 Running `bace-server` or `bace-server serve` without `--config` creates a
 `server.toml` template in the current working directory on first run. Later
 runs load that file without changing it. An explicit `--config FILE` must
-already exist. The template leaves DAT, accepted pack, and private RNG key
-paths unset, so the existing game-readiness checks still apply.
+already exist. The template names conventional DAT, accepted pack, and private
+RNG key paths; the resources still require provisioning, and the existing
+game-readiness checks still apply. A passwordless local PostgreSQL URL can be
+set in `database_url`; `database_url_env` takes precedence when present.
+Direct `serve` reports the retained lifecycle reason while graceful drain is
+in progress, and keeps the world owner until durable shutdown completes.
 
 `simulation::SimulationWorker` moves the kernel onto one named OS thread; physics and world share that owner. Bounded nonblocking command admission, bounded work per tick, explicit shutdown/join, 30 Hz pacing and fixed-size timing histograms keep adapter work separate. `exercise` uses this worker unpaced. A rejected command is currently counted, not routed to a stock-client correction packet. Worker shutdown does not itself integrate the save coordinator: durable drain composition remains part of the playable milestone.
 

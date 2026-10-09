@@ -4,14 +4,19 @@
 # The game listens here and uses the next UDP port for the ACE companion port.
 bind_address = "127.0.0.1:9000"
 
-# Name of the environment variable containing the PostgreSQL URL.
-# Keep the URL itself out of this file.
+# A nonempty PostgreSQL URL in this environment variable takes precedence.
 database_url_env = "BACE_DATABASE_URL"
 
-# Set these to your provisioned locations before gameplay can become ready.
-# dat_directory = "/path/to/your/DAT/files"
-# pack_directory = "/path/to/accepted/bace-packs"
-# random_key_file = "/path/to/private/random-key"
+# On Unix, `cargo run -p bace-cli -- local-database` provisions a private
+# passwordless local database and prints its exact socket URL. Paste that URL
+# below if you prefer a local setting; do not commit a credential-bearing URL.
+# database_url = "postgresql:///betterace?host=<absolute-private-socket-directory>&user=betterace"
+
+# Conventional local paths. These names alone do not provision DAT assets,
+# an accepted world pack, or the private RNG key required for game readiness.
+dat_directory = "data/dats"
+pack_directory = ".local/world-packs"
+random_key_file = "state/random-key"
 
 # Native TOML staged here is reviewed by the host; it is not imported on startup.
 content_inbox_directory = "state/content-inbox"

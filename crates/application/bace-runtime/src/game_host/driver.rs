@@ -123,7 +123,13 @@ pub(super) async fn run(
         } else if closed {
             "Durable game shutdown complete; world lease released.".into()
         } else if drain.is_some() || lost.load(Ordering::Acquire) {
-            "Draining admitted players, world state and reliable output.".into()
+            match game.as_ref() {
+                Some(runtime) => format!(
+                    "Draining admitted players, world state and reliable output: {}.",
+                    runtime.pending_drain_reason()
+                ),
+                None => "Draining final durable shutdown work.".into(),
+            }
         } else if ready {
             "Game services running. Stock-client playability remains unqualified.".into()
         } else {

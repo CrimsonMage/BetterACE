@@ -114,8 +114,21 @@ pub async fn serve(config: bace_config::ServerConfig) -> Result<(), String> {
             signal=tokio::signal::ctrl_c()=>{
                 signal.map_err(|e|e.to_string())?;
                 eprintln!("Draining admitted characters and world saves; the process retains unresolved work.");
-                backend.drain(1).await?;
-                return Ok(());
+                let status = backend.status.clone();
+                let drain = backend.drain(1);
+                tokio::pin!(drain);
+                loop {
+                    tokio::select! {
+                        result = &mut drain => return result,
+                        _ = interval.tick() => {
+                            let detail = status.borrow().detail.clone();
+                            if detail != prior {
+                                eprintln!("{detail}");
+                                prior = detail;
+                            }
+                        }
+                    }
+                }
             }
             _=interval.tick()=>{
                 let (_,detail)=backend.status();

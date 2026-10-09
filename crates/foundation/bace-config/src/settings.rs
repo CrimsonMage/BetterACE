@@ -25,6 +25,9 @@ pub struct ServerConfig {
     pub host: crate::HostConfig,
     pub bind_address: String,
     pub database_url_env: String,
+    /// Optional PostgreSQL URL; the named environment variable takes precedence.
+    #[serde(default)]
+    pub database_url: Option<String>,
     pub dat_directory: Option<PathBuf>,
     /// Immutable aggregate world packs; PostgreSQL selects the accepted manifest.
     #[serde(default)]
@@ -55,6 +58,7 @@ impl Default for ServerConfig {
             host: crate::HostConfig::default(),
             bind_address: "127.0.0.1:9000".into(),
             database_url_env: "BACE_DATABASE_URL".into(),
+            database_url: None,
             dat_directory: None,
             pack_directory: None,
             content_inbox_directory: default_content_inbox_directory(),
@@ -68,6 +72,23 @@ impl Default for ServerConfig {
 }
 
 impl ServerConfig {
+    /// Resolve the PostgreSQL connection without requiring credentials in TOML.
+    /// A nonempty environment value overrides the optional configured URL.
+    pub fn resolve_database_url(&self) -> Result<String, ConfigError> {
+        match std::env::var(&self.database_url_env) {
+            Ok(url) if !url.trim().is_empty() => return Ok(url),
+            Ok(_) | Err(std::env::VarError::NotPresent) => {}
+            Err(std::env::VarError::NotUnicode(_)) => {
+                return Err(ConfigError::Invalid(
+                    "database URL environment variable must be UTF-8",
+                ));
+            }
+        }
+        self.database_url
+            .clone()
+            .ok_or_else(|| ConfigError::MissingDatabaseUrl(self.database_url_env.clone()))
+    }
+
     pub fn load(path: &Path) -> Result<Self, ConfigError> {
         let source = std::fs::read_to_string(path)?;
         Self::parse(&source)
@@ -167,6 +188,13 @@ impl ServerConfig {
                 "database_url_env must name an environment variable",
             ));
         }
+        if self
+            .database_url
+            .as_ref()
+            .is_some_and(|url| url.trim().is_empty())
+        {
+            return Err(ConfigError::Invalid("database_url must not be empty"));
+        }
         if self.content_inbox_directory.as_os_str().is_empty() {
             return Err(ConfigError::Invalid(
                 "content_inbox_directory must not be empty",
@@ -196,4 +224,6 @@ pub enum ConfigError {
     Toml(#[from] toml::de::Error),
     #[error("invalid configuration: {0}")]
     Invalid(&'static str),
+    #[error("{0} is not set and database_url is not configured")]
+    MissingDatabaseUrl(String),
 }

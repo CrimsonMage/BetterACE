@@ -7,9 +7,17 @@ TOML configuration loading and validation.
 `ServerConfig::load_or_create_default(path)` creates a commented, valid
 `server.toml` on first run and returns whether it created the file. It publishes
 the complete template without replacing an existing file. The generated file
-leaves `dat_directory`, `pack_directory`, and `random_key_file` visibly
-unconfigured; gameplay readiness remains closed until the operator provisions
-those paths and the PostgreSQL URL environment variable.
+names conventional local paths (`data/dats`, `.local/world-packs`, and
+`state/random-key`); gameplay readiness remains closed until approved assets,
+an accepted world pack, and the private RNG key are actually provisioned.
+
+`ServerConfig::resolve_database_url()` uses a nonempty URL from the named
+environment variable first and then optional `database_url` from TOML. An
+absent value in both places is an error. A Unix development operator can run
+`bace-cli local-database` to provision a private, passwordless Unix-socket
+PostgreSQL and paste its printed URL into the ignored local `server.toml`.
+Do not commit a credential-bearing URL. The generic first-run template leaves
+`database_url` commented because the local socket path depends on the machine.
 
 See root ARCHITECTURE.md and AGENTS.md for MUST rules.
 
