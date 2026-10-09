@@ -3,13 +3,15 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     io::{self, Write},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum HostError {
     #[error("host file operation failed: {0}")]
     Io(#[from] io::Error),
+    #[error("host credentials missing at {}; run bace-cli host-init for this state directory", .0.display())]
+    MissingOperator(PathBuf),
     #[error("host credentials are invalid or unavailable; run bace-cli host-init")]
     Credentials,
     #[error("host state directory or file is not private")]
@@ -49,7 +51,13 @@ pub fn provision_operator(path: &Path, password: &[u8]) -> Result<(), HostError>
 }
 pub fn load_operator(path: &Path) -> Result<PasswordHashRecord, HostError> {
     ensure_private_directory(path.parent().ok_or(HostError::Permissions)?)?;
-    let metadata = fs::symlink_metadata(path)?;
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            return Err(HostError::MissingOperator(path.to_path_buf()));
+        }
+        Err(error) => return Err(HostError::Io(error)),
+    };
     if !metadata.is_file() || metadata.len() > 2048 {
         return Err(HostError::Permissions);
     }

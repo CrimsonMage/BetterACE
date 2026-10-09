@@ -6,7 +6,7 @@ use axum::{
 };
 use bace_admin::{
     ContentAction, ContentChange, ContentPreview, ContentReply, ContentRequest, ContentRevision,
-    HostConsole, HostStatus, console_router, load_operator, provision_operator,
+    HostConsole, HostError, HostStatus, console_router, load_operator, provision_operator,
 };
 use bace_config::HostConfig;
 use bace_observability::LogStore;
@@ -350,4 +350,13 @@ fn provisioning_never_overwrites_and_checks_private_permissions() {
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
         assert!(load_operator(&path).is_err());
     }
+}
+
+#[test]
+fn missing_operator_identifies_credential_provisioning() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("private/operator.toml");
+    let error = load_operator(&path).expect_err("missing credentials");
+    assert!(matches!(&error, HostError::MissingOperator(missing) if missing == &path));
+    assert!(error.to_string().contains("host-init"));
 }
