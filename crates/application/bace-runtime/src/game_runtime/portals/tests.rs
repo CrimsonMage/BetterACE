@@ -549,6 +549,7 @@ pub(in crate::game_runtime) async fn output_runtime() -> (
                 cold_token: None,
                 region_requested: false,
                 settle_attempts: 0,
+                first_settle_tick: None,
             }),
             failure: None,
         },

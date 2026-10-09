@@ -26,6 +26,13 @@ proposals retain revision checks; none of these new paths grants client poses.
 `install_geometry`, `prepare_geometry_body` and `validate_actor` now connect the
 immutable authored-geometry path to the existing actor registry and tick owner.
 Insertion, teleports and generation adoption validate placement before mutation.
+`insert_loading_player` is the narrow player-entry exception: it still validates
+identity and authored static placement, while allowing a second loading player
+at an occupied spawn. Pinned ACE `Player.InitPhysicsObj` sets IgnoreCollisions
+through the entry pink bubble; `OnTeleportComplete` clears it. Ordinary actor
+insertion keeps its dynamic-overlap check. The world owner regression verifies
+shared entry, ordinary rejection and static-wall rejection; stock-client entry
+remains unqualified.
 A reusable bounded dynamic-collider buffer includes prepared actor spheres or
 cylinders; projectile queries use those same accepted actor shapes and geometry.
 Missing geometry blocks an actor and emits `take_geometry_blocked` rather than

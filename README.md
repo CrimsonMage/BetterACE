@@ -300,7 +300,8 @@ Only tested features have compatibility evidence. See the [oracle documentation]
 A real UDP integration test carries a progression action through typed dispatch, authoritative simulation, and primary XP/trait replies. It uses a **synthetic world**; it is not a stock-client playability test. Rank-up secondary effects and durable gameplay composition remain work.
 
 ```sh
-# This currently returns a readiness error; no game socket opens.
+# This starts the composed game runtime with accepted content and verified DATs.
+# Stock-client world entry is not yet qualified.
 bace-server serve --config tests/fixtures/config/server.toml
 ```
 

@@ -158,7 +158,7 @@ impl Body {
         actor: u32,
         dynamics: &[crate::DynamicSphere],
     ) -> Result<u32, PhysicsError> {
-        self.step_geometry_with_access(region, cell, actor, dynamics, &[])
+        self.step_geometry_with_access(region, cell, actor, dynamics, &[], None)
     }
     pub fn step_geometry_with_access(
         &mut self,
@@ -167,6 +167,7 @@ impl Body {
         actor: u32,
         dynamics: &[crate::DynamicSphere],
         allowed_restrictions: &[u32],
+        player_status_override: Option<u32>,
     ) -> Result<u32, PhysicsError> {
         let shape = self
             .geometry_shape
@@ -236,10 +237,12 @@ impl Body {
             ignore: actor,
             was_grounded: self.accepted.grounded && jumping.is_none(),
             allowed_restrictions,
-            player_status: dynamics
-                .iter()
-                .find(|d| d.object == actor)
-                .and_then(|d| d.player_status),
+            player_status: player_status_override.or_else(|| {
+                dynamics
+                    .iter()
+                    .find(|d| d.object == actor)
+                    .and_then(|d| d.player_status)
+            }),
         })?;
         let mut final_velocity = next.velocity;
         if !next.grounded && final_velocity.z == velocity.z {

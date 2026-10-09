@@ -38,6 +38,7 @@ pub(super) struct Loading {
     pub cold_token: Option<u64>,
     pub region_requested: bool,
     pub settle_attempts: u16,
+    pub first_settle_tick: Option<u64>,
 }
 pub(super) struct MetadataCompletion {
     key: SessionKey,
@@ -82,6 +83,7 @@ impl GameRuntime {
                             cold_token: None,
                             region_requested: false,
                             settle_attempts: 0,
+                            first_settle_tick: None,
                         });
                     }
                     Ok(PlayerIoResult::Online(lease)) => {

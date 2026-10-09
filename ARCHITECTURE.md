@@ -40,7 +40,7 @@ Every row names separate packages, not modules of a monolithic server. The compl
 | Simulation | `bace-gameplay-api` | Typed commands/effects and subsystem contracts |
 | Simulation | `bace-motion` | AC locomotion, animation and motion-table behavior |
 | Simulation | `bace-physics` | Integration, collision and accepted physical state |
-| Simulation | `bace-world` | Entity mutation ownership, cells, landblocks, spatial state |
+| Simulation | `bace-world` | Entity mutation ownership, cells, landblocks, spatial state and geometry-gated loading-player insertion |
 | Simulation | `bace-simulation` | Tick phases and orchestration of gameplay systems |
 | Gameplay | `bace-character` | Creation, progression, attributes, skills and vitals |
 | Gameplay | `bace-combat` | Attacks, damage, defenses and PvP rules |

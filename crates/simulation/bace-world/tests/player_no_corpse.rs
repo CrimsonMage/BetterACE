@@ -1,12 +1,15 @@
-use bace_entity::{Actor, Combatant, CombatantProfile, EntityVital, VitalMutation};
+use bace_entity::{
+    Actor, Combatant, CombatantProfile, EntityProperties, EntityVital, PropertyFamily,
+    PropertyValue, VitalMutation,
+};
 use bace_geometry::Vec3;
 use bace_motion::Capabilities;
 use bace_physics::{
-    Body, CollisionFace, CollisionPlane, CollisionShape, CollisionSphere, GdlePolygon,
-    GeometryCell, GeometryRegion, GeometrySpawn,
+    Body, CollisionCylinder, CollisionFace, CollisionPlane, CollisionShape, CollisionSphere,
+    GdlePolygon, GeometryCell, GeometryRegion, GeometrySpawn,
 };
 use bace_types::{CellId, EntityId};
-use bace_world::World;
+use bace_world::{World, WorldError};
 use std::sync::Arc;
 
 const CELL: CellId = CellId(0x100);
@@ -95,6 +98,130 @@ fn actor_at(
 
 fn actor(id: u32, region: &GeometryRegion, shape: &Arc<CollisionShape>) -> Actor {
     actor_at(id, Vec3::ZERO, region, shape)
+}
+
+#[test]
+fn loading_players_share_a_valid_spawn_but_cannot_bypass_static_geometry() {
+    let (region, shape) = geometry();
+    let mut world = World::default();
+    world.install_geometry(region.clone()).unwrap();
+    world.insert(actor(1, &region, &shape)).unwrap();
+    let second = actor(2, &region, &shape);
+    assert!(matches!(
+        world.validate_actor(&second),
+        Err(WorldError::ActorOverlap(EntityId(1)))
+    ));
+    world.insert_loading_player(second).unwrap();
+    assert!(matches!(
+        world.insert(actor(3, &region, &shape)),
+        Err(WorldError::ActorOverlap(_))
+    ));
+    assert_eq!(world.states().count(), 2);
+
+    let static_wall = Arc::new(
+        GeometryRegion::prepare(vec![GeometryCell {
+            id: CELL.0,
+            restriction: None,
+            terrain: false,
+            solids: vec![],
+            static_primitives: vec![],
+            boundary: vec![
+                CollisionPlane {
+                    normal: Vec3::new(1., 0., 0.),
+                    distance: 20.,
+                },
+                CollisionPlane {
+                    normal: Vec3::new(-1., 0., 0.),
+                    distance: 20.,
+                },
+                CollisionPlane {
+                    normal: Vec3::new(0., 1., 0.),
+                    distance: 20.,
+                },
+                CollisionPlane {
+                    normal: Vec3::new(0., -1., 0.),
+                    distance: 20.,
+                },
+            ],
+            faces: vec![CollisionFace {
+                polygon: GdlePolygon::prepare(vec![
+                    Vec3::new(-2., -2., 0.5),
+                    Vec3::new(2., -2., 0.5),
+                    Vec3::new(2., 2., 0.5),
+                    Vec3::new(-2., 2., 0.5),
+                ])
+                .unwrap(),
+                two_sided: true,
+                object: None,
+            }],
+            portals: vec![],
+        }])
+        .unwrap(),
+    );
+    let mut blocked = World::default();
+    blocked.install_geometry(static_wall).unwrap();
+    assert!(matches!(
+        blocked.insert_loading_player(actor(4, &region, &shape)),
+        Err(WorldError::Physics(_))
+    ));
+    assert_eq!(blocked.states().count(), 0);
+}
+
+#[test]
+fn overlapping_loading_players_settle_against_static_floor_in_pink_bubble() {
+    let (region, shape) = geometry();
+    let shape = Arc::new(
+        CollisionShape::prepare(shape.spheres().to_vec(), 0., 0.2)
+            .unwrap()
+            .with_cylinders(vec![CollisionCylinder {
+                base: Vec3::ZERO,
+                radius: 0.5,
+                height: 2.,
+            }])
+            .unwrap(),
+    );
+    let mut world = World::default();
+    world.install_geometry(region.clone()).unwrap();
+    for id in [1, 2] {
+        world
+            .insert_loading_player(actor(id, &region, &shape))
+            .unwrap();
+        world
+            .register_combatant(
+                EntityId(id),
+                Combatant::new(CombatantProfile {
+                    maximum_health: 100,
+                    melee_damage: 1,
+                    melee_range: 1.,
+                    attack_duration: 1.,
+                    strike_offsets: vec![0.5],
+                    player: true,
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        world
+            .register_properties(
+                EntityId(id),
+                EntityProperties::restore_snapshot(
+                    0,
+                    vec![(PropertyFamily::Int, 134, PropertyValue::Int(0x20))],
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        world.begin_player_entry(EntityId(id)).unwrap();
+    }
+    for _ in 0..30 {
+        world.tick().unwrap();
+    }
+    for (_, _, state) in world.states() {
+        assert!(
+            state.grounded(),
+            "loading player must settle on static floor"
+        );
+        assert_eq!(state.velocity(), Vec3::ZERO);
+    }
 }
 
 #[test]
