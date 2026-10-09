@@ -10,6 +10,98 @@ fn context() -> ActionContext {
         sequence: 99,
     }
 }
+
+#[test]
+fn endurance_joins_source_rank_order_and_accepted_health_update() {
+    use bace_gameplay_api::{
+        AttributeId, ProgressionProjection, ProgressionTarget, RankEffect, SkillAdvancement,
+        TraitDetails, VitalId,
+    };
+    let context = context();
+    let before = ProgressionProjection {
+        target: ProgressionTarget::Attribute(AttributeId::Endurance),
+        experience_spent: 0,
+        ranks: 0,
+        advancement: SkillAdvancement::Inactive,
+        details: Some(TraitDetails::Attribute {
+            starting_value: 100,
+        }),
+    };
+    let change = ProgressionChange {
+        before,
+        after: ProgressionProjection {
+            experience_spent: 10,
+            ranks: 1,
+            ..before
+        },
+        available_experience: 90,
+        revision: 1,
+        rank_effect: Some(RankEffect {
+            base: 101,
+            reached_maximum: false,
+        }),
+        follow_up_vital: Some(ProgressionProjection {
+            target: ProgressionTarget::Vital(VitalId::MaxHealth),
+            experience_spent: 0,
+            ranks: 0,
+            advancement: SkillAdvancement::Inactive,
+            details: Some(TraitDetails::Vital {
+                starting_value: 100,
+                current: 47,
+            }),
+        }),
+    };
+    let rank = bace_replication::project_rank_effect(
+        context.actor.0,
+        change,
+        bace_replication::BatchLimits {
+            max_messages: 8,
+            max_bytes: 4096,
+            max_message_bytes: 4096,
+            max_string_bytes: 4096,
+        },
+    )
+    .unwrap()
+    .unwrap();
+    let mut cursor = bace_replication::ProgressionCursor::new(
+        bace_gameplay_api::CharacterBinding {
+            actor: context.actor,
+            account: context.account,
+            session: context.session,
+        },
+        0,
+    );
+    let packets = cursor
+        .project(
+            &mut bace_replication::Sequences::new(3).unwrap(),
+            context,
+            change,
+        )
+        .unwrap();
+    let messages = ordered_rank_messages(
+        packets.queue,
+        packets.messages.into(),
+        rank.owner,
+        packets.follow_up_vital,
+    );
+    assert_eq!(
+        messages.iter().map(|m| m.0).collect::<Vec<_>>(),
+        [9, 9, 10, 9, 9]
+    );
+    assert_eq!(
+        messages[4].1,
+        bace_wire::VitalUpdate {
+            sequence: 0,
+            object_id: None,
+            vital: 1,
+            ranks: 0,
+            starting_value: 100,
+            experience_spent: 0,
+            current: 47,
+        }
+        .encode()
+    );
+}
 fn key() -> SessionKey {
     SessionKey {
         id: 1,

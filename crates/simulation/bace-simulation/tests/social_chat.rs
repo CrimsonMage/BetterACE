@@ -540,3 +540,53 @@ fn departure_cancels_invitations_from_both_sides_and_update_listener() {
     k.request_fellowship(context(5), FellowshipRequest::Recruit(EntityId(2)))
         .unwrap();
 }
+
+#[test]
+fn disband_with_shared_loot_sends_source_notice_after_departure_to_each_member() {
+    // Pinned ACE Entity/Fellowship.cs::QuitFellowship(disband=true) emits
+    // GameEventFellowshipDisband and then this Broadcast chat to each fellow.
+    let mut k = setup(false);
+    install_fellowship_services(&mut k);
+    let mut leader = presence(1);
+    leader.share_fellowship_loot = true;
+    k.refresh_social_presence(leader).unwrap();
+    let mut second = presence(2);
+    second.auto_accept_fellowship = true;
+    k.refresh_social_presence(second).unwrap();
+    k.request_fellowship(
+        context(1),
+        FellowshipRequest::Create {
+            name: "Travelers".into(),
+            share_xp: false,
+        },
+    )
+    .unwrap();
+    k.request_fellowship(context(2), FellowshipRequest::Recruit(EntityId(2)))
+        .unwrap();
+    while k.take_social_event().is_some() {}
+
+    k.request_fellowship(context(3), FellowshipRequest::Quit { disband: true })
+        .unwrap();
+    assert_eq!(
+        k.take_social_event(),
+        Some(SocialEvent::FellowshipLeft {
+            recipients: vec![EntityId(1), EntityId(2)],
+            actor: EntityId(1),
+            dismissed: false,
+            disbanded: true,
+        })
+    );
+    for recipient in [EntityId(1), EntityId(2)] {
+        assert_eq!(
+            k.take_social_event(),
+            Some(SocialEvent::System {
+                recipient,
+                text: "You no longer have permission to loot anyone else's kills.".into(),
+                chat_type: 0,
+            })
+        );
+    }
+    assert!(k.take_social_event().is_none());
+    assert!(k.take_social_presence(EntityId(1)).is_ok());
+    assert!(k.take_social_presence(EntityId(2)).is_ok());
+}

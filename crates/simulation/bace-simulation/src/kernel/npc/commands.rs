@@ -126,6 +126,14 @@ impl Kernel {
                     .npcs
                     .freeze_idle(source, operation, self.tick)
                     .map(R::Checkpoint),
+                A::FreezeBootstrapIdle {
+                    source,
+                    operation,
+                    event,
+                } => self
+                    .npcs
+                    .freeze_bootstrap_idle(source, operation, event, self.tick)
+                    .map(R::Checkpoint),
                 A::ReleaseIdle { source, operation } | A::CommitIdle { source, operation } => self
                     .npcs
                     .release_idle(source, operation, self.tick)

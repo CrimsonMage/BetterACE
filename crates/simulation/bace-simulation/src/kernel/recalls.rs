@@ -189,6 +189,17 @@ impl Kernel {
                 style,
                 motion,
             } => {
+                if !self.characters.binding_matches(CharacterBinding {
+                    actor: context.actor,
+                    account: context.account,
+                    session: context.session,
+                }) {
+                    self.recalls.events.push_back(RecallEvent::Rejected {
+                        context,
+                        error: RecallError::Stale,
+                    });
+                    return Ok(());
+                }
                 if self
                     .characters
                     .get(context.actor)
@@ -199,9 +210,17 @@ impl Kernel {
                         .push_back(RecallEvent::Retry { context });
                     return Ok(());
                 }
-                self.characters
+                if self
+                    .characters
                     .authorize(context, self.world.body(context.actor).is_ok())
-                    .map_err(|_| RecallError::Stale)?;
+                    .is_err()
+                {
+                    self.recalls.events.push_back(RecallEvent::Rejected {
+                        context,
+                        error: RecallError::Stale,
+                    });
+                    return Ok(());
+                }
                 if let Err(error) =
                     self.start_binding(context, object, animation_seconds, style, motion)
                 {

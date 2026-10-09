@@ -20,6 +20,8 @@ pub use session_output::{
 mod enchantments;
 pub use enchantments::project_enchantments;
 
+mod appraisal;
+
 pub use progression::SkillPackets;
 
 mod ui;

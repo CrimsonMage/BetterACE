@@ -5,7 +5,7 @@ use bace_persistence::{
     PlacementOperation, SaveSnapshot, WorldPlacementOperation,
 };
 use bace_storage_codec::{
-    EntitySaveV1, FrozenConstructedChildV1, FrozenCreatureConstructionV1,
+    EntitySaveV1, FrozenConstructedChildV1, FrozenCreatureConstructionV1, FrozenEnchantmentV1,
     FrozenGeneratorConstructionOriginV1, ItemPlacementV2, ItemSaveV2, ItemSaveV3, ItemSaveV4,
     ItemSaveV5,
 };
@@ -326,7 +326,10 @@ async fn nested_creature_promotion_partitions_each_equipment_owner() {
         weenie_type: 10,
         origin: origin.clone(),
         equipment_order: vec![],
-        death_roster: vec![],
+        death_roster: vec![FrozenConstructedChildV1 {
+            entity: inner,
+            parent: None,
+        }],
     };
     let inner_companion = FrozenCreatureConstructionV1 {
         weenie_type: 15,
@@ -337,7 +340,7 @@ async fn nested_creature_promotion_partitions_each_equipment_owner() {
             parent: None,
         }],
     };
-    let operation = ConstructedCreaturePromotionOperation {
+    let mut operation = ConstructedCreaturePromotionOperation {
         world_epoch: owner.epoch(),
         inventory: PlacementOperation {
             operation_id: "nested-constructed-promote".into(),
@@ -385,12 +388,52 @@ async fn nested_creature_promotion_partitions_each_equipment_owner() {
         },
         creature_roots: vec![outer, inner],
     };
+    let enchantment = FrozenEnchantmentV1 {
+        schema_version: 1,
+        enchantment_category: 1,
+        spell_id: 42,
+        layer_id: 0,
+        has_spell_set_id: false,
+        spell_category: 1,
+        power_level: 100,
+        start_time: 0.0,
+        duration: 30.0,
+        caster_object_id: inner,
+        degrade_modifier: 0.0,
+        degrade_limit: 0.0,
+        last_time_degraded: 0.0,
+        stat_mod_type: 1,
+        stat_mod_key: 1,
+        stat_mod_value: 10.0,
+        spell_set_id: 0,
+    };
+    let mut inner_snapshot = ItemSaveV5::decode(&operation.inventory.snapshots[1].bytes).unwrap();
+    inner_snapshot
+        .previous
+        .previous
+        .enchantments
+        .push(enchantment.clone());
+    operation.inventory.snapshots[1].bytes = inner_snapshot.encode().unwrap();
     let mut wrong_owner = operation.clone();
-    let mut wrong = outer_companion;
+    let mut wrong = outer_companion.clone();
     wrong.equipment_order.push(gear);
     wrong_owner.inventory.snapshots[0].bytes = item(outer, 10, contained(parent, 0), Some(wrong));
     assert!(matches!(
         store.constructed_creature_promotion(&wrong_owner).await,
+        Err(StoreError::Invalid(_))
+    ));
+    let mut wrong_death_owner = operation.clone();
+    let mut wrong = outer_companion.clone();
+    wrong.death_roster.push(FrozenConstructedChildV1 {
+        entity: gear,
+        parent: Some(inner),
+    });
+    wrong_death_owner.inventory.snapshots[0].bytes =
+        item(outer, 10, contained(parent, 0), Some(wrong));
+    assert!(matches!(
+        store
+            .constructed_creature_promotion(&wrong_death_owner)
+            .await,
         Err(StoreError::Invalid(_))
     ));
     assert!(store.load(outer).await.unwrap().is_none());
@@ -407,6 +450,47 @@ async fn nested_creature_promotion_partitions_each_equipment_owner() {
             .construction
             .as_ref(),
         Some(&inner_companion)
+    );
+    assert_eq!(
+        ItemSaveV5::decode(&store.load(outer).await.unwrap().unwrap().bytes)
+            .unwrap()
+            .construction
+            .as_ref(),
+        Some(&outer_companion)
+    );
+    let tree = store
+        .load_world_item_tree(
+            pose().obj_cell_id,
+            bace_persistence::InventoryLoadLimits::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(tree.len(), 4);
+    for (id, depth, place) in [
+        (outer, 1, durable_contained(parent, 0)),
+        (inner, 2, durable_contained(outer, 0)),
+        (gear, 3, durable_contained(inner, 1)),
+    ] {
+        let row = tree
+            .iter()
+            .find(|row| row.aggregate.object_id == id)
+            .unwrap();
+        assert_eq!(row.depth, depth);
+        assert_eq!(row.placement, place);
+        assert_eq!(
+            ItemSaveV5::decode(&row.aggregate.bytes)
+                .unwrap()
+                .source_destination,
+            Some(2)
+        );
+    }
+    assert_eq!(
+        ItemSaveV5::decode(&store.load(inner).await.unwrap().unwrap().bytes)
+            .unwrap()
+            .previous
+            .previous
+            .enchantments,
+        vec![enchantment]
     );
     owner.close().await.unwrap();
     store.close().await;

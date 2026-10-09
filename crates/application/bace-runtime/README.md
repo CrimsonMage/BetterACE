@@ -354,6 +354,8 @@ full current-tree readiness validation.
 player session projection counters. It retains one accepted event, recipient
 progress and one complete network batch across backpressure. General, Trade and
 Audit are published once into the supervised HTTP feed; private chat is excluded.
+Admission-time friend events wait for the recipient's exact entered receipt;
+waiting neither consumes the event nor advances its canonical counters.
 Feed queue loss remains observable as a gap. Recovery returns the retained event,
 remaining recipients and exact batch. `gameplay_dispatch` intercepts source Talk
 `@` commands before chat; raw command Debug output is redacted.
@@ -512,14 +514,33 @@ admission without claiming DAT or client qualification. Mixed creature/item trea
 batches use one source-ordered admission: placement failures omit only that root's
 whole tree, while other failures roll back all freshly inserted actors. Vendor
 actors use the same creature owner with source-defined passive combat behavior and
-the vendor stock owner; buying, selling and lazy first-use stock remain separate
-interaction work. Mixed, source-ordered Contain forests now retain ordinary Creature/Cow roots and
+the vendor stock owner; authenticated first-Use lazy stock is connected while
+live buying and selling remain separate interaction work.
+
+The default Shop Buy adapter now has cold source-cloned fresh leaves, a retained
+reservation/capture/save/confirm owner and a source-order private output batch.
+Real PostgreSQL composite receipt, queue pressure and disconnect tests pass.
+Authenticated ingress remains Unsupported until a joined end-to-end Buy test
+proves the full route and baseline adoption.
+
+Mixed, source-ordered Contain forests now retain ordinary Creature/Cow roots and
 ordinary item trees atomically, including prepared delayed effects. Frozen item V4
 companions preserve constructor origin, gear order and death-roster identities through
-generic save paths. Durable constructed-creature reconstruction/promotion, nested
-creature Contain, other specialized subtypes and Shop creatures remain explicitly
-gated until their lifecycle integration is complete. GamePiece
-requires the activity owner and remains unsupported. ACE's factory maps obsolete AI type 16 to GenericObject,
+generic save paths. A dedicated durable constructed-creature promotion and cold
+restore path retains exact Creature/Cow identities; recursive Contain source
+selection now prepares nested Creature/Cow loadouts, equipment, spell assets and
+companions under one reserved-ID forest. Focused synthetic runtime, simulation
+and PostgreSQL checks pass. DAT-backed composed nested bind/admission/cold-reload,
+specialized subtypes and nested generators remain gated. Authenticated live
+Move of a constructed Creature/Cow uses the existing inspected world approach,
+motion and range route, then checks a current open source-container generation.
+Cold preparation requires each Creature/Cow in the inspected subtree to carry
+its matching V4 construction companion. The exact promotion receipt preserves
+the constructed owner, while ordinary inventory proposals still reject it.
+The approved DAT fixture validates creature asset preparation only; a full
+DAT-backed bind/save/player cold-login chain and acquired-owner logout/cold-login
+handoff remain open. GamePiece requires the activity owner and remains
+unsupported. ACE's factory maps obsolete AI type 16 to GenericObject,
 not Creature. `oracle/factory/generate.py` compiles the unchanged factory switch
 and monster-state method into 75 subtype and six combat-AI golden cases.
 
@@ -571,12 +592,30 @@ earlier routine save, final detached persistence, reconnect, and exact retry of 
 Offline receipt. Additional tests cover missing descendant/stale detach rejection
 and entry counter binding. Actual DAT preparation/admission/grounded entry is
 covered separately; client testing was explicitly deferred.
+Geometry-settled spawn poses mark a dirty character revision before admission,
+so an accepted changed pose reaches the routine save. Admission-time friend
+output waits for the exact entered receipt without consuming its event or
+sequence. The approved-DAT synthetic fixture now covers real character
+creation, authenticated UDP login, entered ownership, reliable entry output
+and graceful drain; it does not represent stock-client playback.
+An approved-DAT source probe also finds a registered authored lifestone in
+the entered region. A geometry-valid authoritative ServerTeleport reaches a
+near-stone accepted pose without moving the stone, and authenticated UDP Use
+reaches binding cold preparation. The bounded player preparation worker reuses
+its verified DAT archives for authored stance/action motion. An approved-DAT,
+PostgreSQL synthetic authenticated Use now completes after revision retries;
+source sound, motion and chat order, private stamina output, accepted final
+actor and stationary stone views, and exact online/durable sanctuary and
+stamina values are asserted. Stock-client playback remains unqualified.
 
 Quiescing logs out admitted players, then sends correlated `QuiesceRegions` and
 continues the ordinary region save/retirement pipeline. Pausing the adapter loop or
 closing its control channel retains the entire live runtime; neither action is a
 clean-shutdown receipt. The database world owner must survive until all remaining
 simulation, ledger and output obligations have a complete durable drain proof.
+On that proof, an idle quiesced world stays outside the worker queue. Failed NPC
+placement clears only its exact prepared publication roots; accepted roots
+retain their Spawned publication handoff.
 
 The composed `GameRuntime` routes UI edits, XP expenditure and plain skill training
 through one retained action per session. UI and XP changes enter ordinary dirty
@@ -585,7 +624,12 @@ success batch only after durable receipt adoption and online baseline handoff.
 Pre-authorization holds retry the same intent; terminal domain failures do not.
 Training operation entropy is allocated once on the adapter, never the simulation
 thread. Disconnect/logout waits for the admitted action's resolution. Full skill
-device routing and all rank-up effects remain separate integration work.
+device routing remains separate integration work. Rank-up sound/chat and the
+optional max-rank observer effect are connected. Ranked Endurance now appends
+the full private Health update from accepted World current after those effects
+in one retained ordered batch; a same-V6 regression checks the raised attribute
+and Health state survive routine save/reload. Other derived vital/run-rate
+effects and stock-client output remain unqualified.
 
 The live staff lane first captures the current simulation-owned staff registration;
 login-time role flags do not authorize account or shard operations. One retained
@@ -616,6 +660,11 @@ source Broadcast rejection chat for nonplayers or missing landblock targets.
 Absent visible source descriptions cannot supply a nonplayer name and produce
 the source missing-target text. The simulation and wire regressions cover these
 paths; the catalog remains metadata, not proof of every staff family.
+The in-world ingress checks the concrete command owner list before reserving a
+snapshot. Catalog-only and parsed-only text commands remain Unsupported; `sudo`
+uses the same gate, and `@targetloc` accepts only its connected selected form.
+Unavailable text commands get a bounded private unsupported response without
+disconnecting the entered session.
 
 `AllegianceService` joins exact indexed ledger before-images, all participant lease
 fences (including offline ancestors), reserved player captures and item-XP/Vitae
@@ -669,6 +718,8 @@ vitals together. The visibility owner accepts the committed model/child graph
 before the canonical private and retained observer batches are released. In-combat
 equipment uses the authored stance transition under that same hold, and fresh
 split-to-wield carries complete initialized stack state through the exact receipt.
+Its committed output uses the fresh equipped identity and verifies the source
+and created proposal rows before publication and visibility handoff.
 This is server-side validation, not stock-client qualification; client testing
 remains deferred.
 
@@ -839,9 +890,17 @@ saved in the same checkpoint. Int32 creation timestamp overflow is rejected.
 The live death adapter retains immutable `DeathDelivery` obligations until each
 supported canonical packet/visibility output enters its owner. Source death
 announcement, accepted start motion, a bounded ordinary inventory-loss subset,
-corpse visibility and portal-gated respawn vitals are connected. Fully consumed
+corpse visibility and portal-gated respawn vitals are connected.
+ProtectionExpired and ProtectionDispelled now retain the simulation-frozen
+entered generation and emit pinned queue-9 Magic system chat through the
+bounded ordered network owner; pressure and same-generation disconnect retain
+the obligation until admission or detach. Restored PK status 4/64 now projects
+the source public PropertyInt 134 before private WeenieError with copied
+counter and fanout preflight; other status values remain held. Fully consumed
 non-container pack items with BondedStatus.Destroy now project the source
-private remove and burden update before coin and selected-item effects; equipped,
+private remove and burden update before coin and selected-item effects; one
+whole ordinary equipped corpse item with no spell or set effects now has exact
+V5 receipt, private source dequip and observer appearance output. Other equipped,
 container and coin destruction and dequip retain their obligations. Olthoi death selection
 follows the source Slag/Treasure/Empty branches, preserves victim possessions,
 and freezes the slag timestamp with the checkpoint. Original C# fixtures cover
@@ -879,7 +938,9 @@ cases supplement the owner and freezer tests. Authenticated corpse Use now
 checks authoritative range and access, freezes Open/Close state and defers expiry
 for an active viewer. Open projects direct contents and one nested level under
 each subcontainer in pinned ACE's ViewContents and CreateObject order; deeper
-content requires a later container Use. Permission-origin GameActions and their
+content requires a later container Use. Repeated Open resends CreateObject for
+known direct/nested children with their canonical sequence owners, matching
+the pinned source loop. Permission-origin GameActions and their
 durable updates now route through a simulation-owned recipient grant table with one-hour expiry,
 offline list/removal by the frozen granter name, the source consent option, and
 logout cleanup. A successful durable Open consumes the transient grant and
@@ -981,7 +1042,14 @@ reservation, and confirmed private `ApproachVendor` publication gate first Use.
 The marker and item forest can be adopted after restart or viewed again without
 rerolling identities. Empty authored stock still commits a loaded marker. Buy,
 Sell, alternate currency, transient vendor promotion and later stock revisions
-remain unsupported until their full player/item/currency receipt is connected.
+remain unsupported as live actions. Default Buy now has an exact freezer for
+player V6 CoinValue and burden, selected coin V5 debits, fresh source-cloned
+grant V5 rows, vendor Int77/79 counters and marker revision. Vendor stock writes
+enter the bounded critical save lane; a full lane retains the exact operation.
+The canonical inventory sequencer can order a private pickup sound, refreshed
+ApproachVendor and UseDone. Buy ingress still needs fresh grant asset preparation,
+joined snapshot and critical lease, exact submission and baseline adoption, and
+one retained committed output batch before it can report success.
 The focused runtime fixture lacks DAT geometry, so its preparation and output
 tests do not establish a complete authenticated live Use transcript.
 
@@ -999,3 +1067,7 @@ action. The source's OnActivate returns before requirements, cooldown, emotes
 and ActOnUse; only the outer Player_Use UseDone is projected. Replayed or stale
 item actions receive a generic cannot-use UseDone without a quote, skill change
 or item consumption. This stale-input error is an authority hardening path.
+AttributeTransferDevice Int119 Active=0 follows the same authenticated
+accepted-revision inactive Use rule and projects only UseDone. Stale or replayed
+actions return cannot-use without a quote or consumption. Generic activation
+effects for active attribute devices remain held.

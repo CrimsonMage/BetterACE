@@ -1,19 +1,56 @@
 //! The pinned ACE corpse-null branch dequips a selected wielded treasure item
 //! before Landblock.AddObject publishes its world root. This narrow projector
-//! admits one equipped item without item spells, sets or gear-health effects.
+//! admits one selected equipped root without item spells, sets or gear-health
+//! effects, and preserves the other committed equipment in the visibility handoff.
 use super::*;
 use crate::inventory_equipment_output::EquipmentVisibilityUpdate;
 use bace_inventory::{ItemChange, ItemPlace};
 use bace_replication::{InventoryProjection as P, SequenceKind};
 use bace_storage_codec::{ItemPlacementV2, ItemSaveV5};
 use bace_wire::PropertyValue;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const SELECTABLE: u32 = 0x0370_0000; // ACE EquipMask.Selectable
 
 struct SelectedEquipped {
     item: EntityId,
     wielded_location: u32,
+}
+
+/// The committed roster must be exactly the pre-death equipped roster minus
+/// the selected world root. Other worn items retain their authored order for
+/// CalculateObjDesc and child attachment publication.
+fn retained_equipment_matches(
+    actor: EntityId,
+    before: &[bace_inventory::InventoryItem],
+    selected: EntityId,
+    after: &[&bace_storage_codec::ItemSaveV4],
+) -> bool {
+    let prior = before
+        .iter()
+        .filter_map(|item| match item.place {
+            ItemPlace::Contained {
+                equipped,
+                container,
+                ..
+            } if container == actor && equipped != 0 && item.id != selected => {
+                Some((item.id.0, equipped))
+            }
+            _ => None,
+        })
+        .collect::<BTreeMap<_, _>>();
+    let current = after
+        .iter()
+        .filter_map(|item| match item.placement {
+            ItemPlacementV2::Contained {
+                container,
+                equipped,
+                ..
+            } if container == actor.0 && equipped != 0 => Some((item.entity.object_id, equipped)),
+            _ => None,
+        })
+        .collect::<BTreeMap<_, _>>();
+    prior.len() == after.len() && current.len() == after.len() && prior == current
 }
 
 fn selected_equipped(
@@ -184,15 +221,14 @@ impl GameRuntime {
         else {
             return Ok(false);
         };
-        if before
-            .items()
+        if ticket
+            .inventory
+            .proposal
+            .changes
             .iter()
-            .filter(
-                |item| matches!(item.place, ItemPlace::Contained { equipped, .. } if equipped != 0),
-            )
-            .map(|item| item.id)
-            .collect::<Vec<_>>()
-            != [selected.item]
+            .find(|change| change.after.id == selected.item)
+            .and_then(|change| change.before.as_ref())
+            != before.items().iter().find(|item| item.id == selected.item)
             || ticket
                 .before_enchantments
                 .iter()
@@ -231,31 +267,77 @@ impl GameRuntime {
         if player.player.entity.mutation_revision != after_revision {
             return Err("NoCorpse equipped committed player revision mismatch".into());
         }
-        if !self
-            .online_saves
-            .equipped_inventory_baselines(actor.0)
-            .is_empty()
+        let items = self.online_saves.equipped_inventory_baselines(actor.0);
+        if items.len() > 64
+            || !retained_equipment_matches(actor, before.items(), selected.item, &items)
         {
             return Ok(false);
         }
+        let equipment = items
+            .iter()
+            .map(|item| {
+                (
+                    item.entity.object_id,
+                    &item.entity.state,
+                    match item.placement {
+                        ItemPlacementV2::Contained { equipped, .. } => equipped,
+                        _ => 0,
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
         let chargen = self
             .sessions
             .get(&key)
             .and_then(|s| s.loading.as_ref())
             .and_then(|l| l.character_assets.as_ref())
             .ok_or("NoCorpse equipped chargen absent")?;
+        let assets = appearance.borrowed(chargen.char_gen());
+        let (children, attachments) =
+            crate::player_entry::prepare_entry_attachments(actor.0, &equipment, false)?;
         let model = crate::player_entry::prepare_player_model(
             &player.player.entity.state,
-            &[],
+            &equipment
+                .iter()
+                .map(|(_, state, _)| *state)
+                .collect::<Vec<_>>(),
             crate::player_entry::PlayerAppearanceOptions {
                 show_helm: player.player.metadata.options2 & 0x100000 != 0,
                 show_cloak: player.player.metadata.options2 & 0x800000 != 0,
                 default_hair_texture: player.player.metadata.default_hair_texture,
                 hair_texture: player.player.metadata.hair_texture,
             },
-            &appearance.borrowed(chargen.char_gen()),
+            &assets,
         )?
         .model;
+        let mut descriptions = Vec::new();
+        for attachment in attachments
+            .iter()
+            .filter(|attachment| attachment.parent.is_some())
+        {
+            let source = &items
+                .iter()
+                .find(|item| item.entity.object_id == attachment.item)
+                .ok_or("NoCorpse retained attachment source missing")?
+                .entity
+                .state;
+            let sequences = replica
+                .item_properties
+                .get(&EntityId(attachment.item))
+                .ok_or("NoCorpse retained attachment sequence missing")?;
+            let mut state =
+                crate::game_runtime::inventory::output::contained_state(source, sequences);
+            state.parent = attachment.parent;
+            state.movement = Some(bace_wire::PhysicsMovement::AnimationFrame(
+                attachment.placement,
+            ));
+            descriptions.push(Arc::new(crate::player_entry::prepare_entry_object(
+                attachment.item,
+                source,
+                crate::player_entry::prepare_item_model(source, &assets)?,
+                state,
+            )?));
+        }
         let update = EquipmentVisibilityUpdate {
             actor,
             operation,
@@ -264,8 +346,8 @@ impl GameRuntime {
             incarnation: key.generation,
             instance_sequence,
             model,
-            children: vec![],
-            descriptions: vec![],
+            children,
+            descriptions,
         };
         let (steps, public) = source_steps(
             actor,
@@ -488,6 +570,63 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
+    }
+
+    #[test]
+    fn selected_world_root_retains_other_equipment_and_its_child_attachment() {
+        let actor = EntityId(0x5000_0001);
+        let selected = EntityId(0x8000_0021);
+        let (_, changes, committed) = equipped_fixture();
+        let mut retained = changes[0].before.as_ref().unwrap().clone();
+        retained.id = EntityId(0x8000_0022);
+        retained.place = ItemPlace::Contained {
+            container: actor,
+            slot: 1,
+            equipped: 0x0020_0000,
+        };
+        let retained_id = retained.id;
+        let mut saved = ItemSaveV5::decode(&committed[0].bytes).unwrap().previous;
+        saved.entity.object_id = retained.id.0;
+        saved.placement = ItemPlacementV2::Contained {
+            container: actor.0,
+            slot: 1,
+            pack_slot: false,
+            equipped: 0x0020_0000,
+        };
+        let prior = vec![changes[0].before.as_ref().unwrap().clone(), retained];
+        assert!(retained_equipment_matches(
+            actor,
+            &prior,
+            selected,
+            &[&saved]
+        ));
+        let equipment = [(retained_id.0, &saved.entity.state, 0x0020_0000)];
+        let (children, attachments) =
+            crate::player_entry::prepare_entry_attachments(actor.0, &equipment, false).unwrap();
+        assert_eq!(children.len(), 1);
+        assert_eq!(children[0].object_id, retained_id.0);
+        assert_eq!(attachments[0].parent.unwrap().object_id, actor.0);
+
+        saved.placement = ItemPlacementV2::Contained {
+            container: actor.0,
+            slot: 1,
+            pack_slot: false,
+            equipped: 0x0010_0000,
+        };
+        assert!(!retained_equipment_matches(
+            actor,
+            &prior,
+            selected,
+            &[&saved]
+        ));
+        saved.entity.object_id = selected.0;
+        assert!(!retained_equipment_matches(
+            actor,
+            &prior,
+            selected,
+            &[&saved]
+        ));
+        assert!(!retained_equipment_matches(actor, &prior, selected, &[]));
     }
 
     #[test]

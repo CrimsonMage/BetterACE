@@ -71,6 +71,15 @@ impl SaveBackend for Backend {
             self.write(true, &operation.snapshots).await,
         ))
     }
+    async fn vendor_stock(
+        &self,
+        operation: &bace_persistence::VendorStockOperation,
+    ) -> Result<OperationOutcome, SaveFailure> {
+        Ok(OperationOutcome::Committed(
+            self.write(true, &[snapshot(operation.marker.marker_object_id)])
+                .await,
+        ))
+    }
     async fn owned_routine(
         &self,
         _lease: bace_persistence::CharacterLease,
@@ -122,6 +131,89 @@ fn config() -> SaveWorkerConfig {
         operation_timeout: Duration::from_secs(1),
         ..Default::default()
     }
+}
+
+fn vendor_stock_operation(marker_id: u32) -> bace_persistence::VendorStockOperation {
+    let marker = bace_storage_codec::VendorStockSaveV1 {
+        marker_object_id: marker_id,
+        vendor_object_id: 0x8000_0001,
+        source_revision: 1,
+        source_hash: [1; 32],
+        loaded: true,
+        stock_revision: 1,
+        defaults: vec![],
+        unique: vec![],
+    };
+    bace_persistence::VendorStockOperation {
+        world_epoch: 1,
+        vendor_expected_version: 1,
+        inventory: bace_persistence::PlacementOperation {
+            operation_id: format!("vendor-stock-save-lane-{marker_id}"),
+            snapshots: vec![],
+            participants: vec![0x8000_0001, marker_id],
+            leases: vec![],
+            changes: vec![],
+            storage_views: vec![],
+        },
+        marker: bace_persistence::VendorStockWrite {
+            marker_object_id: marker_id,
+            expected_version: 0,
+            expected_stock_revision: 0,
+            mutation_revision: 1,
+            bytes: marker.encode().unwrap(),
+        },
+    }
+}
+
+#[tokio::test]
+async fn vendor_marker_uses_bounded_critical_lane_even_with_zero_stock_rows() {
+    let backend = Backend::new(true, None);
+    let worker = spawn_save_worker(
+        backend.clone(),
+        SaveWorkerConfig {
+            valuable_capacity: 1,
+            ..config()
+        },
+    )
+    .unwrap();
+    let first = vendor_stock_operation(0x8000_1001);
+    let second = vendor_stock_operation(0x8000_1002);
+    let third = vendor_stock_operation(0x8000_1003);
+    let mut invalid = third.clone();
+    invalid.marker.bytes = b"bad marker".to_vec();
+    assert!(matches!(
+        worker.handle.try_vendor_stock(&invalid),
+        Err(SaveSubmitError::Invalid)
+    ));
+    let first_ticket = worker.handle.try_vendor_stock(&first).unwrap();
+    backend.entered.acquire().await.unwrap().forget();
+    let second_ticket = worker.handle.try_vendor_stock(&second).unwrap();
+    assert!(matches!(
+        worker.handle.try_vendor_stock(&third),
+        Err(SaveSubmitError::Full)
+    ));
+    backend.release.add_permits(1);
+    for (id, ticket) in [(0x8000_1001, first_ticket), (0x8000_1002, second_ticket)] {
+        let report = ticket.await.unwrap();
+        let Ok(WriteOutcome::Valuable(OperationOutcome::Committed(acks))) = report.result else {
+            panic!("vendor marker critical receipt");
+        };
+        assert_eq!(acks[0].object_id, id);
+    }
+    let third_ticket = worker.handle.try_vendor_stock(&third).unwrap();
+    assert!(third_ticket.await.unwrap().result.is_ok());
+    assert_eq!(
+        backend
+            .log
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|(_, id)| *id)
+            .collect::<Vec<_>>(),
+        vec![0x8000_1001, 0x8000_1002, 0x8000_1003]
+    );
+    drop(worker.handle);
+    assert_eq!(worker.task.await.unwrap().valuable_completed, 3);
 }
 
 #[tokio::test]

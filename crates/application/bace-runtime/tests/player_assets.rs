@@ -409,6 +409,11 @@ fn real_avatar_dat_and_saved_state_admit_without_synthetic_scene() {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
     let cold = loop {
         if let Some(done) = worker.try_recv().unwrap() {
+            let bace_runtime::player_preparation_worker::PlayerPreparationResult::Admission(done) =
+                done
+            else {
+                panic!("avatar admission received binding motion completion");
+            };
             assert_eq!(done.correlation, 901);
             assert_eq!(done.key, loaded.key);
             assert_eq!(done.binding, binding);

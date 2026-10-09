@@ -172,14 +172,8 @@ impl<S: GeneratorRepository> GeneratorService<S> {
                                         );
                                         return Ok(());
                                     }
-                                    let unique: std::collections::BTreeSet<_> =
-                                        admitted.entities.iter().copied().collect();
-                                    work.failed_sources = work
-                                        .source_ids
-                                        .iter()
-                                        .filter(|id| !unique.contains(id))
-                                        .copied()
-                                        .collect();
+                                    work.failed_sources =
+                                        failed_sources(&work.source_ids, &admitted);
                                 }
                                 work.phase = Phase::Complete;
                             }
@@ -197,7 +191,17 @@ impl<S: GeneratorRepository> GeneratorService<S> {
                                 Some(GeneratorAction::AdmitCreature { .. })
                             ) =>
                     {
-                        work.failed_sources = work.source_ids.clone();
+                        // The physical NPC root has a public description but no
+                        // RegionItemSource row; Placement produced no Spawned
+                        // event to consume that description.
+                        work.failed_sources = work
+                            .source_ids
+                            .iter()
+                            .copied()
+                            .chain(work.publications.iter().map(|p| p.entity))
+                            .collect::<std::collections::BTreeSet<_>>()
+                            .into_iter()
+                            .collect();
                         work.ready = Some(materialization::Ready {
                             action: GeneratorAction::SpawnReceipt(
                                 bace_gameplay_api::GeneratorSpawnReceipt {
@@ -222,6 +226,24 @@ impl<S: GeneratorRepository> GeneratorService<S> {
         }
         Ok(())
     }
+}
+
+/// A failed physical root can have no inventory-source row (a plain NPC), but
+/// its prepared public description still needs the exact rejected-root receipt.
+/// Retain every accepted root for its later Spawned publication handoff.
+pub(super) fn failed_sources(
+    source_ids: &[EntityId],
+    admitted: &bace_simulation::GeneratorItemAdmission,
+) -> Vec<EntityId> {
+    let accepted: std::collections::BTreeSet<_> = admitted.entities.iter().copied().collect();
+    source_ids
+        .iter()
+        .copied()
+        .filter(|id| !accepted.contains(id))
+        .chain(admitted.failed_roots.iter().copied())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect()
 }
 
 /// Every source root has exactly one result, and a successful root owns its whole

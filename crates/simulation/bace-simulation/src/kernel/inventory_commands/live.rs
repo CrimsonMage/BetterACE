@@ -1,6 +1,9 @@
 //! Accepted movement/animation gates for physical inventory actions. Inspection
 //! never consumes an authenticated sequence or reserves a valuable object.
 mod movement;
+#[cfg(test)]
+#[path = "live/tests.rs"]
+mod tests;
 use super::*;
 use crate::{InventoryInspection, InventoryLivePrepared};
 use bace_motion::{MotionDomain, MotionExecutionEvent, MotionToken, TurnControl};
@@ -179,6 +182,30 @@ impl Kernel {
         ) != prepared.drop_shape.is_some()
         {
             return Err(E::MissingGeometry);
+        }
+        let constructed_source = match current.request {
+            InventoryRequest::Move { item, .. } => {
+                let mut ancestry = BTreeSet::new();
+                let root = self.inventory_live_root(current.context.actor, item, &mut ancestry)?;
+                let source_tree = self.inventory.tree_members(item)?;
+                let contains_constructed = source_tree
+                    .iter()
+                    .any(|id| self.constructed_creatures.contains(*id));
+                if contains_constructed {
+                    let rows: BTreeSet<_> = current.rows.iter().map(|row| row.id).collect();
+                    if root.is_none()
+                        || root != current.target
+                        || !source_tree.iter().all(|id| rows.contains(id))
+                    {
+                        return Err(E::InvalidState);
+                    }
+                }
+                contains_constructed
+            }
+            _ => false,
+        };
+        if prepared.constructed_acquisition != constructed_source {
+            return Err(E::InvalidState);
         }
         self.inventory_commands.live.insert(
             correlation,
@@ -369,6 +396,11 @@ impl Kernel {
                 live.prepared.request.authority.geometry_ready = true;
                 live.prepared.request.authority.in_range = true;
                 live.prepared.request.authority.clear_path = true;
+                live.prepared.request.authority.source_view = self.inventory_live_source_view(
+                    actor,
+                    live.prepared.evidence.request,
+                    live.prepared.evidence.target,
+                )?;
                 // Move out the prepared operation only once all fallible cold/physical gates passed.
                 let request = InventoryPreparedRequest {
                     context: live.prepared.request.context,
@@ -385,7 +417,11 @@ impl Kernel {
                     .source_motion_state(actor)
                     .ok_or(E::InvalidState)?
                     .style;
-                let operation = self.prepare_inventory_operation(request)?;
+                let operation = if live.prepared.constructed_acquisition {
+                    self.prepare_constructed_inventory_operation(request)?
+                } else {
+                    self.prepare_inventory_operation(request)?
+                };
                 self.inventory_commands
                     .outcomes
                     .push_back(InventoryOutcome {
@@ -411,6 +447,38 @@ impl Kernel {
             _ => {}
         }
         Ok(false)
+    }
+    fn inventory_live_source_view(
+        &self,
+        actor: EntityId,
+        request: InventoryRequest,
+        target: Option<EntityId>,
+    ) -> Result<Option<u64>, E> {
+        if let Some(corpse) = target.filter(|id| self.world.corpse(*id).is_some())
+            && self
+                .player_deaths
+                .corpse_access
+                .get(&corpse)
+                .is_none_or(|access| access.viewer != Some(actor))
+        {
+            return Err(E::AccessDenied);
+        }
+        let (source, _) = ids(request);
+        let item = self.inventory.item(source).ok_or(E::MissingItem)?;
+        let ItemPlace::Contained { container, .. } = item.place else {
+            return Ok(None);
+        };
+        let parent = self
+            .inventory
+            .container(container)
+            .ok_or(E::MissingContainer)?;
+        if parent.root_owner == Some(actor) {
+            return Ok(None);
+        }
+        if !parent.open || !parent.accessible {
+            return Err(E::AccessDenied);
+        }
+        Ok(Some(parent.generation))
     }
 }
 fn ids(request: InventoryRequest) -> (EntityId, Option<EntityId>) {

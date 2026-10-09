@@ -59,6 +59,7 @@ pub(super) fn validate(
             }
             for row in &construction.death_roster {
                 if !matches!(placement(row.entity), Some(ItemPlacementV2::Contained { container, .. }) if container == row.parent.unwrap_or(root))
+                    || !death_child_belongs_to(root, row.entity, &by_id, &placement)
                 {
                     return Err(InventoryFreezeError::Identity);
                 }
@@ -72,3 +73,35 @@ pub(super) fn validate(
     }
     Ok(())
 }
+
+fn death_child_belongs_to(
+    root: u32,
+    child: u32,
+    items: &BTreeMap<u32, &FrozenInventoryItem>,
+    placement: &impl Fn(u32) -> Option<ItemPlacementV2>,
+) -> bool {
+    let mut current = child;
+    for _ in 0..64 {
+        if current == root {
+            return child != root;
+        }
+        // A nested Creature root may itself be selected for its parent's
+        // source death roster. Its children belong to its own companion.
+        if current != child
+            && items
+                .get(&current)
+                .is_some_and(|item| item.construction.is_some())
+        {
+            return false;
+        }
+        let Some(ItemPlacementV2::Contained { container, .. }) = placement(current) else {
+            return false;
+        };
+        current = container;
+    }
+    false
+}
+
+#[cfg(test)]
+#[path = "construction/tests.rs"]
+mod tests;

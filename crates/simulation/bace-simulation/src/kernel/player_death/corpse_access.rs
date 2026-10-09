@@ -67,7 +67,7 @@ impl Kernel {
             } => {
                 let shares_killer_fellowship = self.corpse_fellowship_right(corpse, context.actor);
                 let result = (if matches!(decision, D::Close { .. }) {
-                    Ok(())
+                    self.authorize_corpse_close(context)
                 } else {
                     self.authorize_corpse_use(context, corpse)
                 })
@@ -115,13 +115,7 @@ impl Kernel {
         context: bace_gameplay_api::ActionContext,
         corpse: EntityId,
     ) -> Result<(), E> {
-        self.characters
-            .can_take_complete(CharacterBinding {
-                actor: context.actor,
-                account: context.account,
-                session: context.session,
-            })
-            .map_err(|_| E::Ownership)?;
+        self.authorize_corpse_close(context)?;
         let (cell, actor) = self
             .world
             .actor_state(context.actor)
@@ -182,6 +176,20 @@ impl Kernel {
         Ok(())
     }
 
+    // Container.ActOnUse closes the actor's previously viewed container before
+    // using another, even when that old container is no longer in Use range.
+    // Its viewer identity still belongs to the authenticated character binding.
+    fn authorize_corpse_close(&self, context: bace_gameplay_api::ActionContext) -> Result<(), E> {
+        self.characters
+            .can_take_complete(CharacterBinding {
+                actor: context.actor,
+                account: context.account,
+                session: context.session,
+            })
+            .map_err(|_| E::Ownership)?;
+        Ok(())
+    }
+
     pub fn take_corpse_access_outcome(&mut self) -> Option<CorpseAccessOutcome> {
         self.player_deaths.corpse_access_outcomes.pop_front()
     }
@@ -212,6 +220,15 @@ impl Kernel {
             .world
             .corpse(corpse)
             .is_none_or(|state| state.operation != death_operation)
+        {
+            return Err(E::Stale);
+        }
+        if self
+            .corpse_expiry
+            .pending
+            .values()
+            .any(|pending| pending.ticket.corpse == corpse)
+            || self.corpse_expiry.retiring.contains_key(&corpse)
         {
             return Err(E::Stale);
         }
@@ -275,6 +292,19 @@ impl Kernel {
             shares_killer_fellowship,
             remaining,
         );
+        // Once WorldObject_Decay has reserved this corpse's inventory tree,
+        // a new Open would race its durable tombstone. A viewer already
+        // attached before that reservation may still Close.
+        if matches!(decision, D::Open { .. })
+            && (self
+                .corpse_expiry
+                .pending
+                .values()
+                .any(|pending| pending.ticket.corpse == corpse)
+                || self.corpse_expiry.retiring.contains_key(&corpse))
+        {
+            return Err(E::Stale);
+        }
         if matches!(
             decision,
             D::Open {

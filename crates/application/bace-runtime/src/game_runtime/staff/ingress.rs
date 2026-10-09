@@ -27,6 +27,27 @@ impl GameRuntime {
         {
             return Err("staff authenticated binding mismatch".into());
         }
+        if let GameplayDispatch::StaffLine { line, .. } = &dispatch {
+            let parsed = match bace_admin::parse_command(line) {
+                Ok(parsed) => parsed,
+                Err(_) => return self.reject_unavailable_staff_line(key, context),
+            };
+            let (name, arguments) = if parsed.name.eq_ignore_ascii_case("sudo") {
+                match parsed.arguments.split_first() {
+                    Some((name, arguments)) => (name.as_str(), arguments),
+                    None => return self.reject_unavailable_staff_line(key, context),
+                }
+            } else {
+                (parsed.name.as_str(), parsed.arguments.as_slice())
+            };
+            let name = name.to_ascii_lowercase();
+            // The pinned targetloc GUID form needs current-landblock/global
+            // lookup; all catalog-only and parsed-only commands stay outside
+            // the capture lane so they cannot hold a session indefinitely.
+            if !help::live_in_world_name(&name) || (name == "targetloc" && !arguments.is_empty()) {
+                return self.reject_unavailable_staff_line(key, context);
+            }
+        }
         let token = self.token()?;
         let request = match dispatch {
             GameplayDispatch::TargetQuery { kind, target, .. } => StaffRequest::Query(kind, target),
@@ -41,6 +62,42 @@ impl GameRuntime {
             phase: Phase::Capture(request),
         });
         self.staff.failure = None;
+        Ok(SocialIngress::Accepted)
+    }
+    fn reject_unavailable_staff_line(
+        &mut self,
+        key: SessionKey,
+        context: ActionContext,
+    ) -> Result<SocialIngress, String> {
+        if self.staff.output.len() >= self.limits.messages {
+            return Ok(SocialIngress::Blocked);
+        }
+        let recipient = self
+            .players
+            .replication(context.actor)
+            .ok_or("staff unavailable recipient missing")?;
+        if recipient.key != key
+            || recipient.binding.account != context.account
+            || recipient.binding.session != context.session
+        {
+            return Err("staff unavailable recipient binding mismatch".into());
+        }
+        let batch = bace_replication::project_staff_response(
+            recipient.binding,
+            "This command is unsupported.",
+            0,
+            bace_replication::BatchLimits {
+                max_messages: 1,
+                max_bytes: self.limits.message_bytes,
+                max_message_bytes: self.limits.message_bytes,
+                max_string_bytes: 4096,
+            },
+        )
+        .map_err(|error| format!("staff unavailable output: {error:?}"))?;
+        self.staff.output.push_back(
+            crate::game_messages::session_batch_command(key, batch)
+                .map_err(|error| error.to_string())?,
+        );
         Ok(SocialIngress::Accepted)
     }
     pub(super) fn prepare_staff_captured(

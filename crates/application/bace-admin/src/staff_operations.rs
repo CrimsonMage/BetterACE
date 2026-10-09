@@ -257,10 +257,18 @@ pub fn prepare_staff_operation(
             target: StaffTarget::SelfActor,
             kind: Inspection::Gps,
         },
-        "targetloc" => StaffOperation::Inspect {
-            target: StaffTarget::Selected,
-            kind: Inspection::Position,
-        },
+        "targetloc" => {
+            // ACE accepts an optional GUID and resolves it from the current
+            // landblock, then its global object manager. That route needs a
+            // separate owner; never silently inspect the selected object.
+            if !args.is_empty() {
+                return Err(CommandError::UnsupportedVariant);
+            }
+            StaffOperation::Inspect {
+                target: StaffTarget::Selected,
+                kind: Inspection::Position,
+            }
+        }
         "getenchantments" => StaffOperation::Inspect {
             target: StaffTarget::Selected,
             kind: Inspection::Enchantments,

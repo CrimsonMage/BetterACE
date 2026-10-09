@@ -1,3 +1,5 @@
+#[path = "recall_destinations/bindings.rs"]
+mod bindings;
 #[allow(dead_code, unused_imports, reason = "shared full magic owner fixture")]
 mod magic_common;
 #[path = "recall_destinations/recall_motion.rs"]

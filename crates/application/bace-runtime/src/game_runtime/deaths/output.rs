@@ -3,9 +3,15 @@
 use super::*;
 mod completed;
 mod corpse_location;
+mod equipped_corpse;
 mod equipped_no_corpse;
+mod pk_status;
+mod protection;
+#[cfg(test)]
+#[path = "output/tests.rs"]
+mod tests;
 use bace_replication::InventoryProjection as P;
-use bace_replication::{BatchLimits, ReplicationMessage, SessionBatch};
+use bace_replication::{BatchLimits, EventSequencer, ReplicationMessage, SessionBatch};
 use bace_wire::{CombatEffect, CombatEvent};
 
 struct DeathStartProjection<'a> {
@@ -215,6 +221,48 @@ impl GameRuntime {
                 self.deaths.completed_presentations.remove(&operation);
                 continue;
             }
+            let protection = match &delivery.work {
+                DeathDeliveryWork::Event(PlayerDeathEvent::ProtectionExpired {
+                    actor,
+                    recipient,
+                }) => Some((
+                    delivery.sequence,
+                    *actor,
+                    *recipient,
+                    protection::Kind::Expired,
+                )),
+                DeathDeliveryWork::Event(PlayerDeathEvent::ProtectionDispelled {
+                    actor,
+                    recipient,
+                }) => Some((
+                    delivery.sequence,
+                    *actor,
+                    *recipient,
+                    protection::Kind::Dispelled,
+                )),
+                _ => None,
+            };
+            if let Some((sequence, actor, recipient, kind)) = protection {
+                if !self.project_death_protection_notice(actor, recipient, kind)? {
+                    break;
+                }
+                self.acknowledge_death_delivery(sequence)?;
+                continue;
+            }
+            if let DeathDeliveryWork::Event(PlayerDeathEvent::PkStatus {
+                actor,
+                status,
+                recipient,
+            }) = &delivery.work
+            {
+                let (sequence, actor, status, recipient) =
+                    (delivery.sequence, *actor, *status, *recipient);
+                if !self.project_death_pk_status(actor, status, recipient)? {
+                    break;
+                }
+                self.acknowledge_death_delivery(sequence)?;
+                continue;
+            }
             let (sequence, actor, announcement) = match &delivery.work {
                 DeathDeliveryWork::Event(PlayerDeathEvent::Prepare {
                     actor,
@@ -351,7 +399,7 @@ impl GameRuntime {
         }
         let view = bace_replication::project_accepted_server_motion(accepted)
             .map_err(|error| format!("death accepted motion: {error:?}"))?;
-        if self.network_output.len() >= self.limits.messages || !self.observer_room(1, 8192) {
+        if self.network_output.len() >= self.limits.messages {
             return Ok(false);
         }
         let replica = self
@@ -401,15 +449,6 @@ impl GameRuntime {
             max_message_bytes: message_limit,
             max_string_bytes: 4096,
         };
-        // The death action is frozen before the save. Check its codec and
-        // motion counter on a copy before advancing the private event owner.
-        bace_replication::project_server_motion(
-            actor.0,
-            &view,
-            &mut replica.properties.proposal_copy(),
-            motion_limits,
-        )
-        .map_err(|error| format!("death motion preflight: {error:?}"))?;
         let mut steps = vec![
             P::Vital {
                 vital: 2,
@@ -453,6 +492,48 @@ impl GameRuntime {
                 chat_type: 0,
             });
         }
+        let object_limits = bace_wire::ObjectCodecLimits {
+            max_message_bytes: message_limit,
+            max_model_entries: 255,
+            max_children: 128,
+            max_restrictions: 1024,
+            max_motion_commands: 32,
+            max_string_bytes: 4096,
+        };
+        let private_limits = BatchLimits {
+            max_messages: steps.len(),
+            max_bytes: message_limit.saturating_mul(steps.len()),
+            max_message_bytes: message_limit,
+            max_string_bytes: 4096,
+        };
+        // Preflight the complete private batch before the motion counter, in
+        // canonical projection order. The encoded motion's exact byte length
+        // reserves observer capacity before either sequence owner advances.
+        let motion_bytes = {
+            let mut counters = replica.properties.proposal_copy();
+            let mut events = EventSequencer::new(binding, replica.events.next_sequence());
+            events
+                .project_inventory_with_actor(
+                    binding,
+                    &steps,
+                    &mut std::collections::BTreeMap::new(),
+                    Some(&mut counters),
+                    object_limits,
+                    private_limits,
+                )
+                .map_err(|error| format!("death start private preflight: {error:?}"))?;
+            bace_replication::project_server_motion(actor.0, &view, &mut counters, motion_limits)
+                .map_err(|error| format!("death motion preflight: {error:?}"))?
+                .bytes
+                .len()
+        };
+        if !self.observer_room(1, motion_bytes) {
+            return Ok(false);
+        }
+        let replica = self
+            .players
+            .replication(actor)
+            .ok_or("death motion canonical player disappeared")?;
         let private = replica
             .events
             .project_inventory_with_actor(
@@ -460,20 +541,8 @@ impl GameRuntime {
                 &steps,
                 &mut replica.item_properties,
                 Some(&mut replica.properties),
-                bace_wire::ObjectCodecLimits {
-                    max_message_bytes: message_limit,
-                    max_model_entries: 255,
-                    max_children: 128,
-                    max_restrictions: 1024,
-                    max_motion_commands: 32,
-                    max_string_bytes: 4096,
-                },
-                BatchLimits {
-                    max_messages: steps.len(),
-                    max_bytes: message_limit.saturating_mul(steps.len()),
-                    max_message_bytes: message_limit,
-                    max_string_bytes: 4096,
-                },
+                object_limits,
+                private_limits,
             )
             .map_err(|error| format!("death start private projection: {error:?}"))?;
         let message = bace_replication::project_server_motion(

@@ -1,5 +1,6 @@
 //! Single-owner kernel npc operations.
 mod admission;
+mod appraisal;
 mod casting;
 mod commands;
 mod death;
@@ -161,6 +162,18 @@ impl Kernel {
         events: bace_world_events::Events,
     ) -> Result<(), bace_gameplay_api::NpcFailure> {
         self.npcs.configure(root, epoch, quests, events)
+    }
+    /// Production can bind the authoritative NPC random root before optional
+    /// native quest/event catalogs have an importer. Missing definitions stay
+    /// absent, so scripted effects that require them fail closed.
+    pub fn configure_npc_services_without_catalogs(
+        &mut self,
+        root: std::sync::Arc<bace_random::RandomRoot>,
+        epoch: u32,
+    ) -> Result<(), bace_gameplay_api::NpcFailure> {
+        let events = bace_world_events::Events::prepare(Vec::new(), false)
+            .map_err(|_| bace_gameplay_api::NpcFailure::MissingContent)?;
+        self.configure_npc_services(root, epoch, Vec::new(), events)
     }
     pub fn register_native_npc(
         &mut self,

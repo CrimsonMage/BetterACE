@@ -205,7 +205,8 @@ fn add_creatures(
         materialization::Materialized::Creature { source, .. } => {
             out.insert(ids[0], source.clone());
         }
-        materialization::Materialized::Items(_) => {}
+        materialization::Materialized::Items(_)
+        | materialization::Materialized::NestedItems { .. } => {}
         materialization::Materialized::Mixed(trees) => {
             let mut at = 0;
             for tree in trees {

@@ -63,6 +63,10 @@ impl Characters {
             crate::PlayerSnapshotOperation::Inventory(operation) => {
                 operation != 0 && entry.equipment.is_none_or(|id| id == operation)
             }
+            // Kernel checks the exact held Shop ticket before this read.
+            crate::PlayerSnapshotOperation::VendorBuy(operation) => {
+                operation != 0 && entry.vendor_buy == Some(operation)
+            }
             // Kernel verifies the exact pending pet ticket and inventory hold.
             crate::PlayerSnapshotOperation::Pet(operation) => {
                 operation != 0 && entry.equipment.is_none()

@@ -59,10 +59,33 @@ impl SocialService {
     ) -> Result<SocialPump, String> {
         self.pump_events(worker.social_events(), budget, project, send)
     }
+    /// Keep admission-time social events until their accepted recipient has
+    /// completed the entry receipt. The readiness callback does not project or
+    /// advance a sequence, so retry preserves the exact event and order.
+    pub fn pump_ready(
+        &mut self,
+        worker: &SimulationWorker,
+        budget: usize,
+        ready: impl FnMut(EntityId) -> bool,
+        project: impl FnMut(EntityId, &SocialEvent) -> Result<Option<NetworkCommand>, String>,
+        send: impl FnMut(NetworkCommand) -> Result<(), NetworkCommand>,
+    ) -> Result<SocialPump, String> {
+        self.pump_events_ready(worker.social_events(), budget, ready, project, send)
+    }
     pub fn pump_events(
         &mut self,
         events: &Receiver<SocialEvent>,
         budget: usize,
+        project: impl FnMut(EntityId, &SocialEvent) -> Result<Option<NetworkCommand>, String>,
+        send: impl FnMut(NetworkCommand) -> Result<(), NetworkCommand>,
+    ) -> Result<SocialPump, String> {
+        self.pump_events_ready(events, budget, |_| true, project, send)
+    }
+    pub fn pump_events_ready(
+        &mut self,
+        events: &Receiver<SocialEvent>,
+        budget: usize,
+        mut ready: impl FnMut(EntityId) -> bool,
         mut project: impl FnMut(EntityId, &SocialEvent) -> Result<Option<NetworkCommand>, String>,
         mut send: impl FnMut(NetworkCommand) -> Result<(), NetworkCommand>,
     ) -> Result<SocialPump, String> {
@@ -142,6 +165,10 @@ impl SocialService {
                 self.pending = None;
                 report.events += 1;
                 continue;
+            }
+            if !ready(pending.recipients[pending.next]) {
+                report.blocked = true;
+                break;
             }
             match project(pending.recipients[pending.next], &pending.event)? {
                 Some(command) => self.network = Some(command),

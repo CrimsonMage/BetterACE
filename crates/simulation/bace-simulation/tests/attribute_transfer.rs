@@ -121,6 +121,47 @@ fn request() -> AttributeTransferCommand {
     }
 }
 #[test]
+fn inactive_attribute_device_authorizes_without_quote_or_character_item_mutation() {
+    // Pinned ACE WorldObject_Use.OnActivate returns before CheckUseRequirements,
+    // cooldown and AttributeTransferDevice.ActOnUse for Int119 Active=0.
+    let mut k = kernel();
+    let before_item = k.inventory_item(EntityId(10)).unwrap().clone();
+    let mut idle = kernel();
+    idle.step().unwrap();
+    let request = |sequence, revision| {
+        Command::AttributeTransfer(AttributeTransferCommand::RequestInactive {
+            context: context(sequence),
+            item: EntityId(10),
+            revision,
+        })
+    };
+    k.enqueue(request(1, 1)).unwrap();
+    k.step().unwrap();
+    assert!(matches!(
+        k.take_attribute_transfer_outcome().unwrap().result,
+        Ok(AttributeTransferResult::Inactive)
+    ));
+    assert_eq!(
+        k.character(EntityId(1)).unwrap().revision(),
+        idle.character(EntityId(1)).unwrap().revision()
+    );
+    assert_eq!(k.inventory_item(EntityId(10)), Some(&before_item));
+    assert!(k.take_attribute_transfer_proposal().is_none());
+    k.enqueue(request(2, 2)).unwrap();
+    k.step().unwrap();
+    assert!(matches!(
+        k.take_attribute_transfer_outcome().unwrap().result,
+        Err(AttributeTransferDeviceError::Stale)
+    ));
+    k.enqueue(request(1, 1)).unwrap();
+    k.step().unwrap();
+    assert!(matches!(
+        k.take_attribute_transfer_outcome().unwrap().result,
+        Err(AttributeTransferDeviceError::Ownership)
+    ));
+    assert!(k.take_attribute_transfer_proposal().is_none());
+}
+#[test]
 fn yes_retains_both_owners_until_exact_combined_receipt() {
     let mut kernel = kernel();
     kernel

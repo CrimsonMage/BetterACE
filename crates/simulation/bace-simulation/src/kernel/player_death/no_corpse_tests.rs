@@ -273,3 +273,193 @@ fn selected_pack_container_freezes_nested_unchanged_forest_before_receipt() {
         })
     }));
 }
+
+#[test]
+fn fresh_world_container_admits_nested_drop_but_rejects_orphans() {
+    use bace_inventory::{InventoryContainer, ItemPlace};
+    let mut kernel = super::tests::fixture();
+    kernel
+        .world
+        .register_properties(
+            ACTOR,
+            EntityProperties::restore_snapshot(
+                1,
+                vec![(PropertyFamily::Bool, 29, PropertyValue::Bool(true))],
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    kernel
+        .world
+        .combatant_mut(ACTOR)
+        .unwrap()
+        .damage(100)
+        .unwrap();
+    kernel.begin_player_death(ACTOR, None).unwrap();
+    let PlayerDeathEvent::Prepare { operation, .. } = kernel.take_player_death_event().unwrap()
+    else {
+        panic!("NoCorpse Prepare absent")
+    };
+    let accepted = kernel.accepted_portal_position(ACTOR).unwrap();
+    let position = bace_content::Position {
+        obj_cell_id: accepted.cell,
+        position_x: accepted.origin[0],
+        position_y: accepted.origin[1],
+        position_z: accepted.origin[2],
+        rotation_w: accepted.rotation[0],
+        rotation_x: accepted.rotation[1],
+        rotation_y: accepted.rotation[2],
+        rotation_z: accepted.rotation[3],
+    };
+    let root_id = EntityId(21);
+    let child_id = EntityId(22);
+    let mut root = kernel.inventory.item(EntityId(20)).unwrap().clone();
+    root.id = root_id;
+    root.place = ItemPlace::World;
+    root.is_container = true;
+    root.pack_slot = true;
+    let mut child = kernel.inventory.item(EntityId(20)).unwrap().clone();
+    child.id = child_id;
+    child.place = ItemPlace::Contained {
+        container: root_id,
+        slot: 0,
+        equipped: 0,
+    };
+    let body = bace_physics::Body::spawn(
+        kernel.world.scene(CellId(accepted.cell)).unwrap(),
+        bace_geometry::Vec3::new(accepted.origin[0], accepted.origin[1], accepted.origin[2]),
+        0.5,
+        bace_motion::Capabilities {
+            speed: 0.,
+            jump_impulse: 0.,
+        },
+    )
+    .unwrap();
+    let mut prepared = PreparedPlayerNoCorpse {
+        operation,
+        actor: ACTOR,
+        existing: vec![],
+        fresh_items: vec![root, child],
+        fresh_containers: vec![InventoryContainer {
+            id: root_id,
+            revision: 0,
+            root_owner: None,
+            slots: 40,
+            pack_slots: 10,
+            burden_limit: 100000,
+            accessible: true,
+            open: true,
+            generation: 1,
+        }],
+        world_roots: vec![bace_entity::Actor {
+            id: root_id,
+            cell: CellId(accepted.cell),
+            body,
+        }],
+        accepted_position: position,
+        animation_seconds: 0.,
+        vital_formulas: [VitalFormula {
+            enabled: false,
+            divisor: 0,
+            attribute1: 0,
+            attribute2: 0,
+        }; 3],
+        equipped_health: vec![],
+        instantiation: Some(bace_interactions::PortalPosition {
+            cell: 1,
+            origin: [10., 10., 0.5],
+            rotation: [1., 0., 0., 0.],
+        }),
+    };
+    prepared.fresh_items[1].place = ItemPlace::Contained {
+        container: ACTOR,
+        slot: 1,
+        equipped: 0,
+    };
+    let (error, rejected) = kernel.prepare_player_no_corpse(prepared).unwrap_err();
+    assert_eq!(error, E::Invalid);
+    assert!(kernel.take_player_death_proposal().is_none());
+    let mut prepared = *rejected;
+    prepared.fresh_items[1].place = ItemPlace::Contained {
+        container: EntityId(999),
+        slot: 0,
+        equipped: 0,
+    };
+    let (error, rejected) = kernel.prepare_player_no_corpse(prepared).unwrap_err();
+    assert_eq!(error, E::Invalid);
+    let mut prepared = *rejected;
+    prepared.fresh_items[0].place = ItemPlace::Contained {
+        container: child_id,
+        slot: 0,
+        equipped: 0,
+    };
+    prepared.fresh_items[1].place = ItemPlace::Contained {
+        container: root_id,
+        slot: 0,
+        equipped: 0,
+    };
+    let (error, rejected) = kernel.prepare_player_no_corpse(prepared).unwrap_err();
+    assert_eq!(error, E::Invalid);
+    let mut prepared = *rejected;
+    prepared.fresh_items[0].place = ItemPlace::World;
+    kernel
+        .prepare_player_no_corpse(prepared)
+        .map_err(|error| error.0)
+        .unwrap();
+    let ticket = kernel.take_player_death_proposal().unwrap();
+    assert_eq!(
+        ticket.no_corpse.as_ref().unwrap().world_roots,
+        vec![root_id]
+    );
+    assert_eq!(ticket.inventory.proposal.changes.len(), 2);
+    assert!(ticket.inventory.proposal.changes.iter().any(|change| {
+        change.after.id == child_id
+            && change.after.place
+                == ItemPlace::Contained {
+                    container: root_id,
+                    slot: 0,
+                    equipped: 0,
+                }
+    }));
+    let receipt = PlayerDeathReceipt {
+        operation,
+        actor: ACTOR,
+        after_revision: ticket.after_revision,
+        inventory: crate::InventoryReceipt {
+            operation: ticket.inventory.operation,
+            revisions: ticket
+                .inventory
+                .proposal
+                .changes
+                .iter()
+                .map(|change| (change.after.id, change.after.revision))
+                .collect(),
+        },
+    };
+    kernel
+        .confirm_player_death_committed_at(&receipt, 0)
+        .unwrap();
+    assert!(matches!(
+        kernel.take_player_death_event(),
+        Some(PlayerDeathEvent::Started { .. })
+    ));
+    for _ in 0..31 {
+        kernel.step().unwrap();
+    }
+    assert!(matches!(
+        kernel.take_player_death_event(),
+        Some(PlayerDeathEvent::WorldDrops { roots, .. }) if roots.len() == 1 && roots[0].0 == root_id
+    ));
+    assert_eq!(
+        kernel.inventory.item(root_id).unwrap().place,
+        ItemPlace::World
+    );
+    assert_eq!(
+        kernel.inventory.item(child_id).unwrap().place,
+        ItemPlace::Contained {
+            container: root_id,
+            slot: 0,
+            equipped: 0,
+        }
+    );
+}

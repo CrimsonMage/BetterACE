@@ -94,6 +94,8 @@ impl InventoryCommand {
                         && p.motions.len() <= 5
                         && p.use_radius.is_finite()
                         && (0.0..=100.0).contains(&p.use_radius)
+                        && (!p.constructed_acquisition
+                            || matches!(p.evidence.request, InventoryRequest::Move { .. }))
                 }
                 InventoryCommandKind::ProposeEquipment(p) => {
                     p.request.context.actor.0 != 0
@@ -150,6 +152,9 @@ pub struct InventoryInspection {
 pub struct InventoryLivePrepared {
     pub evidence: InventoryInspection,
     pub request: InventoryPreparedRequest,
+    /// Cold-verified construction companion for each Creature/Cow in the
+    /// inspected source tree. Simulation still checks the exact live owner.
+    pub constructed_acquisition: bool,
     pub motions: BTreeMap<u32, std::sync::Arc<bace_motion::PreparedMotionChain>>,
     pub drop_shape: Option<std::sync::Arc<bace_physics::CollisionShape>>,
     pub use_radius: f32,

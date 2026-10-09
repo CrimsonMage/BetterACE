@@ -13,6 +13,31 @@ pub(super) struct Idle {
     cleanup: bool,
     cleaning: bool,
 }
+#[cfg(test)]
+impl NpcRuntime {
+    pub(in crate::game_runtime) fn static_shop_diagnostic(&self, source: EntityId) -> String {
+        let idle = self.idle.get(&source);
+        let baseline = self
+            .definitions
+            .get(&source)
+            .and_then(|r| r.baseline.as_ref());
+        format!(
+            "binding={:?} ready={} terminal={} busy={} idle={} checkpoint={} pending={} releasing={} committed={} source_frozen={} baseline={:?} failure={:?}",
+            self.coordinator.binding(source),
+            self.coordinator.source_ready(source),
+            self.coordinator.needs_terminal(source),
+            self.coordinator.busy(source),
+            idle.is_some(),
+            idle.is_some_and(|i| i.checkpoint.is_some()),
+            idle.is_some_and(|i| i.pending.is_some()),
+            idle.is_some_and(|i| i.releasing),
+            idle.is_some_and(|i| i.committed),
+            self.source_inventory.contains_key(&source),
+            baseline.map(|b| (b.persisted_version, b.bytes.len())),
+            self.failure.as_deref(),
+        )
+    }
+}
 pub(super) fn accept(
     npc: &mut NpcRuntime,
     event: NpcCoordinatorEvent,
@@ -71,6 +96,13 @@ pub(super) fn accept(
 }
 impl GameRuntime {
     pub(super) fn poll_npc_terminals(&mut self) -> Result<(), String> {
+        // Entry and region handoff temporarily lend the region metadata owner
+        // to another retained stage. Keep the exact NPC candidate/checkpoint
+        // until it returns; freezing without its item source closure cannot be
+        // committed or safely rolled back.
+        if self.world.is_none() {
+            return Ok(());
+        }
         let candidates: Vec<_> =
             self.npc
                 .coordinator
@@ -95,10 +127,39 @@ impl GameRuntime {
                 break;
             }
             let operation = self.token()?;
-            self.npc
+            let (binding, workflow_version) = self
+                .npc
                 .coordinator
-                .enqueue(source, A::FreezeIdle { source, operation })
-                .map_err(|_| "NPC terminal capture queue")?;
+                .binding(source)
+                .ok_or("NPC terminal source binding")?;
+            let bootstrap_shop = binding.source_version == 0
+                && workflow_version == 0
+                && self
+                    .npc
+                    .definitions
+                    .get(&source)
+                    .is_some_and(|registration| registration.baseline.is_none())
+                && crate::npc_persistence::is_authored_static_shop(
+                    self.npc
+                        .definitions
+                        .get(&source)
+                        .ok_or("NPC static Shop definition missing")?,
+                )?;
+            let action = if bootstrap_shop {
+                A::FreezeBootstrapIdle {
+                    source,
+                    operation,
+                    event: binding.invocation,
+                }
+            } else {
+                A::FreezeIdle { source, operation }
+            };
+            let queued = if bootstrap_shop {
+                self.npc.coordinator.enqueue_retained(source, action)
+            } else {
+                self.npc.coordinator.enqueue(source, action)
+            };
+            queued.map_err(|_| "NPC terminal capture queue")?;
             self.npc.idle.insert(
                 source,
                 Idle {

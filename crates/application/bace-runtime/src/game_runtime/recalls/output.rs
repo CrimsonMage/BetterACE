@@ -14,12 +14,6 @@ impl GameRuntime {
                 break;
             };
             if self.recalls.bindings.matches_event(&event) {
-                if self.visibility.service.pending()
-                    || self.network_output.len() >= self.limits.messages
-                    || !self.observer_room(1, 8192)
-                {
-                    break;
-                }
                 self.project_binding_event(event)?;
                 self.recalls.event = None;
                 continue;

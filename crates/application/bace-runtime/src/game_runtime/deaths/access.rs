@@ -47,6 +47,10 @@ enum Phase {
     Adopt,
     Adopting(u64),
     Present,
+    AppearanceFailed {
+        prior: Box<Phase>,
+        error: String,
+    },
     Blocked(String),
 }
 
@@ -196,6 +200,19 @@ impl GameRuntime {
             if pending.key == key {
                 pending.detaching = true;
                 pending.followup = None;
+                // DAT preparation is only for the private Open presentation.
+                // Keep the exact inspect/save/cache/adopt phase so an accepted
+                // permit can still reach the simulation owner before Close.
+                pending.appearance_job = None;
+                pending.appearance = None;
+                if matches!(pending.phase, Phase::AppearanceFailed { .. }) {
+                    let Phase::AppearanceFailed { prior, .. } =
+                        std::mem::replace(&mut pending.phase, Phase::Inspect)
+                    else {
+                        unreachable!("checked appearance phase")
+                    };
+                    pending.phase = *prior;
+                }
                 return Ok(false);
             }
             return Ok(!self.deaths.viewers.contains_key(&key));
@@ -349,8 +366,26 @@ impl GameRuntime {
                 Ok(())
             };
         };
-        if let Some(appearance) = ready(&mut pending.appearance_job) {
-            pending.appearance = Some(appearance?);
+        if !pending.detaching
+            && !matches!(
+                pending.phase,
+                Phase::Blocked(_) | Phase::AppearanceFailed { .. }
+            )
+            && let Some(appearance) = ready(&mut pending.appearance_job)
+        {
+            match appearance {
+                Ok(appearance) => pending.appearance = Some(appearance),
+                Err(error) => {
+                    let error = format!("corpse appearance preparation: {error}");
+                    let prior = std::mem::replace(&mut pending.phase, Phase::Inspect);
+                    pending.phase = Phase::AppearanceFailed {
+                        prior: Box::new(prior),
+                        error: error.clone(),
+                    };
+                    self.deaths.access = Some(pending);
+                    return Err(error);
+                }
+            }
         }
         let phase = std::mem::replace(&mut pending.phase, Phase::Inspect);
         let result = self.advance_corpse_access(&mut pending, phase, unix_millis / 1000);
@@ -364,7 +399,10 @@ impl GameRuntime {
                 Ok(())
             }
             Err(error) => {
-                if !matches!(pending.phase, Phase::Saving { .. } | Phase::Cache { .. }) {
+                if !matches!(
+                    pending.phase,
+                    Phase::Saving { .. } | Phase::Cache { .. } | Phase::AppearanceFailed { .. }
+                ) {
                     pending.phase = Phase::Blocked(error.clone());
                 }
                 self.deaths.access = Some(pending);
@@ -596,6 +634,14 @@ impl GameRuntime {
                     return Ok(false);
                 }
                 if p.detaching {
+                    if self
+                        .deaths
+                        .viewers
+                        .get(&p.key)
+                        .is_some_and(|viewer| *viewer != (p.corpse, p.binding))
+                    {
+                        return Err("corpse detach exact viewer binding mismatch".into());
+                    }
                     self.deaths.viewers.remove(&p.key);
                     return Ok(true);
                 }
@@ -618,6 +664,13 @@ impl GameRuntime {
             }
             Phase::Blocked(error) => {
                 p.phase = Phase::Blocked(error.clone());
+                return Err(error);
+            }
+            Phase::AppearanceFailed { prior, error } => {
+                p.phase = Phase::AppearanceFailed {
+                    prior,
+                    error: error.clone(),
+                };
                 return Err(error);
             }
         }
@@ -679,5 +732,92 @@ mod tests {
         mismatched_payload.item.entity.state.class_name = "unreceipted change".into();
         assert!(!same_source_list(&before, &[mismatched_payload]));
         assert!(!same_source_list(&before, &[]));
+    }
+
+    fn failing_pending(
+        key: SessionKey,
+        binding: CharacterBinding,
+        corpse: EntityId,
+        phase: Phase,
+        decision: CorpseAccessDecision,
+    ) -> Pending {
+        Pending {
+            key,
+            binding,
+            context: ActionContext {
+                actor: binding.actor,
+                account: binding.account,
+                session: binding.session,
+                sequence: 1,
+            },
+            corpse,
+            source: child(corpse.0, 2, 0, 0),
+            children: vec![child(0x8000_0002, 1, corpse.0, 0)],
+            grandchildren: Vec::new(),
+            appearance: None,
+            appearance_job: Some(Box::pin(async { Err("missing DAT shape".into()) })),
+            source_refreshes: 0,
+            inspection: 7,
+            decision: Some(decision),
+            has_loot_permit: true,
+            rejection: None,
+            phase,
+            detaching: false,
+            followup: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn failed_appearance_retains_adoption_and_exact_logout_viewer_cleanup() {
+        let (_cluster, _directory, mut runtime, key, binding) =
+            crate::game_runtime::portals::tests::output_runtime().await;
+        let corpse = EntityId(0x8000_0001);
+        runtime.deaths.access = Some(failing_pending(
+            key,
+            binding,
+            corpse,
+            Phase::Adopt,
+            CorpseAccessDecision::Open {
+                consume_permit: true,
+            },
+        ));
+        assert!(
+            runtime
+                .poll_corpse_access(1_000)
+                .unwrap_err()
+                .contains("missing DAT shape")
+        );
+        assert!(matches!(
+            runtime.deaths.access.as_ref().unwrap().phase,
+            Phase::AppearanceFailed { prior: ref phase, .. } if matches!(**phase, Phase::Adopt)
+        ));
+        assert!(runtime.network_output.is_empty());
+        assert!(runtime.poll_corpse_access(1_000).is_err());
+        assert!(matches!(
+            runtime.deaths.access.as_ref().unwrap().phase,
+            Phase::AppearanceFailed { prior: ref phase, .. } if matches!(**phase, Phase::Adopt)
+        ));
+        assert!(!runtime.queue_corpse_viewer_detach(key).unwrap());
+        let pending = runtime.deaths.access.as_ref().unwrap();
+        assert!(pending.detaching);
+        assert!(pending.appearance_job.is_none());
+        assert!(matches!(pending.phase, Phase::Adopt));
+
+        // A Close already adopted by simulation must release only its exact
+        // viewer even if its irrelevant DAT preparation subsequently fails.
+        runtime.deaths.viewers.insert(key, (corpse, binding));
+        runtime.deaths.access = Some(failing_pending(
+            key,
+            binding,
+            corpse,
+            Phase::Present,
+            CorpseAccessDecision::Close { mark_looted: false },
+        ));
+        assert!(runtime.poll_corpse_access(1_000).is_err());
+        assert_eq!(runtime.deaths.viewers.get(&key), Some(&(corpse, binding)));
+        assert!(!runtime.queue_corpse_viewer_detach(key).unwrap());
+        runtime.poll_corpse_access(1_000).unwrap();
+        assert!(runtime.deaths.access.is_none());
+        assert!(!runtime.deaths.viewers.contains_key(&key));
     }
 }

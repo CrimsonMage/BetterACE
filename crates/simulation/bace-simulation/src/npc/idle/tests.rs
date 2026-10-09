@@ -25,6 +25,44 @@ fn registered() -> Npcs {
     owner.source_order.push(EntityId(2));
     owner
 }
+
+#[test]
+fn admitted_fresh_idle_source_seeds_one_authoritative_checkpoint() {
+    let mut owner = registered();
+    let actor = EntityId(2);
+    owner.root = Some(Arc::new(RandomRoot::new([7; 32], 1).unwrap()));
+    let source = owner.sources.get_mut(&actor).unwrap();
+    source.admission = Some(NpcScriptIdentity {
+        template: 12,
+        program_hash: [3; 32],
+        content_generation: [4; 32],
+    });
+    source.admission_bound = true;
+    assert_eq!(
+        owner.freeze_bootstrap_idle(actor, 41, [0; 16], 30),
+        Err(NpcFailure::DurabilityPending)
+    );
+    assert_eq!(owner.sources[&actor].event_id, [0; 16]);
+    let checkpoint = owner.freeze_bootstrap_idle(actor, 41, [5; 16], 30).unwrap();
+    assert_eq!(checkpoint.active_operation, 41);
+    assert_eq!(checkpoint.event_id, [5; 16]);
+    assert_eq!(checkpoint.key_version, 1);
+    assert_eq!(checkpoint.invocations.len(), 1);
+    assert_eq!(checkpoint.invocations[0].operation, 41);
+    assert_eq!(checkpoint.invocations[0].random_position, 0);
+    assert!(checkpoint.vm.work.is_empty());
+    assert!(checkpoint.pending.is_empty());
+    assert_eq!(
+        owner.freeze_bootstrap_idle(actor, 41, [5; 16], 31).unwrap(),
+        checkpoint
+    );
+    assert_eq!(
+        owner.freeze_bootstrap_idle(actor, 42, [6; 16], 31),
+        Err(NpcFailure::Conflict)
+    );
+    assert_eq!(owner.sources[&actor].event_id, [5; 16]);
+    owner.release_idle(actor, 41, 31).unwrap();
+}
 #[test]
 fn immutable_idle_registration_can_drain_but_journal_and_recovery_holds_cannot() {
     let mut owner = registered();

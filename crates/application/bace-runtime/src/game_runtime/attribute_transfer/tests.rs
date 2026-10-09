@@ -250,6 +250,71 @@ async fn prompt_then_committed_private_output_retains_disconnect_obligation() {
     assert_eq!(word(&messages[2].1, 12), 0x028a);
     assert_eq!(word(&messages[2].1, 16), 0x04e1);
     assert!(runtime.attribute_transfers.pending.is_none());
+    runtime.sessions.get_mut(&key).unwrap().disconnected = false;
+    runtime.attribute_transfers.pending = Some(Pending {
+        key,
+        context,
+        item: device_item,
+        identity: SkillOperationId::new([8; 16]).unwrap(),
+        phase: Phase::Submitted,
+        quote: None,
+        ticket: None,
+        proposal_seen: false,
+        request_retry: None,
+        use_action: true,
+    });
+    runtime
+        .attribute_transfers
+        .accept(AttributeTransferOutcome {
+            context: Some(context),
+            result: Ok(AttributeTransferResult::Inactive),
+        })
+        .unwrap();
+    runtime.project_attribute_transfer_output().unwrap();
+    let NetworkCommand::SendOrderedBatch { messages, .. } =
+        runtime.network_output.pop_front().unwrap()
+    else {
+        panic!("inactive Use output")
+    };
+    assert_eq!(messages.len(), 1);
+    assert_eq!(word(&messages[0].1, 12), 0x01c7);
+    assert_eq!(word(&messages[0].1, 16), 0);
+    assert!(runtime.attribute_transfers.pending.is_none());
+    runtime.attribute_transfers.pending = Some(Pending {
+        key,
+        context: ActionContext {
+            sequence: 10,
+            ..context
+        },
+        item: device_item,
+        identity: SkillOperationId::new([9; 16]).unwrap(),
+        phase: Phase::Submitted,
+        quote: None,
+        ticket: None,
+        proposal_seen: false,
+        request_retry: None,
+        use_action: true,
+    });
+    runtime
+        .attribute_transfers
+        .accept(AttributeTransferOutcome {
+            context: Some(ActionContext {
+                sequence: 10,
+                ..context
+            }),
+            result: Err(bace_simulation::AttributeTransferDeviceError::Stale),
+        })
+        .unwrap();
+    runtime.project_attribute_transfer_output().unwrap();
+    let NetworkCommand::SendOrderedBatch { messages, .. } =
+        runtime.network_output.pop_front().unwrap()
+    else {
+        panic!("stale inactive Use output")
+    };
+    assert_eq!(messages.len(), 1);
+    assert_eq!(word(&messages[0].1, 12), 0x01c7);
+    assert_eq!(word(&messages[0].1, 16), 0x058d);
+    assert!(runtime.attribute_transfers.pending.is_none());
     runtime
         .players
         .test_clear_replication(key, binding)

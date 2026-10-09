@@ -47,6 +47,38 @@ fn equipment_mode_after(
         _ => None,
     }
 }
+fn validate_dequip_slot_roster(
+    inventory: &crate::inventory::Inventory,
+    actor: EntityId,
+    source: EntityId,
+    slots: &[bace_inventory::WieldSlotItem],
+) -> Result<(), E> {
+    let mut ids = std::collections::BTreeSet::new();
+    for metadata in slots {
+        if !ids.insert(metadata.item) || metadata.location == 0 {
+            return Err(E::InvalidState);
+        }
+        let accepted = inventory.item(metadata.item).ok_or(E::MissingItem)?;
+        if !inventory.owned(actor, metadata.item)
+            || accepted.revision != metadata.revision
+            || !matches!(
+                accepted.place,
+                ItemPlace::Contained { container, equipped, .. }
+                    if container == actor && equipped == metadata.location
+            )
+        {
+            return Err(E::InvalidState);
+        }
+    }
+    if !ids.contains(&source)
+        || inventory
+            .equipped_items(actor)
+            .any(|item| !ids.contains(&item.id))
+    {
+        return Err(E::InvalidState);
+    }
+    Ok(())
+}
 impl Kernel {
     pub(super) fn prepare_inventory_equipment(
         &mut self,
@@ -102,6 +134,9 @@ impl Kernel {
             ItemPlace::Contained { equipped, .. } => equipped,
             _ => return Err(E::InvalidEquip),
         };
+        if matches!(p.request.request, InventoryRequest::Move { .. }) {
+            validate_dequip_slot_roster(&self.inventory, actor, item, &p.slots)?;
+        }
         let needs_pretransition = combat_mode != 1
             && matches!(p.request.request, InventoryRequest::Move { .. })
             && matches!(

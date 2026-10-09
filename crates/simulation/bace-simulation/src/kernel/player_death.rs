@@ -5,6 +5,9 @@ mod corpse_access;
 mod no_corpse;
 mod olthoi;
 mod preparation;
+#[cfg(test)]
+#[path = "player_death/protection_tests.rs"]
+mod protection_tests;
 mod selection;
 mod timers;
 mod vitals;

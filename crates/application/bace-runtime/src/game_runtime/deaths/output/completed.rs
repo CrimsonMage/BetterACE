@@ -71,9 +71,7 @@ impl GameRuntime {
                     DeathDropOrigin::Wield | DeathDropOrigin::SlipperyWield
                 )
         }) {
-            // Destruction and dequip require their own ordered visibility and
-            // gear-vital handoff; do not publish a private prefix here.
-            return Ok(false);
+            return self.project_equipped_corpse_completion(operation);
         }
         let actor = ticket.actor;
         let binding = completion.work.binding;
@@ -449,21 +447,18 @@ impl GameRuntime {
         burden_after: u64,
     ) -> Result<bool, String> {
         let value = burden(burden_after)?;
-        if self.network_output.len() >= self.limits.messages {
-            return Ok(false);
-        }
-        let Some(replica) = self.players.replication(actor) else {
-            return Ok(false);
+        let room = self.network_output.len() < self.limits.messages;
+        let key = match self.death_private_admission(actor, Some(binding), room)? {
+            super::protection::Admission::Detached => return Ok(true),
+            super::protection::Admission::Retain => return Ok(false),
+            super::protection::Admission::Publish(key) => key,
         };
-        if replica.binding != binding
-            || self
-                .sessions
-                .get(&replica.key)
-                .is_none_or(|session| session.disconnected)
-        {
-            return Ok(false);
+        let Some(replica) = self.players.replication(actor) else {
+            return Err("NoCorpse burden admitted replica disappeared".into());
+        };
+        if replica.binding != binding || replica.key != key {
+            return Err("NoCorpse burden admitted binding changed".into());
         }
-        let key = replica.key;
         let max = self.limits.message_bytes;
         let batch = replica
             .events
@@ -728,7 +723,7 @@ fn validate_destroyed_coin_receipt(
     Ok(())
 }
 
-fn source_drop_message(
+pub(super) fn source_drop_message(
     transcript: &bace_simulation::DeathInventoryTranscript,
     destroyed_amounts: &BTreeMap<EntityId, u32>,
     names: &BTreeMap<EntityId, (String, Option<String>)>,
@@ -876,6 +871,78 @@ mod tests {
             vec![0xcd, 0x02, 0, 0, 0, 5, 0, 0, 0, 42, 0, 0, 0]
         );
         assert!(burden(i32::MAX as u64 + 1).is_err());
+    }
+
+    #[tokio::test]
+    async fn no_corpse_burden_waits_for_exact_detach_and_never_reaches_new_generation() {
+        let (_cluster, _directory, mut runtime, key, binding) =
+            crate::game_runtime::portals::tests::output_runtime().await;
+        let actor = binding.actor;
+        let next_event = runtime
+            .players
+            .replication(actor)
+            .unwrap()
+            .events
+            .next_sequence();
+        let limit = runtime.limits.messages;
+        runtime.limits.messages = 0;
+        assert!(
+            !runtime
+                .project_no_corpse_burden(actor, binding, 42)
+                .unwrap()
+        );
+        runtime.limits.messages = limit;
+        assert_eq!(
+            runtime
+                .players
+                .replication(actor)
+                .unwrap()
+                .events
+                .next_sequence(),
+            next_event
+        );
+
+        runtime.sessions.get_mut(&key).unwrap().disconnected = true;
+        assert!(
+            !runtime
+                .project_no_corpse_burden(actor, binding, 42)
+                .unwrap()
+        );
+        assert!(runtime.network_output.is_empty());
+        // A later canonical replica is generation-fenced even if it reuses
+        // the same actor ID. The fixture injects only its binding change;
+        // production replacement belongs to the login/detach service.
+        let later_binding = bace_gameplay_api::CharacterBinding {
+            session: bace_gameplay_api::SessionId(key.generation + 1),
+            ..binding
+        };
+        runtime.players.replication(actor).unwrap().binding = later_binding;
+        assert!(
+            runtime
+                .project_no_corpse_burden(actor, binding, 42)
+                .unwrap()
+        );
+        assert!(runtime.network_output.is_empty());
+        assert_eq!(
+            runtime
+                .players
+                .replication(actor)
+                .unwrap()
+                .events
+                .next_sequence(),
+            next_event
+        );
+        runtime.players.replication(actor).unwrap().binding = binding;
+        runtime
+            .players
+            .test_clear_replication(key, binding)
+            .unwrap();
+        assert!(
+            runtime
+                .project_no_corpse_burden(actor, binding, 42)
+                .unwrap()
+        );
+        assert!(runtime.network_output.is_empty());
     }
 
     #[test]

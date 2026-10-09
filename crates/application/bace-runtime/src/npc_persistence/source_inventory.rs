@@ -7,7 +7,7 @@ use bace_inventory::{InventoryProposal, ItemChange};
 use bace_persistence::{NpcStageOperation, PlacementOperation, SaveSnapshot};
 use bace_simulation::NpcSourceInventorySnapshot;
 use bace_storage_codec::{
-    NpcWorkflowSaveV3, SaveCodecError, npc_workflow_v3::NpcSourceInventoryV3,
+    NpcWorkflowSaveV3, PackKey, PackLookup, SaveCodecError, npc_workflow_v3::NpcSourceInventoryV3,
 };
 use std::collections::{BTreeMap, BTreeSet};
 pub(super) fn joined(operation: &NpcStageOperation) -> bool {
@@ -42,6 +42,8 @@ pub(crate) struct FrozenNpcSourceInventory {
     authored: std::sync::Arc<bace_content::WeenieV1>,
     template_revision: u64,
     root_item: Option<bace_simulation::RegionUnloadItem>,
+    static_shop: bool,
+    landblock: u16,
     root_after: std::sync::OnceLock<SaveSnapshot>,
 }
 impl FrozenNpcSourceInventory {
@@ -56,7 +58,98 @@ impl FrozenNpcSourceInventory {
         let state = crate::npc_recovery::overlay_npc_qualities(&self.authored, &properties)
             .map_err(|_| invalid())?;
         let expected_version = self.baseline.as_ref().map_or(0, |b| b.persisted_version);
-        let (mutation_revision, bytes) = if let Some(root) = &self.root_item {
+        let (mutation_revision, bytes) = if self.static_shop {
+            let location = checkpoint.location.as_ref().ok_or_else(invalid)?;
+            if location.cell >> 16 != u32::from(self.landblock)
+                || location.position.iter().any(|value| !value.is_finite())
+                || !location.heading.is_finite()
+                || !location.creature
+                || location.player
+                || self.root_item.is_some()
+                || state.weenie_type != 12
+            {
+                return Err(invalid());
+            }
+            let previous_item = self
+                .baseline
+                .as_ref()
+                .map(|baseline| {
+                    let header = bace_storage_codec::inspect(
+                        &baseline.bytes,
+                        bace_storage_codec::CodecLimits {
+                            max_payload_bytes: 2 * 1024 * 1024,
+                        },
+                    )?;
+                    if header.kind != 101 || header.schema_version == 1 {
+                        return Ok(None);
+                    }
+                    bace_storage_codec::ItemSaveV5::decode_or_migrate(&baseline.bytes, None)
+                        .map(Some)
+                })
+                .transpose()?
+                .flatten();
+            if previous_item.as_ref().is_some_and(|item| {
+                item.construction.is_some()
+                    || item.source_destination.is_some()
+                    || !matches!(
+                        item.placement,
+                        bace_storage_codec::ItemPlacementV2::World(_)
+                    )
+            }) {
+                return Err(invalid());
+            }
+            let previous = self
+                .baseline
+                .as_ref()
+                .map(|baseline| match &previous_item {
+                    Some(item) => Ok(item.entity.clone()),
+                    None => bace_storage_codec::EntitySaveV1::decode_item(&baseline.bytes),
+                })
+                .transpose()?;
+            if previous.as_ref().is_some_and(|saved| {
+                saved.object_id != self.source
+                    || saved.state.weenie_id != state.weenie_id
+                    || saved.state.weenie_type != 12
+                    || saved.template_revision != self.template_revision
+            }) {
+                return Err(invalid());
+            }
+            let revision = previous
+                .as_ref()
+                .map_or(0, |saved| saved.mutation_revision)
+                .checked_add(1)
+                .ok_or_else(invalid)?;
+            let (sin, cos) = (location.heading * 0.5).sin_cos();
+            let placement = bace_storage_codec::ItemPlacementV2::World(bace_content::Position {
+                obj_cell_id: location.cell,
+                position_x: location.position[0],
+                position_y: location.position[1],
+                position_z: location.position[2],
+                rotation_w: cos,
+                rotation_x: 0.0,
+                rotation_y: 0.0,
+                rotation_z: sin,
+            });
+            let saved = bace_storage_codec::ItemSaveV5 {
+                previous: bace_storage_codec::ItemSaveV4 {
+                    previous: bace_storage_codec::ItemSaveV3 {
+                        previous: bace_storage_codec::ItemSaveV2 {
+                            entity: bace_storage_codec::EntitySaveV1 {
+                                object_id: self.source,
+                                template_revision: self.template_revision,
+                                mutation_revision: revision,
+                                state,
+                            },
+                            placement,
+                        },
+                        enchantments: self.fence.source_enchantments.clone(),
+                    },
+                    construction: None,
+                },
+                source_destination: None,
+            };
+            (revision, saved.encode()?)
+        } else if let Some(root) = &self.root_item {
             let baseline = self.baseline.as_ref().ok_or_else(invalid)?;
             let mut saved =
                 bace_storage_codec::ItemSaveV5::decode_or_migrate(&baseline.bytes, None)?;
@@ -155,7 +248,10 @@ impl FrozenNpcSourceInventory {
         self.root_after.get()
     }
     pub(crate) fn root_is_item(&self) -> bool {
-        self.root_item.is_some()
+        self.root_item.is_some() || self.static_shop
+    }
+    pub(crate) fn root_is_static_shop(&self) -> bool {
+        self.static_shop
     }
     pub(crate) fn attach(&self, operation: &mut NpcStageOperation) -> Result<(), SaveCodecError> {
         let invalid = || SaveCodecError::Invalid("NPC source inventory joint stage");
@@ -191,6 +287,13 @@ impl FrozenNpcSourceInventory {
             let saved = bace_storage_codec::ItemSaveV5::decode(&root.bytes)?;
             let expected = if root.expected_version == 0 {
                 None
+            } else if self.static_shop {
+                self.baseline
+                    .as_ref()
+                    .and_then(|baseline| {
+                        bace_storage_codec::ItemSaveV5::decode(&baseline.bytes).ok()
+                    })
+                    .map(|saved| crate::game_inventory::durable(&saved.placement))
             } else {
                 Some(crate::game_inventory::durable(
                     &bace_storage_codec::ItemSaveV5::decode_or_migrate(
@@ -354,6 +457,7 @@ pub(crate) fn freeze_source_inventory(
             .checked_add(1)
             .ok_or("NPC source row version overflow")?;
     }
+    let static_shop = snapshot.root_item.is_none() && is_authored_static_shop(registration)?;
     Ok(FrozenNpcSourceInventory {
         source: snapshot.source.0,
         ticket: snapshot.ticket,
@@ -363,6 +467,37 @@ pub(crate) fn freeze_source_inventory(
         authored: registration.source.authored.clone(),
         template_revision: registration.generation.revision(),
         root_item: snapshot.root_item.clone(),
+        static_shop,
+        landblock: registration.landblock,
         root_after: std::sync::OnceLock::new(),
     })
+}
+
+/// Only an admitted exact World instance may be promoted as a durable static
+/// Shop. Generated vendors retain their construction companion and owner.
+pub(crate) fn is_authored_static_shop(
+    registration: &crate::npc_sources::PreparedNpcRegistration,
+) -> Result<bool, String> {
+    if registration.source.authored.weenie_type != 12 {
+        return Ok(false);
+    }
+    match registration
+        .generation
+        .lookup(PackKey {
+            namespace: 20,
+            id: u64::from(registration.actor.0),
+        })
+        .map_err(|e| e.to_string())?
+    {
+        PackLookup::Record(record) => Ok(matches!(
+            bace_content_tools::decode_world_record(record.bytes()).map_err(|e| e.to_string())?,
+            bace_content::WorldRecordV1::LandblockInstance(instance)
+                if instance.guid == registration.actor.0
+                    && !instance.is_link_child
+                    && instance.landblock == i32::from(registration.landblock)
+                    && instance.obj_cell_id >> 16 == u32::from(registration.landblock)
+                    && instance.weenie_class_id == registration.source.template
+        )),
+        _ => Ok(false),
+    }
 }

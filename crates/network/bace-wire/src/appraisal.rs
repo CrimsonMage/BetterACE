@@ -1,9 +1,25 @@
 //! Pinned ACE AppraiseInfoExtensions and profile writers. Inputs are already
 //! accepted, property-filtered appraisal projections; no source defaults here.
 use crate::{
-    WireError, Writer,
+    Reader, WireError, Writer,
     opcode::{GameEventType, GameMessageOpcode},
 };
+/// GameAction IdentifyObject (0x00C8) is exactly one little-endian GUID.
+/// Zero clears the requested/current selection in pinned Player.cs.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct IdentifyObjectRequest {
+    pub target: u32,
+}
+impl IdentifyObjectRequest {
+    pub fn decode(payload: &[u8]) -> Result<Self, WireError> {
+        if payload.len() != 4 {
+            return Err(WireError::InvalidLength);
+        }
+        Ok(Self {
+            target: Reader::new(payload).u32()?,
+        })
+    }
+}
 #[derive(Clone, Copy, Debug)]
 pub struct AppraisalLimits {
     pub table_entries: usize,

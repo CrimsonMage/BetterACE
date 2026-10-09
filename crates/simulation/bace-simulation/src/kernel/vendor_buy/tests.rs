@@ -277,6 +277,14 @@ fn joined_buy_reservation_blocks_generic_inventory_and_requires_exact_receipt() 
     let mut kernel = kernel();
     let ticket = reserve(&mut kernel);
     assert_eq!(ticket.quote.total_cost, 4);
+    assert_eq!(
+        kernel.characters.vendor_buy_operation(ACTOR),
+        Some(ticket.inventory.operation)
+    );
+    assert_eq!(
+        kernel.characters.get(ACTOR).unwrap().revision(),
+        ticket.actor_revision
+    );
     assert_eq!(kernel.inventory_item(COIN).unwrap().stack, 10);
     let operation = ticket.inventory.operation;
     assert!(kernel.vendor_buy_owns_inventory(operation));
@@ -322,6 +330,11 @@ fn joined_buy_reservation_blocks_generic_inventory_and_requires_exact_receipt() 
         .confirm_vendor_buy_committed(&ticket, &receipt)
         .unwrap();
     assert!(!kernel.vendor_buy_owns_inventory(operation));
+    assert_eq!(kernel.characters.vendor_buy_operation(ACTOR), None);
+    assert_eq!(
+        kernel.characters.get(ACTOR).unwrap().revision(),
+        ticket.actor_revision + 1
+    );
     assert_eq!(kernel.inventory_item(COIN).unwrap().stack, 6);
     assert_eq!(kernel.inventory_item(FRESH).unwrap().stack, 2);
     assert!(kernel.vendor_stock_durable(VENDOR));
@@ -333,6 +346,11 @@ fn definite_buy_rejection_releases_exact_inventory_reservation() {
     let ticket = reserve(&mut kernel);
     kernel.reject_vendor_buy(&ticket).unwrap();
     assert!(!kernel.vendor_buy_owns_inventory(ticket.inventory.operation));
+    assert_eq!(kernel.characters.vendor_buy_operation(ACTOR), None);
+    assert_eq!(
+        kernel.characters.get(ACTOR).unwrap().revision(),
+        ticket.actor_revision
+    );
     assert_eq!(kernel.inventory_item(COIN).unwrap().stack, 10);
     assert!(kernel.inventory_item(FRESH).is_none());
     assert!(kernel.vendor_stock_durable(VENDOR));
@@ -483,4 +501,36 @@ fn vendor_command_definite_rejection_releases_held_buy() {
     assert!(!kernel.vendor_buy_owns_inventory(ticket.inventory.operation));
     assert_eq!(kernel.inventory_item(COIN).unwrap().stack, 10);
     assert!(kernel.inventory_item(FRESH).is_none());
+}
+
+#[test]
+fn vendor_buy_snapshot_fence_requires_exact_pending_ticket_and_revision() {
+    let mut kernel = kernel();
+    let binding = CharacterBinding {
+        session: SessionId(1),
+        account: AccountId(1),
+        actor: ACTOR,
+    };
+    let ticket = reserve(&mut kernel);
+    assert!(kernel.validate_vendor_buy_snapshot(
+        binding,
+        ticket.inventory.operation,
+        ticket.actor_revision
+    ));
+    assert!(!kernel.validate_vendor_buy_snapshot(
+        binding,
+        ticket.inventory.operation + 1,
+        ticket.actor_revision
+    ));
+    assert!(!kernel.validate_vendor_buy_snapshot(
+        binding,
+        ticket.inventory.operation,
+        ticket.actor_revision + 1
+    ));
+    kernel.reject_vendor_buy(&ticket).unwrap();
+    assert!(!kernel.validate_vendor_buy_snapshot(
+        binding,
+        ticket.inventory.operation,
+        ticket.actor_revision
+    ));
 }

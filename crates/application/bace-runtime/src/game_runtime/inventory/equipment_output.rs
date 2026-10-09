@@ -3,7 +3,55 @@ use super::*;
 use crate::inventory_equipment_output::EquipmentVisibilityUpdate;
 use bace_inventory::{ActivationMessage, ItemPlace};
 use bace_replication::{InventoryProjection as P, SequenceKind};
+use bace_types::EntityId;
 use bace_wire::{InventoryEvent, MagicEvent, PropertyValue};
+#[cfg(test)]
+mod tests;
+fn equipment_focus_item(
+    source: EntityId,
+    request: bace_gameplay_api::InventoryRequest,
+    fresh: Option<EntityId>,
+    changes: &[bace_inventory::ItemChange],
+) -> Result<EntityId, String> {
+    match (request, fresh) {
+        (
+            bace_gameplay_api::InventoryRequest::SplitToWield { item, location, .. },
+            Some(fresh),
+        )
+            if item == source
+                && fresh != source
+                && changes.iter().any(|change| {
+                    change.after.id == source
+                        && change
+                            .before
+                            .as_ref()
+                            .is_some_and(|before| before.id == source)
+                })
+                && changes
+                    .iter()
+                    .filter(|change| change.before.is_none())
+                    .count()
+                    == 1
+                && changes.iter().any(|change| {
+                    change.after.id == fresh
+                        && change.before.is_none()
+                        && matches!(change.after.place, ItemPlace::Contained { equipped, .. } if equipped == location)
+                }) =>
+        {
+            Ok(fresh)
+        }
+        (bace_gameplay_api::InventoryRequest::SplitToWield { .. }, _) => {
+            Err("split-to-wield focus identity missing".into())
+        }
+        (
+            bace_gameplay_api::InventoryRequest::Equip { item, .. }
+            | bace_gameplay_api::InventoryRequest::Move { item, .. },
+            None,
+        ) if item == source && changes.iter().any(|change| change.after.id == source) => Ok(source),
+        (_, None) => Err("equipment source proposal identity missing".into()),
+        (_, Some(_)) => Err("unexpected fresh equipment focus".into()),
+    }
+}
 impl GameRuntime {
     pub fn pending_inventory_equipment_visibility(&self) -> Option<&EquipmentVisibilityUpdate> {
         self.inventory
@@ -126,6 +174,12 @@ impl GameRuntime {
             .as_ref()
             .ok_or("equipment completion missing")?;
         let operation = &completion.work.operation;
+        let focus = equipment_focus_item(
+            pending.item,
+            operation.request,
+            completion.work.fresh.as_ref().map(|stack| stack.item.id),
+            &operation.ticket.proposal.changes,
+        )?;
         let patch = operation
             .equipment
             .as_ref()
@@ -143,7 +197,7 @@ impl GameRuntime {
             .proposal
             .changes
             .iter()
-            .find(|c| c.after.id == pending.item)
+            .find(|c| c.after.id == focus)
             .ok_or("equipment focus missing")?;
         let fresh = change.before.is_none()
             && matches!(
@@ -249,18 +303,18 @@ impl GameRuntime {
             let child = visibility
                 .descriptions
                 .iter()
-                .find(|d| d.object_id == pending.item.0)
+                .find(|d| d.object_id == focus.0)
                 .ok_or("fresh equipment description missing")?;
             steps.push(P::Create(child));
         }
         if moved {
             steps.push(P::Property {
-                item: pending.item,
+                item: focus,
                 property: 10,
                 value: PropertyValue::Int(new as i32),
             });
             steps.push(P::Event(InventoryEvent::Wield {
-                object_id: pending.item.0,
+                object_id: focus.0,
                 location: new,
             }));
         }
@@ -268,7 +322,7 @@ impl GameRuntime {
             && let Some(child) = visibility
                 .descriptions
                 .iter()
-                .find(|d| d.object_id == pending.item.0)
+                .find(|d| d.object_id == focus.0)
         {
             let parent = child
                 .physics
@@ -278,7 +332,7 @@ impl GameRuntime {
             public.push(steps.len());
             steps.push(P::Parent {
                 parent: actor,
-                item: pending.item,
+                item: focus,
                 location: parent.location,
                 placement: child
                     .physics
@@ -304,22 +358,22 @@ impl GameRuntime {
         }
         if !moved {
             steps.push(P::Property {
-                item: pending.item,
+                item: focus,
                 property: 3,
                 value: PropertyValue::InstanceId(0),
             });
             steps.push(P::Property {
-                item: pending.item,
+                item: focus,
                 property: 10,
                 value: PropertyValue::Int(0),
             });
             if new != 0 {
                 steps.push(P::Event(InventoryEvent::Wield {
-                    object_id: pending.item.0,
+                    object_id: focus.0,
                     location: new,
                 }));
             } else {
-                steps.push(P::Pickup(pending.item));
+                steps.push(P::Pickup(focus));
             }
         }
         if (old | new) & 0x03700000 != 0 {
@@ -332,7 +386,7 @@ impl GameRuntime {
         }));
         if new == 0 {
             steps.push(P::Event(InventoryEvent::PutInContainer {
-                object_id: pending.item.0,
+                object_id: focus.0,
                 container_id: container.0,
                 placement: i32::try_from(slot).map_err(|_| "equipment pack slot")?,
                 container_type: 0,
@@ -440,6 +494,12 @@ impl GameRuntime {
             .ok_or("equipment completion missing")?;
         let actor = p.binding.actor;
         let operation = &c.work.operation;
+        let focus = equipment_focus_item(
+            p.item,
+            operation.request,
+            c.work.fresh.as_ref().map(|stack| stack.item.id),
+            &operation.ticket.proposal.changes,
+        )?;
         let player = self
             .online_saves
             .baseline(actor.0)
@@ -509,7 +569,7 @@ impl GameRuntime {
             state.movement = Some(bace_wire::PhysicsMovement::AnimationFrame(
                 attachment.placement,
             ));
-            if attachment.item == p.item.0 {
+            if attachment.item == focus.0 {
                 state.sequences.position = state.sequences.position.wrapping_add(1);
             }
             descriptions.push(Arc::new(crate::player_entry::prepare_entry_object(

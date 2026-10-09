@@ -10,7 +10,9 @@ mod deletion_sources;
 mod source_inventory;
 mod source_state;
 pub use deletion_sources::prepare_deletion_sources;
-pub(crate) use source_inventory::{FrozenNpcSourceInventory, freeze_source_inventory};
+pub(crate) use source_inventory::{
+    FrozenNpcSourceInventory, freeze_source_inventory, is_authored_static_shop,
+};
 mod source_stages;
 pub use source_stages::{
     NpcArchiveStageInput, NpcDeleteSourceStage, NpcDeleteSourceStageInput, freeze_archive_stage,

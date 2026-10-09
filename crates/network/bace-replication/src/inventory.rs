@@ -39,6 +39,8 @@ pub enum InventoryProjection<'a> {
     Update(&'a ObjectDescription),
     Simple(bace_wire::SimpleGameEvent),
     Crafting(bace_wire::CraftingEvent<'a>),
+    /// Private ApproachVendor refresh after a committed commerce operation.
+    VendorListing(&'a bace_wire::VendorListing),
     System {
         text: &'a str,
         chat_type: u32,
@@ -418,6 +420,11 @@ impl EventSequencer {
                 InventoryProjection::Update(object) => (10, object.encode_update(objects)?),
                 InventoryProjection::Crafting(event) => {
                     let bytes = event.encode(binding.actor.0, next, limits.max_message_bytes)?;
+                    next = next.wrapping_add(1);
+                    (9, bytes)
+                }
+                InventoryProjection::VendorListing(listing) => {
+                    let bytes = listing.encode(binding.actor.0, next, 1024, objects)?;
                     next = next.wrapping_add(1);
                     (9, bytes)
                 }

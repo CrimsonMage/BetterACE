@@ -101,6 +101,89 @@ fn generated_bag_acquisition_reserves_and_promotes_the_complete_tree() {
     assert_eq!(inventory.item(EntityId(11)).unwrap().revision, 1);
 }
 #[test]
+fn constructed_acquisition_requires_dedicated_complete_tree_and_exact_receipt() {
+    let mut inventory = Inventory::new(20);
+    inventory.register_container(container(1, Some(1))).unwrap();
+    inventory.register_container(container(2, None)).unwrap();
+    let inside = |parent, slot| ItemPlace::Contained {
+        container: EntityId(parent),
+        slot,
+        equipped: 0,
+    };
+    let outer = item(10, inside(2, 0), true);
+    let inner = item(11, inside(10, 0), true);
+    let gear = item(12, inside(11, 0), false);
+    inventory
+        .register_generated(
+            &[outer, inner, gear],
+            &[container(10, None), container(11, None)],
+        )
+        .unwrap();
+    inventory.mark_constructed(EntityId(10));
+    inventory.mark_constructed(EntityId(11));
+    let authority = InventoryAuthority {
+        actor: EntityId(1),
+        busy: false,
+        in_range: true,
+        clear_path: true,
+        geometry_ready: true,
+        drop_validated: false,
+        source_view: Some(1),
+        destination_view: None,
+        new_item: None,
+    };
+    let move_outer = InventoryRequest::Move {
+        item: EntityId(10),
+        container: EntityId(1),
+        placement: 0,
+    };
+    assert_eq!(
+        inventory.apply(move_outer, authority),
+        Err(Error::InvalidState)
+    );
+    assert!(inventory.pending.is_empty());
+    assert_eq!(
+        inventory.acquire_constructed(
+            EntityId(1),
+            InventoryRequest::Move {
+                item: EntityId(11),
+                container: EntityId(1),
+                placement: 0,
+            },
+            authority,
+        ),
+        Err(Error::InvalidState),
+        "an inner creature cannot be severed from its constructed ancestor"
+    );
+    let operation = inventory
+        .acquire_constructed(EntityId(1), move_outer, authority)
+        .unwrap();
+    assert_eq!(
+        inventory.constructed_acquisition_roots(operation),
+        Some([EntityId(10), EntityId(11)].as_slice())
+    );
+    assert_eq!(
+        inventory.generated_changes(operation).unwrap(),
+        [EntityId(10), EntityId(11), EntityId(12)]
+    );
+    let ticket = inventory.take_proposal().unwrap();
+    let receipt = InventoryReceipt {
+        operation,
+        revisions: ticket
+            .proposal
+            .changes
+            .iter()
+            .map(|change| (change.after.id, change.after.revision))
+            .collect(),
+    };
+    let mut incomplete = receipt.clone();
+    incomplete.revisions.pop();
+    assert_eq!(inventory.confirm(&incomplete), Err(Error::InvalidState));
+    assert!(!inventory.owned(EntityId(1), EntityId(12)));
+    inventory.confirm(&receipt).unwrap();
+    assert!(inventory.owned(EntityId(1), EntityId(12)));
+}
+#[test]
 fn rejected_generated_batch_has_no_partial_items_or_containers() {
     let mut inventory = Inventory::new(20);
     let bad = item(

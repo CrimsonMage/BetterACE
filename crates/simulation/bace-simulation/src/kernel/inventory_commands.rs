@@ -179,13 +179,23 @@ impl Kernel {
                     return Err(E::InvalidState);
                 }
                 self.validate_inventory_corpse_decay(&operation.corpse_decay)?;
-                let ticket = self.confirm_inventory_committed_inner(&receipt)?;
+                let constructed = self
+                    .inventory
+                    .constructed_acquisition_roots(receipt.operation)
+                    .is_some_and(|roots| !roots.is_empty());
+                let ticket = if constructed {
+                    self.confirm_command_constructed_inventory_committed(&receipt, &transient)?
+                } else {
+                    self.confirm_inventory_committed_inner(&receipt)?
+                };
                 self.adopt_inventory_corpse_decay(&operation.corpse_decay);
-                if !transient.is_empty() {
+                if !constructed && !transient.is_empty() {
                     self.inventory.adopt_generated_durability(&transient);
                 }
-                for id in removed {
-                    self.world.remove(id);
+                if !constructed {
+                    for id in removed {
+                        self.world.remove(id);
+                    }
                 }
                 self.inventory_commands.pending.remove(&receipt.operation);
                 Ok(InventoryDecision::Committed(ticket))
@@ -237,6 +247,26 @@ impl Kernel {
         &mut self,
         input: InventoryPreparedRequest,
     ) -> Result<InventoryOperation, E> {
+        self.prepare_inventory_operation_kind(input, false)
+    }
+    fn prepare_constructed_inventory_operation(
+        &mut self,
+        input: InventoryPreparedRequest,
+    ) -> Result<InventoryOperation, E> {
+        self.prepare_inventory_operation_kind(input, true)
+    }
+    fn prepare_inventory_operation_kind(
+        &mut self,
+        input: InventoryPreparedRequest,
+        constructed: bool,
+    ) -> Result<InventoryOperation, E> {
+        if constructed
+            && (!matches!(input.request, InventoryRequest::Move { .. })
+                || input.split.is_some()
+                || input.drop.is_some())
+        {
+            return Err(E::InvalidState);
+        }
         if self.inventory_commands.pending.len() >= self.inventory_commands.capacity {
             return Err(E::Capacity);
         }
@@ -263,7 +293,15 @@ impl Kernel {
                 if matches!(input.request, InventoryRequest::Drop { .. }) {
                     return Err(E::MissingGeometry);
                 }
-                self.propose_inventory(input.context, input.request, input.authority)?
+                if constructed {
+                    self.propose_constructed_acquisition(
+                        input.context,
+                        input.request,
+                        input.authority,
+                    )?
+                } else {
+                    self.propose_inventory(input.context, input.request, input.authority)?
+                }
             }
         };
         let result = self.capture_inventory_operation(binding, operation, input.request);

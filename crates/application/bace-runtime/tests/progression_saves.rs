@@ -194,6 +194,93 @@ fn durable_training_snapshot_reload_preserves_unknown_and_auxiliary_fields() {
     let same = freeze_progression(&decoded, &loaded).unwrap();
     assert_eq!(frozen, same);
 }
+
+#[test]
+fn endurance_rank_and_accepted_health_current_share_one_player_v6_save() {
+    use bace_content::{Attribute, SecondaryAttribute};
+    use bace_entity::VitalPool;
+    use bace_gameplay_api::{AttributeId, RaiseProgression};
+    use bace_geometry::Vec3;
+    use bace_runtime::world_saves::freeze_world;
+    use bace_simulation::PlayerWorldSnapshot;
+    use bace_types::CellId;
+
+    let (xp, skills, cg) = fixture();
+    let assets = prepare_character_assets(xp, skills, cg).unwrap();
+    let mut saved = saved();
+    let properties = &mut saved.player.entity.state.properties;
+    properties.attributes.push(Property {
+        id: AttributeId::Endurance as u32,
+        value: Attribute {
+            init_level: 100,
+            level_from_cp: 0,
+            cp_spent: 0,
+        },
+    });
+    properties.secondary_attributes = [1, 3, 5]
+        .map(|id| Property {
+            id,
+            value: SecondaryAttribute {
+                init_level: 100,
+                level_from_cp: 0,
+                cp_spent: 0,
+                current_level: 90,
+            },
+        })
+        .to_vec();
+    let mut character = restore_progression(&saved, &assets).unwrap();
+    let change = character
+        .raise(RaiseProgression {
+            target: ProgressionTarget::Attribute(AttributeId::Endurance),
+            amount: 10,
+        })
+        .unwrap();
+    assert_eq!(change.after.ranks, 1);
+    let mut frozen = freeze_progression(&saved, &character).unwrap();
+    freeze_world(
+        &mut frozen,
+        PlayerWorldSnapshot {
+            cell: CellId(0xa260000a),
+            position: Vec3::new(1.0, 2.0, 3.0),
+            heading: 0.0,
+            vitals: [47, 50, 50].map(|current| {
+                Some(VitalPool {
+                    current,
+                    maximum: 101,
+                })
+            }),
+        },
+    )
+    .unwrap();
+    let reloaded = PlayerSaveV6::decode(&frozen.encode().unwrap()).unwrap();
+    assert_eq!(reloaded.player.entity.mutation_revision, 5);
+    let properties = &reloaded.player.entity.state.properties;
+    assert_eq!(
+        properties
+            .attributes
+            .iter()
+            .find(|p| p.id == 2)
+            .unwrap()
+            .value
+            .level_from_cp,
+        1
+    );
+    assert_eq!(
+        properties
+            .secondary_attributes
+            .iter()
+            .find(|p| p.id == 1)
+            .unwrap()
+            .value
+            .current_level,
+        47
+    );
+    assert_eq!(
+        properties.ints.iter().find(|p| p.id == 9999).unwrap().value,
+        73
+    );
+    assert_eq!(reloaded.ui, saved.ui);
+}
 #[test]
 fn stale_snapshot_or_inconsistent_rank_cannot_be_frozen() {
     let (xp, skills, cg) = fixture();

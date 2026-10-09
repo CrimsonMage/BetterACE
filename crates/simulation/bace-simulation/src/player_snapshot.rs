@@ -127,6 +127,7 @@ pub struct PlayerSnapshotRequest {
 pub enum PlayerSnapshotOperation {
     Portal(u64),
     Inventory(u64),
+    VendorBuy(u64),
     Pet(u64),
     PhysicalAmmo(u64),
     Npc { ticket: u64 },

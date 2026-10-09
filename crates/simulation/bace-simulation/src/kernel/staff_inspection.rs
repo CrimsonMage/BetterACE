@@ -61,16 +61,10 @@ impl Kernel {
                     .world
                     .actor_state(target)
                     .map_err(|_| StaffError::MissingTarget)?;
-                let p = state.position();
-                let heading = state.heading_radians() * 0.5;
-                lines.push(format!(
-                    "0x{:08X} [{:.6} {:.6} {:.6}] {:.6} 0.000000 0.000000 {:.6}",
-                    cell.0,
-                    p.x,
-                    p.y,
-                    p.z,
-                    heading.cos(),
-                    heading.sin()
+                lines.extend(staff_target_position_lines(
+                    cell,
+                    state.position(),
+                    state.heading_radians(),
                 ));
             }
             StaffInspection::Vitals => {
@@ -182,6 +176,27 @@ fn staff_gps_line(cell: CellId, origin: Vec3, heading_radians: f32) -> String {
         z,
         w
     )
+}
+
+/// DeveloperCommands.HandleTargetLoc emits four Broadcast lines. The target's
+/// accepted world pose supplies both its persisted Location and physical frame;
+/// this owner models yaw-only orientation. Unloaded/global objects require a
+/// separate source-resolution route and cannot be invented here.
+fn staff_target_position_lines(cell: CellId, origin: Vec3, heading_radians: f32) -> [String; 4] {
+    let half = heading_radians * 0.5;
+    let (z, w) = half.sin_cos();
+    [
+        format!("CurrentLandblock: 0x{:04X}", cell.0 >> 16),
+        format!(
+            "Location: 0x{:08X} [{:.6} {:.6} {:.6}] {:.6} {:.6} {:.6} {:.6}",
+            cell.0, origin.x, origin.y, origin.z, w, 0.0, 0.0, z
+        ),
+        format!(
+            "Physics : 0x{:08X} [{} {} {}] {} {} {} {}",
+            cell.0, origin.x, origin.y, origin.z, w, 0.0, 0.0, z
+        ),
+        format!("CurCell: 0x{:08X}", cell.0),
+    ]
 }
 
 #[cfg(test)]
@@ -466,6 +481,29 @@ mod tests {
         assert_eq!(
             lines,
             ["Position: [Cell: 0x0001 | Offset: -500, -500, 0.5 | Facing: 0, 0, 0, 1]"]
+        );
+    }
+
+    #[test]
+    fn developer_targetloc_selected_emits_four_source_lines() {
+        // ACE DeveloperCommands.HandleTargetLoc emits these four Broadcast
+        // lines in order, using Position.ToLOCString and Physics.Position.
+        assert_eq!(
+            staff_target_position_lines(
+                CellId(0x0001_0001),
+                Vec3 {
+                    x: -500.0,
+                    y: -500.0,
+                    z: 0.5,
+                },
+                0.0,
+            ),
+            [
+                "CurrentLandblock: 0x0001",
+                "Location: 0x00010001 [-500.000000 -500.000000 0.500000] 1.000000 0.000000 0.000000 0.000000",
+                "Physics : 0x00010001 [-500 -500 0.5] 1 0 0 0",
+                "CurCell: 0x00010001",
+            ]
         );
     }
 }

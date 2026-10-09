@@ -1,6 +1,7 @@
 //! Reconstruct one live source's immutable assets from its exact accepted manifest.
 use super::*;
 use crate::npc_region::PreparedNpcRegionSource;
+use bace_storage_codec::{ItemPlacementV2, ItemSaveV5, PackKey, PackLookup};
 impl VerifiedRegionAssets {
     pub(crate) fn prepare_pinned_npc_region(
         &mut self,
@@ -26,7 +27,7 @@ impl VerifiedRegionAssets {
         }
         let frozen_location = frozen
             .location
-            .as_ref()
+            .clone()
             .ok_or("legacy NPC head requires proven live source location")?;
         if frozen_location.player || frozen_location.cell >> 16 != u32::from(base.fence.landblock) {
             return Err("NPC regional source location mismatch".into());
@@ -50,10 +51,21 @@ impl VerifiedRegionAssets {
             content_generation: frozen.content_generation,
         };
         let inventory = frozen.inventory.clone();
-        if inventory.as_ref().is_some_and(|i| i.origin.is_some()) {
-            return Err(
-                "NPC generated-source recovery requires exact parent membership admission".into(),
-            );
+        if let Some(origin) = inventory.as_ref().and_then(|i| i.origin.as_ref()) {
+            // Static authored creatures carry a self-origin token from region
+            // admission. Only the pinned authored Shop may reuse that token;
+            // a child of a real generator still needs parent membership.
+            if source.authored.weenie_type != 12
+                || origin.generator != frozen.source
+                || origin.profile != 0
+                || origin.incarnation != origin.child_incarnation
+                || origin.content_revision != generation.revision()
+            {
+                return Err(
+                    "NPC generated-source recovery requires exact parent membership admission"
+                        .into(),
+                );
+            }
         }
         let snapshot = crate::npc_persistence::restore_checkpoint(binding, frozen)
             .map_err(|e| e.to_string())?;
@@ -65,11 +77,24 @@ impl VerifiedRegionAssets {
             &source.authored,
             &source.properties,
         )?);
-        if !authored.properties.generators.is_empty() || authored.weenie_type == 12 {
+        if !authored.properties.generators.is_empty() {
             return Err(
                 "historical NPC generator catalog requires accepted generator-generation routing"
                     .into(),
             );
+        }
+        if authored.weenie_type == 12 {
+            verify_static_shop_source(
+                work.baseline.as_ref(),
+                &frozen_location,
+                &generation,
+                &authored,
+                pin.head.source,
+                base.fence.landblock,
+            )?;
+            if inventory.is_none() {
+                return Err("historical static Shop inventory proof missing".into());
+            }
         }
         let roots = BTreeMap::from([(source.template, authored.clone())]);
         let catalog = crate::generator_catalog::prepare_generator_catalog(
@@ -175,5 +200,68 @@ impl VerifiedRegionAssets {
             location,
             prepared,
         })
+    }
+}
+
+/// An authored Shop's V5 root is the durable identity of this pinned NPC.
+/// Generic Creature restoration must never create a second actor for it.
+fn verify_static_shop_source(
+    baseline: Option<&bace_persistence::StoredAggregate>,
+    location: &bace_storage_codec::npc_workflow_v3::NpcSourceLocationV3,
+    generation: &PackGeneration,
+    source: &bace_content::WeenieV1,
+    actor: u32,
+    landblock: u16,
+) -> Result<(), String> {
+    let baseline = baseline.ok_or("historical static Shop V5 source missing")?;
+    if baseline.object_id != actor || baseline.persisted_version == 0 || !location.creature {
+        return Err("historical static Shop source identity".into());
+    }
+    let saved = ItemSaveV5::decode(&baseline.bytes).map_err(|e| e.to_string())?;
+    let ItemPlacementV2::World(position) = &saved.placement else {
+        return Err("historical static Shop world placement".into());
+    };
+    let (sin, cos) = (location.heading * 0.5).sin_cos();
+    if saved.entity.object_id != actor
+        || saved.entity.state.weenie_id != source.weenie_id
+        || saved.entity.state != *source
+        || saved.entity.state.weenie_type != 12
+        || saved.entity.template_revision != generation.revision()
+        || saved.entity.mutation_revision == 0
+        || saved.construction.is_some()
+        || saved.source_destination.is_some()
+        || position.obj_cell_id != location.cell
+        || position.position_x != location.position[0]
+        || position.position_y != location.position[1]
+        || position.position_z != location.position[2]
+        || position.rotation_w != cos
+        || position.rotation_x != 0.0
+        || position.rotation_y != 0.0
+        || position.rotation_z != sin
+    {
+        return Err("historical static Shop V5 source fence".into());
+    }
+    match generation
+        .lookup(PackKey {
+            namespace: 20,
+            id: u64::from(actor),
+        })
+        .map_err(|e| e.to_string())?
+    {
+        PackLookup::Record(record) => match bace_content_tools::decode_world_record(record.bytes())
+            .map_err(|e| e.to_string())?
+        {
+            bace_content::WorldRecordV1::LandblockInstance(instance)
+                if instance.guid == actor
+                    && !instance.is_link_child
+                    && instance.landblock == i32::from(landblock)
+                    && instance.obj_cell_id == location.cell
+                    && instance.weenie_class_id == source.weenie_id =>
+            {
+                Ok(())
+            }
+            _ => Err("historical static Shop authored instance mismatch".into()),
+        },
+        _ => Err("historical static Shop authored instance missing".into()),
     }
 }

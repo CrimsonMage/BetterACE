@@ -27,6 +27,74 @@ impl Npcs {
         Ok(())
     }
 
+    /// Create the first idle source checkpoint without running an authored
+    /// emote. A fresh admitted Shop needs a durable root before vendor Use.
+    pub(crate) fn freeze_bootstrap_idle(
+        &mut self,
+        source: EntityId,
+        operation: u64,
+        event: [u8; 16],
+        tick: u64,
+    ) -> Result<NpcSourceCheckpoint, NpcFailure> {
+        if operation == 0
+            || event == [0; 16]
+            || self
+                .pending
+                .values()
+                .any(|pending| pending.proposal.context.source == source)
+            || self
+                .handins
+                .values()
+                .any(|(pending, _)| pending.request.source == source)
+        {
+            return Err(NpcFailure::DurabilityPending);
+        }
+        let root = self.root.as_ref().ok_or(NpcFailure::MissingContent)?;
+        if self.sources.get(&source).is_some_and(|state| {
+            state
+                .journal_hold
+                .is_some_and(|(held, _)| held == operation)
+                && state.active_operation == operation
+                && state.event_id == event
+                && state.key_version == root.key_version()
+                && state.random.is_some()
+                && state.admission_bound
+                && state.recovery_ready
+        }) {
+            return self.freeze_idle(source, operation, tick);
+        }
+        let random = root
+            .event_stream(event, Domain::Npc)
+            .map_err(|_| NpcFailure::InvalidInput)?;
+        let key_version = root.key_version();
+        let state = self
+            .sources
+            .get_mut(&source)
+            .ok_or(NpcFailure::MissingActor)?;
+        if state.admission.is_none()
+            || !state.admission_bound
+            || !state.recovery_ready
+            || state.manager.busy()
+            || state.manager.has_detached()
+            || state.journal_hold.is_some()
+            || state.held_logical_now.is_some()
+            || state.random.is_some()
+            || state.event_id != [0; 16]
+            || state.key_version != 0
+            || state.active_operation != 0
+            || !state.invocations.is_empty()
+        {
+            return Err(NpcFailure::Conflict);
+        }
+        state.event_id = event;
+        state.key_version = key_version;
+        state.active_operation = operation;
+        state.random = Some(random);
+        // The sole simulation owner checked every FreezeIdle prerequisite
+        // above; this call establishes the exact journal hold and checkpoint.
+        self.freeze_idle(source, operation, tick)
+    }
+
     pub(crate) fn freeze_idle(
         &mut self,
         source: EntityId,

@@ -3,6 +3,15 @@ use bace_content::WeenieV1;
 use bace_gameplay_api::AttributeId;
 use bace_simulation::PreparedAttributeTransfer;
 
+pub(super) fn inactive(weenie: &WeenieV1) -> bool {
+    weenie
+        .properties
+        .ints
+        .iter()
+        .find(|property| property.id == 119)
+        .is_some_and(|property| property.value == 0)
+}
+
 pub(super) fn device(weenie: &WeenieV1) -> Result<Option<PreparedAttributeTransfer>, String> {
     if weenie.weenie_type != 63 {
         return Ok(None);
@@ -93,6 +102,27 @@ mod tests {
         }
         assert!(!wielded_attribute_requirement(&item));
         item.properties.ints.retain(|property| property.id != 189);
+        assert!(device(&item).is_err());
+    }
+
+    #[test]
+    fn inactive_source_short_circuits_unsupported_effects_and_missing_transfer_properties() {
+        // WorldObject_Use.OnActivate checks Active before requirements and
+        // every ActivationResponse; no attribute confirmation may be made.
+        let mut item = WeenieV1 {
+            schema_version: 1,
+            weenie_id: 1,
+            class_name: "attribute device".into(),
+            weenie_type: 63,
+            last_modified: None,
+            properties: Default::default(),
+        };
+        item.properties.ints.push(Property { id: 119, value: 0 });
+        item.properties.ints.push(Property {
+            id: 83,
+            value: 0x1002,
+        });
+        assert!(inactive(&item));
         assert!(device(&item).is_err());
     }
 }

@@ -1,9 +1,16 @@
 //! Retained first-Use Shop owner. Buy/Sell stay closed until their complete
 //! player currency and stock transaction has an exact durable receipt.
+#[allow(dead_code)] // Live Buy waits for a joined authenticated PostgreSQL runtime transcript.
+mod buy;
+#[allow(dead_code)] // Joined default Buy remains held until its output obligation is connected.
+mod buy_freezing;
+#[allow(dead_code)] // Cold Buy preparation is admitted only with the full retained route.
+mod buy_preparation;
 mod preparation;
 #[cfg(test)]
 mod tests;
 use super::*;
+use crate::saves::{SaveHandle, SaveSubmitError, WriteOutcome};
 use bace_gameplay_api::ActionContext;
 use bace_persistence::{OperationOutcome, VendorStockOperation};
 use bace_simulation::{
@@ -18,6 +25,7 @@ use std::sync::mpsc::TrySendError;
 
 pub(super) struct VendorRuntime {
     pending: Option<Pending>,
+    buy: Option<buy::Pending>,
     completion: Option<VendorCompletion>,
     unexpected: Option<VendorOutcome>,
     publication: Option<(u64, SessionKey, Vec<u8>)>,
@@ -94,6 +102,7 @@ impl VendorRuntime {
     pub(super) fn new() -> Self {
         Self {
             pending: None,
+            buy: None,
             completion: None,
             unexpected: None,
             publication: None,
@@ -103,6 +112,7 @@ impl VendorRuntime {
 
     pub(super) fn has_pending(&self) -> bool {
         self.pending.is_some()
+            || self.buy.is_some()
             || self.completion.is_some()
             || self.unexpected.is_some()
             || self.publication.is_some()
@@ -112,6 +122,7 @@ impl VendorRuntime {
         self.pending
             .as_ref()
             .is_some_and(|pending| pending.key == key)
+            || self.buy.as_ref().is_some_and(|pending| pending.key == key)
             || self
                 .completion
                 .as_ref()
@@ -123,6 +134,9 @@ impl VendorRuntime {
     }
 
     pub(super) fn failure(&self) -> Option<&str> {
+        if let Some(error) = self.buy.as_ref().and_then(buy::Pending::failure) {
+            return Some(error);
+        }
         match self.pending.as_ref().map(|pending| &pending.phase) {
             Some(Phase::Blocked(error) | Phase::RetrySave { error, .. }) => Some(error),
             _ => None,
@@ -249,6 +263,13 @@ impl VendorRuntime {
         &mut self,
         outcome: VendorOutcome,
     ) -> Result<(), Box<VendorOutcome>> {
+        if self
+            .buy
+            .as_ref()
+            .is_some_and(|pending| pending.correlation == outcome.correlation)
+        {
+            return self.accept_buy_outcome(outcome);
+        }
         let Some(pending) = self.pending.as_mut() else {
             return Err(Box::new(outcome));
         };
@@ -313,7 +334,7 @@ impl VendorRuntime {
     pub(super) fn poll(
         &mut self,
         input: &crate::simulation::SimulationInput,
-        store: &bace_db_postgres::PgStore,
+        saves: &SaveHandle,
     ) -> Result<(), String> {
         if self.unexpected.is_some() {
             return Err("unmatched vendor outcome retained".into());
@@ -387,13 +408,17 @@ impl VendorRuntime {
                     }
                 }
             }
-            Phase::ReadySave => Phase::Saving(save_job_future(
+            Phase::ReadySave => match save_job_future(
                 pending
                     .operation
                     .as_ref()
                     .ok_or("vendor operation missing")?,
-                store.clone(),
-            )),
+                saves,
+            ) {
+                Ok(job) => Phase::Saving(job),
+                Err(SaveSubmitError::Full) => Phase::ReadySave,
+                Err(error) => Phase::Blocked(format!("vendor save admission: {error}")),
+            },
             Phase::Saving(mut job) => match poll_job(&mut job) {
                 None => Phase::Saving(job),
                 Some(Ok(result)) => {
@@ -414,13 +439,17 @@ impl VendorRuntime {
             },
             Phase::RetrySave { until, error } => {
                 if tokio::time::Instant::now() >= until {
-                    Phase::Saving(save_job_future(
+                    match save_job_future(
                         pending
                             .operation
                             .as_ref()
                             .ok_or("vendor operation missing")?,
-                        store.clone(),
-                    ))
+                        saves,
+                    ) {
+                        Ok(job) => Phase::Saving(job),
+                        Err(SaveSubmitError::Full) => Phase::RetrySave { until, error },
+                        Err(failure) => Phase::Blocked(format!("vendor save admission: {failure}")),
+                    }
                 } else {
                     Phase::RetrySave { until, error }
                 }
@@ -499,9 +528,19 @@ impl GameRuntime {
         };
         let generation = registration.generation.clone();
         if !matches!(request.action, InventoryAction::Use(_)) {
-            // Commerce requires the stock marker, player currency and item
-            // forest to share an exact receipt; no partial success is emitted.
+            // The joined Buy freezer and retained output are prepared, but a
+            // connected authenticated ingress-to-receipt transcript is still
+            // required before this route can publish success.
             return Ok(I::Unsupported);
+        }
+        // The admitted static Shop's first terminal checkpoint owns creation
+        // of its V5 world source. Keep this exact authenticated Use in the
+        // bounded ingress queue until that transaction has a committed root.
+        // A different Shop subtype still needs its own durable source owner.
+        if crate::npc_persistence::is_authored_static_shop(registration)?
+            && self.npc.vendor_source_pending(vendor)
+        {
+            return Ok(I::Blocked);
         }
         if self.vendors.has_pending() {
             return Ok(I::Blocked);
@@ -561,15 +600,18 @@ impl GameRuntime {
             }
         }
         self.vendors
-            .poll(&self.simulation.input(), &self.bootstrap.store)?;
+            .poll(&self.simulation.input(), &self.saves.handle)?;
+        self.poll_vendor_buy()?;
         if let Some(error) = self.vendors.failure() {
             return Err(format!("vendor retained: {error}"));
         }
-        self.project_vendor_output()
+        self.project_vendor_output()?;
+        self.project_vendor_buy_output()
     }
 
     fn project_vendor_output(&mut self) -> Result<(), String> {
-        const PREFIX: u64 = 0x5600_0000_0000_0000;
+        // Visibility owns 0x56; vendor listings need a distinct receipt lane.
+        const PREFIX: u64 = 0x5800_0000_0000_0000;
         const MASK: u64 = 0xff00_0000_0000_0000;
         if self
             .vendors
@@ -669,15 +711,19 @@ fn poll_job<T>(job: &mut Job<T>) -> Option<T> {
 
 fn save_job_future(
     operation: &VendorStockOperation,
-    store: bace_db_postgres::PgStore,
-) -> Job<Result<OperationOutcome, String>> {
-    let operation = operation.clone();
-    Box::pin(async move {
-        store
-            .vendor_stock_operation(&operation)
+    saves: &SaveHandle,
+) -> Result<Job<Result<OperationOutcome, String>>, SaveSubmitError> {
+    let ticket = saves.try_vendor_stock(operation)?;
+    Ok(Box::pin(async move {
+        let report = ticket
             .await
-            .map_err(|error| error.to_string())
-    })
+            .map_err(|_| "vendor save reply closed".to_string())?;
+        match report.result {
+            Ok(WriteOutcome::Valuable(outcome)) => Ok(outcome),
+            Ok(_) => Err("vendor save receipt type mismatch".into()),
+            Err(error) => Err(error.to_string()),
+        }
+    }))
 }
 
 fn receipt(

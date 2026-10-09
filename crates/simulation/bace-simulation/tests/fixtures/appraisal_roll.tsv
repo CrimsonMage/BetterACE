@@ -1,0 +1,19 @@
+# ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b Player.cs sha256 01b0ba47863708e135e40141f0672a9841d7d7ad2a5091a0f7007fcb729047cc
+# SkillCheck.cs sha256 cc457426154a151ad0174fc1cb2ceb7af158afe38f3ad8ef05da65d0c556236d; source-derived, not executed C# output
+# name	kind	skill	difficulty	resist	mod	untrained	focus	self	cloak	self_target	deceive	draw	success	consumed
+plain_item	object	0	0	0	0	0	0	0	0	0	0	-	1	0
+resistant_item	object	0	0	999	0	0	0	0	0	0	0	-	0	0
+monster_over	monster	0	100	0	0	1	100	100	0	0	0	0.05	0	1
+monster_under	monster	0	100	0	0	1	100	100	0	0	0	0.04	1	1
+modifier_off	monster	0	100	0	0	1	100	100	0	0	0	0.49	0	1
+modifier_on	monster	0	100	0	1	1	100	100	0	0	0	0.49	1	1
+modifier_equal_fails	monster	0	100	0	1	1	100	100	0	0	0	0.5	0	1
+modifier_below_wins	monster	0	100	0	1	1	100	100	0	0	0	0.49999997	1	1
+trained_ignores_mod	monster	0	100	0	1	0	100	100	0	0	0	0.49	0	1
+zero_deception	monster	0	0	0	0	0	0	0	0	0	0	0.99	1	1
+player_no_deceive	player	0	100	0	1	1	100	100	0	0	0	0.99	1	1
+player_deceives	player	0	100	0	1	1	100	100	0	0	1	0.99	0	1
+self_deceives	player	0	100	0	0	0	0	0	0	1	1	0.99	1	1
+cloaked_staff	monster	0	100	0	0	0	0	0	1	0	0	0.99	1	1
+resist_after_cloak	monster	0	100	999	0	0	0	0	1	0	0	0.99	0	1
+pet_after_resist	pet	0	100	999	0	0	0	0	0	0	0	0.99	1	1

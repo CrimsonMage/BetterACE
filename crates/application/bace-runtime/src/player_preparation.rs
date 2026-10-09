@@ -115,8 +115,34 @@ pub fn prepare_player_admission(
         }
         state.recovery = Some(bace_magic::CastRecovery::default());
     }
+    let spawn_cell = spawn.cell;
     let body = bace_physics::Body::spawn_geometry(region, spawn)
         .map_err(|e| format!("player geometry admission: {e:?}"))?;
+    // Geometry can settle a saved spawn before the simulation owns the body.
+    // That accepted pose is a real player-save change even though the world's
+    // first seen snapshot will already equal it. Carry a dirty character
+    // revision into admission so entry freeze and the routine save agree.
+    let accepted = body.accepted();
+    let accepted_heading = accepted.heading_radians();
+    let accepted_position = accepted.position();
+    let accepted_half = accepted_heading * 0.5;
+    let settled = bace_content::Position {
+        obj_cell_id: spawn_cell,
+        position_x: accepted_position.x,
+        position_y: accepted_position.y,
+        position_z: accepted_position.z,
+        rotation_w: accepted_half.cos(),
+        rotation_x: 0.0,
+        rotation_y: 0.0,
+        rotation_z: accepted_half.sin(),
+    };
+    if *p != settled {
+        state
+            .character
+            .progression
+            .touch_revision()
+            .map_err(|e| format!("settled player pose revision: {e:?}"))?;
+    }
     let kinds = [
         bace_entity::EntityVital::Health,
         bace_entity::EntityVital::Stamina,

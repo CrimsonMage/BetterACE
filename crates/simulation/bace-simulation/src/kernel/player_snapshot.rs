@@ -52,6 +52,11 @@ impl Kernel {
         {
             return Err(E::DurabilityPending);
         }
+        if let Some((crate::PlayerSnapshotOperation::VendorBuy(id), revision)) = operation
+            && !self.validate_vendor_buy_snapshot(binding, id, revision)
+        {
+            return Err(E::DurabilityPending);
+        }
 
         if let Some((crate::PlayerSnapshotOperation::Pet(id), revision)) = operation
             && (!self.inventory.reserved(binding.actor)

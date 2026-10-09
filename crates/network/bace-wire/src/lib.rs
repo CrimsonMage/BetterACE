@@ -145,4 +145,6 @@ mod jump_variants;
 pub use jump_variants::{ClientNonAutonomousJump, ClientPositionJump};
 
 mod appraisal;
-pub use appraisal::{AppraisalCreature, AppraisalLimits, AppraisalProfile, AppraisalWeapon};
+pub use appraisal::{
+    AppraisalCreature, AppraisalLimits, AppraisalProfile, AppraisalWeapon, IdentifyObjectRequest,
+};

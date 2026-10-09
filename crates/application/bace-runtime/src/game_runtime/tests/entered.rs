@@ -19,6 +19,12 @@ pub(in crate::game_runtime) struct EnteredFixture {
     pub _cluster: crate::player_service::tests::cluster::Cluster,
 }
 pub(in crate::game_runtime) async fn fixture() -> EnteredFixture {
+    fixture_with_start_area(Vec::new(), 0).await
+}
+pub(in crate::game_runtime) async fn fixture_with_start_area(
+    records: Vec<bace_storage_codec::PackRecord>,
+    start_area: u32,
+) -> EnteredFixture {
     eprintln!(
         "entry fixture: runtime={} startup={}",
         std::mem::size_of::<GameRuntime>(),
@@ -35,13 +41,73 @@ pub(in crate::game_runtime) async fn fixture() -> EnteredFixture {
             .or_else(|| std::env::var_os("BACE_CREATION_PACK_MANIFEST"))
             .expect("accepted native pack"),
     );
-    let manifest = bace_storage_codec::load_manifest(&path, Default::default()).unwrap();
+    let mut manifest = bace_storage_codec::load_manifest(&path, Default::default()).unwrap();
     for segment in std::iter::once(&manifest.base).chain(&manifest.deltas) {
         std::fs::copy(
             path.parent().unwrap().join(&segment.file_name),
             directory.path().join(&segment.file_name),
         )
         .unwrap();
+    }
+    // Some locally accepted historical generations predate the native ACE
+    // treasure-table record. Publish only that repository-authored record into
+    // this test's private immutable delta; never alter the accepted source pack.
+    let source = manifest.open(directory.path(), Default::default()).unwrap();
+    if matches!(
+        source
+            .lookup(bace_storage_codec::PackKey {
+                namespace: 52,
+                id: 1,
+            })
+            .unwrap(),
+        bace_storage_codec::PackLookup::Missing
+    ) {
+        let tables = bace_content_tools::parse_treasure_table_set(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../gameplay/bace-loot/data/ace-treasure-tables.toml"
+        )))
+        .unwrap();
+        assert_eq!(tables.id, 1);
+        let bytes = bace_content_tools::compile_treasure_table_set(&tables).unwrap();
+        let delta = bace_storage_codec::compile_pack(
+            directory.path(),
+            [Ok(bace_storage_codec::PackRecord {
+                key: bace_storage_codec::PackKey {
+                    namespace: 52,
+                    id: 1,
+                },
+                schema: 1,
+                value: Some(bytes),
+            })],
+            Default::default(),
+        )
+        .unwrap();
+        manifest.deltas.push(delta);
+        manifest.generation += 1;
+        bace_storage_codec::write_manifest(directory.path(), &manifest, Default::default())
+            .unwrap();
+    }
+    drop(source);
+    if !records.is_empty() {
+        assert!(records.len() <= 64, "bounded private test delta");
+        assert!(
+            records
+                .iter()
+                .map(|record| record.value.as_ref().map_or(0, Vec::len))
+                .sum::<usize>()
+                <= 4 * 1024 * 1024,
+            "bounded private test bytes"
+        );
+        let delta = bace_storage_codec::compile_pack(
+            directory.path(),
+            records.into_iter().map(Ok),
+            Default::default(),
+        )
+        .unwrap();
+        manifest.deltas.push(delta);
+        manifest.generation += 1;
+        bace_storage_codec::write_manifest(directory.path(), &manifest, Default::default())
+            .unwrap();
     }
     let generation = Arc::new(manifest.open(directory.path(), Default::default()).unwrap());
     store
@@ -178,10 +244,11 @@ pub(in crate::game_runtime) async fn fixture() -> EnteredFixture {
     })
     .await;
     eprintln!("entry fixture: creating character");
-    let create = creation_message(
+    let create = creation_message_with_start_area(
         runtime.sessions[&key].account.name.as_str(),
         color,
         "Entryprobe",
+        start_area,
     );
     client.send_message(&runtime, key, &create);
     poll_until(&mut runtime, &mut client, |_, client| {
@@ -253,35 +320,25 @@ pub(in crate::game_runtime) async fn poll_until(
     ready: impl Fn(&GameRuntime, &client::Client) -> bool,
 ) {
     tokio::time::timeout(Duration::from_secs(120), async {
-        let started = std::time::Instant::now();
-        let mut next_report = 5;
         loop {
             runtime
                 .poll(runtime.clock.monotonic.elapsed())
                 .unwrap_or_else(|e| {
                     panic!(
-                        "entered controller: {e}; player failures {:?}",
+                        "entered controller: {e}; player failures {:?}; loading {:?}",
                         runtime
                             .sessions
                             .iter()
                             .map(|(k, s)| (*k, s.failure.clone()))
+                            .collect::<Vec<_>>(),
+                        runtime
+                            .sessions
+                            .iter()
+                            .map(|(k, s)| (*k, s.loading.as_ref().map(|l| l.phase as u8)))
                             .collect::<Vec<_>>()
                     )
                 });
             client.drain(runtime);
-            if started.elapsed().as_secs() >= next_report {
-                eprintln!(
-                    "entry wait {}: input={} sessions={} login={:?}/{} creation={} messages={}",
-                    next_report,
-                    runtime.input.len(),
-                    runtime.sessions.len(),
-                    runtime.login_key,
-                    runtime.login_queue.len(),
-                    runtime.creation.diagnostic(),
-                    client.messages.len()
-                );
-                next_report += 5;
-            }
             if let Some((key, failure)) = runtime
                 .sessions
                 .iter()
@@ -299,6 +356,14 @@ pub(in crate::game_runtime) async fn poll_until(
     .expect("bounded real entry progress");
 }
 fn creation_message(account: &str, color: u32, name: &str) -> Vec<u8> {
+    creation_message_with_start_area(account, color, name, 0)
+}
+fn creation_message_with_start_area(
+    account: &str,
+    color: u32,
+    name: &str,
+    start_area: u32,
+) -> Vec<u8> {
     let mut w = bace_wire::Writer::new();
     w.u32(0xf656);
     w.string16(account).unwrap();
@@ -347,7 +412,7 @@ fn creation_message(account: &str, color: u32, name: &str) -> Vec<u8> {
         );
     }
     w.string16(name).unwrap();
-    for value in [0, 0, 0] {
+    for value in [start_area, 0, 0] {
         w.u32(value);
     }
     w.into_bytes()

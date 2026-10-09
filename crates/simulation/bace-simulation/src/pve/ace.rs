@@ -227,10 +227,9 @@ impl Population {
         {
             return Err(PveError::InvalidProfile);
         }
-        self.npcs
-            .get_mut(&actor)
-            .expect("validated creature owner")
-            .combat_ai = source_combat_ai(&policy.source);
+        let npc = self.npcs.get_mut(&actor).expect("validated creature owner");
+        npc.combat_ai = source_combat_ai(&policy.source);
+        npc.tolerance = source_tolerance(&policy.source);
         let originals = policy
             .initial_ids
             .iter()
@@ -264,4 +263,13 @@ pub(super) fn source_combat_ai(source: &WeenieV1) -> bool {
         .find(|p| p.id == 68)
         .map_or(0, |p| p.value);
     attackable || targeting_tactic != 0
+}
+/// ACE Monster_Awareness.Tolerance reads PropertyInt.Tolerance (67) as flags.
+pub(super) fn source_tolerance(source: &WeenieV1) -> u32 {
+    source
+        .properties
+        .ints
+        .iter()
+        .find(|p| p.id == 67)
+        .map_or(0, |p| p.value as u32)
 }

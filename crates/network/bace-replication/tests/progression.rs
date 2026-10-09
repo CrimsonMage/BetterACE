@@ -42,6 +42,7 @@ fn change() -> ProgressionChange {
         available_experience: 90,
         revision: 1,
         rank_effect: None,
+        follow_up_vital: None,
     }
 }
 
@@ -123,6 +124,55 @@ fn ace_rank_effect_uses_frozen_base_and_source_output_order() {
         }
         .encode()
         .unwrap()
+    );
+}
+
+#[test]
+fn endurance_health_follow_up_uses_accepted_current_and_atomic_vital_sequence() {
+    let mut raised = change();
+    raised.before.target = ProgressionTarget::Attribute(AttributeId::Endurance);
+    raised.after.target = raised.before.target;
+    raised.follow_up_vital = Some(ProgressionProjection {
+        target: ProgressionTarget::Vital(VitalId::MaxHealth),
+        experience_spent: 31,
+        ranks: 2,
+        advancement: SkillAdvancement::Inactive,
+        details: Some(TraitDetails::Vital {
+            starting_value: 100,
+            current: 47,
+        }),
+    });
+    let mut insufficient = projector(2);
+    assert!(matches!(
+        insufficient.project(context(), raised),
+        Err(ProgressionProjectionError::Capacity)
+    ));
+    let after_rejection = insufficient.project(context(), change()).unwrap();
+    assert_eq!(after_rejection.messages[0][4], 0);
+    assert_eq!(after_rejection.messages[1][4], 0);
+
+    let mut projector = projector(3);
+    let mut invalid = raised;
+    invalid.follow_up_vital.as_mut().unwrap().target = ProgressionTarget::Vital(VitalId::MaxMana);
+    assert!(matches!(
+        projector.project(context(), invalid),
+        Err(ProgressionProjectionError::InvalidProjection)
+    ));
+    let packets = projector.project(context(), raised).unwrap();
+    assert_eq!(packets.messages[0][4], 0);
+    assert_eq!(packets.messages[1][4], 0);
+    assert_eq!(
+        packets.follow_up_vital.unwrap(),
+        bace_wire::VitalUpdate {
+            sequence: 0,
+            object_id: None,
+            vital: 1,
+            ranks: 2,
+            starting_value: 100,
+            experience_spent: 31,
+            current: 47,
+        }
+        .encode()
     );
 }
 #[test]

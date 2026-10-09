@@ -161,3 +161,6 @@ armor/creature/weapon/hook profiles and highlight masks. Its 136 compiled-origin
 serializer vectors qualify flags, primitive widths and conditional sections;
 they do not qualify profile calculation, live assessment rolls or NPC wake-up.
 The owner must supply a fully prepared profile before this codec can be used.
+IdentifyObject request decoding now requires exactly one little-endian u32 GUID;
+zero is preserved for source selection clear. Truncation and trailing bytes
+reject before any simulation state can change. Live Identify routing remains held.

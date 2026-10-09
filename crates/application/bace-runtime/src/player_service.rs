@@ -583,6 +583,17 @@ impl PlayerService {
             .and_then(|key| self.sessions.get(key))
             .is_some_and(|s| s.entered)
     }
+    /// World admission precedes the durable online lease, replication owner and
+    /// exact simulation entry receipt. Social output must retain admission-time
+    /// events throughout this interval.
+    pub fn awaiting_entry_actors(&self) -> impl Iterator<Item = EntityId> + '_ {
+        self.actors.iter().filter_map(|(actor, key)| {
+            self.sessions
+                .get(key)
+                .is_some_and(|session| session.accepted && !session.entered)
+                .then_some(*actor)
+        })
+    }
     /// Authenticated, durably online owners whose entry transition completed.
     /// The iterator borrows metadata only; it does not copy world state.
     pub fn entered_bindings(&self) -> impl Iterator<Item = (SessionKey, CharacterBinding)> + '_ {

@@ -44,6 +44,11 @@ carry updated trait snapshots, actual remaining credits and the dirty revision;
 they are not durable acknowledgments. Server-only specialization has no client
 request type granting permission to bypass device/quest eligibility.
 
+`ProgressionChange.follow_up_vital` carries one optional immutable authoritative
+vital view for a ranked Endurance attribute. Simulation fills it from the
+accepted character and World current after maximum refresh; replication owns
+its counter and output order. A missing view remains an output obligation.
+
 Full character creation/load/save ownership and the remaining gameplay command/effect
 families are not implemented. Add each typed family with its owning subsystem and
 source-backed behavior; do not bypass unavailable systems with successful no-ops.

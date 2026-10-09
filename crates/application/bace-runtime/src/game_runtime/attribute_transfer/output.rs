@@ -19,6 +19,8 @@ impl GameRuntime {
         if matches!(pending.phase, Phase::Finished(_)) {
             return self.project_committed_attribute_transfer();
         }
+        let inactive_rejection =
+            matches!(pending.phase, Phase::Rejected(_)) && pending.quote.is_none();
         let failure = if let Phase::Rejected(error) = pending.phase {
             Some(failure(
                 error,
@@ -48,6 +50,10 @@ impl GameRuntime {
             None
         };
         let mut steps = match &pending.phase {
+            Phase::Inactive => Vec::new(),
+            Phase::Rejected(_) if inactive_rejection => vec![InventoryProjection::Simple(
+                SimpleGameEvent::UseDone(0x058d),
+            )],
             Phase::Prompt(quote) => vec![InventoryProjection::Crafting(
                 CraftingEvent::ConfirmationRequest {
                     confirmation_type: 3,
@@ -85,7 +91,7 @@ impl GameRuntime {
             },
             _ => return Ok(()),
         };
-        if pending.use_action {
+        if pending.use_action && !inactive_rejection {
             steps.push(InventoryProjection::Simple(SimpleGameEvent::UseDone(0)));
         }
         let binding = binding(pending.context);

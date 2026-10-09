@@ -5,6 +5,54 @@ use bace_admin::{
     command_catalog::{CommandSpec, commands},
     command_compatibility,
 };
+/// Catalog membership and typed parsing do not imply a live owner. Keep this
+/// ingress list aligned with the concrete simulation, staff service and shard
+/// dispatchers below; a newly imported ACE command starts unsupported.
+pub(super) fn live_in_world_name(name: &str) -> bool {
+    matches!(
+        name,
+        "time"
+            | "listplayers"
+            | "ban"
+            | "unban"
+            | "banlist"
+            | "boot"
+            | "grantxp"
+            | "acecommands"
+            | "acehelp"
+            | "myiid"
+            | "whoami"
+            | "myloc"
+            | "gps"
+            | "targetloc"
+            | "getenchantments"
+            | "heal"
+            | "accountcreate"
+            | "accountget"
+            | "set-accountaccess"
+            | "set-accountpassword"
+            | "passwd"
+            | "gag"
+            | "ungag"
+            | "gamecast"
+            | "gamecastlocal"
+            | "gamecastemote"
+            | "gamecastlocalemote"
+            | "we"
+            | "castspell"
+            | "run"
+            | "buff"
+            | "fellowbuff"
+            | "removespell"
+            | "addspell"
+            | "regen"
+            | "cancel-shutdown"
+            | "set-shutdown-interval"
+            | "stop-now"
+            | "shutdown"
+            | "world"
+    )
+}
 fn status(spec: &CommandSpec) -> String {
     match command_compatibility(spec) {
         CommandCompatibility::SourceTodo => "unsupported: source TODO".into(),
@@ -17,7 +65,10 @@ fn status(spec: &CommandSpec) -> String {
             "regen" => {
                 "native selected-generator route; generator lifecycle retains effects".into()
             }
-            "targetloc" | "getenchantments" => {
+            "targetloc" => {
+                "native selected-target four-line route; explicit GUID lookup unsupported".into()
+            }
+            "getenchantments" => {
                 "native selected-target route; target owner state may be unavailable".into()
             }
             "myloc" => "native authoritative three-line self-position route".into(),
@@ -178,12 +229,31 @@ mod tests {
             ("myloc", "three-line self-position route"),
             ("gps", "one-line Developer GPS route"),
             ("time", "native in-world route"),
-            ("targetloc", "selected-target route"),
+            ("targetloc", "selected-target four-line route"),
             ("getenchantments", "selected-target route"),
             ("teleloc", "parsed only"),
             ("regen", "native selected-generator route"),
         ] {
             assert!(status(bace_admin::command_catalog::command(name).unwrap()).contains(expected));
+        }
+    }
+    #[test]
+    fn live_ingress_audit_excludes_parsed_and_catalog_only_commands() {
+        for name in ["teleloc", "teleto", "forcegc", "deaf", "show-allegiances"] {
+            assert!(!live_in_world_name(name), "{name}");
+        }
+        for name in ["ban", "boot", "targetloc", "regen", "world", "heal"] {
+            assert!(live_in_world_name(name), "{name}");
+        }
+        for spec in commands().filter(|spec| live_in_world_name(spec.name)) {
+            assert!(
+                matches!(
+                    command_compatibility(spec),
+                    CommandCompatibility::NativeOwnerRequired
+                ),
+                "@{} has no compatible source route",
+                spec.name
+            );
         }
     }
 }

@@ -34,6 +34,7 @@ pub struct InventoryReceipt {
 struct Pending {
     ticket: InventoryTicket,
     submitted: bool,
+    constructed_roots: Vec<EntityId>,
 }
 #[derive(Clone)]
 pub(crate) struct Inventory {
@@ -62,6 +63,11 @@ impl Inventory {
     }
     pub(crate) fn pending_ticket(&self, operation: u64) -> Option<&InventoryTicket> {
         self.pending.get(&operation).map(|pending| &pending.ticket)
+    }
+    pub(crate) fn constructed_acquisition_roots(&self, operation: u64) -> Option<&[EntityId]> {
+        self.pending
+            .get(&operation)
+            .map(|pending| pending.constructed_roots.as_slice())
     }
     pub(crate) fn claim(&mut self, operation: u64) -> Result<(), Error> {
         let pending = self
@@ -401,6 +407,14 @@ impl Inventory {
         {
             return Err(Error::InvalidState);
         }
+        self.reserve_prepared(actor, proposal, Vec::new())
+    }
+    fn reserve_prepared(
+        &mut self,
+        actor: EntityId,
+        proposal: InventoryProposal,
+        constructed_roots: Vec<EntityId>,
+    ) -> Result<u64, Error> {
         if !self.can_accept() {
             return Err(Error::Capacity);
         }
@@ -439,6 +453,7 @@ impl Inventory {
                     proposal,
                 },
                 submitted: false,
+                constructed_roots,
             },
         );
         self.outbox.push_back(operation);

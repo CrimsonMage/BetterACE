@@ -1,6 +1,9 @@
 //! Authenticated stone Use and the retained source action/receipt transcript.
 use super::*;
 use crate::game_runtime::progression::ProgressionIngress;
+use crate::player_preparation_worker::{
+    BindingMotionPreparationCompletion, BindingMotionPreparationRequest,
+};
 use bace_interactions::{BindingKind, RecallError};
 use bace_replication::{BatchLimits, InventoryProjection as P};
 use bace_types::EntityId;
@@ -10,7 +13,7 @@ enum BindingPhase {
     Capture,
     Capturing(u64),
     Captured(Arc<bace_simulation::PlayerReadSnapshot>, u64),
-    Preparing,
+    Preparing { correlation: u64, revision: u64 },
     Ready,
     Submitted,
     Running,
@@ -31,11 +34,12 @@ pub(super) struct BindingPending {
     phase: BindingPhase,
     prepared: Option<BindingPrepared>,
     staged: Option<(u64, bool, Arc<str>, Option<u32>)>,
+    cancelling: bool,
 }
 pub(super) struct BindingRuntime {
     pub(super) pending: BTreeMap<SessionKey, BindingPending>,
     objects: BTreeMap<EntityId, BindingKind>,
-    cold: Option<Job<(SessionKey, Result<BindingPrepared, String>)>>,
+    unmatched: Option<BindingMotionPreparationCompletion>,
     completions: BTreeMap<u64, bool>,
     failures: BTreeMap<SessionKey, String>,
 }
@@ -44,13 +48,13 @@ impl BindingRuntime {
         Self {
             pending: BTreeMap::new(),
             objects: BTreeMap::new(),
-            cold: None,
+            unmatched: None,
             completions: BTreeMap::new(),
             failures: BTreeMap::new(),
         }
     }
     pub(super) fn has_pending(&self) -> bool {
-        !self.pending.is_empty() || self.cold.is_some() || !self.completions.is_empty()
+        !self.pending.is_empty() || self.unmatched.is_some() || !self.completions.is_empty()
     }
     pub(super) fn output_pending(&self) -> bool {
         self.pending.values().any(|p| {
@@ -121,6 +125,43 @@ impl BindingRuntime {
     }
 }
 impl GameRuntime {
+    pub(in crate::game_runtime) fn accept_binding_motion_completion(
+        &mut self,
+        done: BindingMotionPreparationCompletion,
+    ) -> Result<(), String> {
+        if self.recalls.bindings.unmatched.is_some() {
+            return Err("binding motion completion already retained".into());
+        }
+        let Some(p) = self
+            .recalls
+            .bindings
+            .pending
+            .values_mut()
+            .find(|p| p.context == done.context)
+        else {
+            self.recalls.bindings.unmatched = Some(done);
+            return Err("binding motion completion owner missing; receipt retained".into());
+        };
+        if !matches!(p.phase, BindingPhase::Preparing { correlation, revision }
+            if correlation == done.correlation && revision == done.before_revision)
+        {
+            self.recalls.bindings.unmatched = Some(done);
+            return Err("binding motion completion fence mismatch; receipt retained".into());
+        }
+        match done.result {
+            Ok(prepared) => {
+                p.prepared = Some(BindingPrepared {
+                    revision: done.before_revision,
+                    style: prepared.style,
+                    motion: prepared.motion,
+                    seconds: prepared.seconds,
+                });
+                p.phase = BindingPhase::Ready;
+            }
+            Err(error) => p.phase = BindingPhase::Failed(error),
+        }
+        Ok(())
+    }
     pub fn binding_failure(&self, key: SessionKey) -> Option<&str> {
         if let Some(error) = self.recalls.bindings.failures.get(&key) {
             return Some(error);
@@ -203,6 +244,9 @@ impl GameRuntime {
         let Some(session) = self.sessions.get(&key) else {
             return Ok(ProgressionIngress::Blocked);
         };
+        if session.terminated || session.disconnected {
+            return Ok(ProgressionIngress::Blocked);
+        }
         let Some(loading) = session.loading.as_ref() else {
             return Ok(ProgressionIngress::Unsupported);
         };
@@ -265,6 +309,7 @@ impl GameRuntime {
                 phase: BindingPhase::Capture,
                 prepared: None,
                 staged: None,
+                cancelling: false,
             },
         );
         Ok(ProgressionIngress::Accepted)
@@ -274,20 +319,8 @@ impl GameRuntime {
             .bindings
             .failures
             .retain(|key, _| self.sessions.contains_key(key));
-        if let Some((key, result)) = ready(&mut self.recalls.bindings.cold) {
-            let p = self
-                .recalls
-                .bindings
-                .pending
-                .get_mut(&key)
-                .ok_or("binding cold owner missing")?;
-            match result {
-                Ok(prepared) => {
-                    p.prepared = Some(prepared);
-                    p.phase = BindingPhase::Ready;
-                }
-                Err(error) => p.phase = BindingPhase::Failed(error),
-            }
+        if self.recalls.bindings.unmatched.is_some() {
+            return Err("binding motion completion receipt retained".into());
         }
         let keys: Vec<_> = self
             .recalls
@@ -298,6 +331,43 @@ impl GameRuntime {
             .take(self.limits.work_per_poll)
             .collect();
         for key in keys {
+            if self.binding_session_closing(key) {
+                let phase = &self.recalls.bindings.pending[&key].phase;
+                if matches!(
+                    phase,
+                    BindingPhase::Capture
+                        | BindingPhase::Captured(..)
+                        | BindingPhase::Ready
+                        | BindingPhase::Failed(_)
+                ) {
+                    self.recalls.bindings.pending.remove(&key);
+                    continue;
+                }
+                if matches!(phase, BindingPhase::Submitted | BindingPhase::Running)
+                    && !self.recalls.bindings.pending[&key].cancelling
+                {
+                    let actor = self.recalls.bindings.pending[&key].context.actor;
+                    match self
+                        .simulation
+                        .input()
+                        .try_submit(Command::Recall(RecallCommand::Cancel { actor }))
+                    {
+                        Ok(()) => {
+                            self.recalls
+                                .bindings
+                                .pending
+                                .get_mut(&key)
+                                .expect("retained binding")
+                                .cancelling = true
+                        }
+                        Err(TrySendError::Full(_)) => {}
+                        Err(TrySendError::Disconnected(_)) => {
+                            return Err("binding cancel owner channel closed".into());
+                        }
+                    }
+                }
+                continue;
+            }
             self.advance_binding(key)?;
         }
         self.project_completed_bindings()?;
@@ -325,7 +395,7 @@ impl GameRuntime {
                     return Err("binding capture channel closed".into());
                 }
             },
-            BindingPhase::Captured(snapshot, unix) if self.recalls.bindings.cold.is_none() => {
+            BindingPhase::Captured(snapshot, unix) => {
                 let saved = crate::player_saves::freeze_player_snapshot(
                     self.online_saves
                         .baseline(p.binding.actor.0)
@@ -339,26 +409,20 @@ impl GameRuntime {
                     .entry_motion()
                     .ok_or("binding accepted motion missing")?;
                 let revision = snapshot.character().progression().revision();
-                let manifest = self.bootstrap.assets.clone();
-                self.recalls.bindings.cold = Some(Box::pin(async move {
-                    let result = tokio::task::spawn_blocking(move || {
-                        let mut assets =
-                            crate::region_activation::VerifiedRegionAssets::open(&manifest)?;
-                        let prepared =
-                            assets.prepare_binding_motion(&saved.player.entity.state, current)?;
-                        Ok(BindingPrepared {
-                            revision,
-                            style: prepared.style,
-                            motion: prepared.motion,
-                            seconds: prepared.seconds,
-                        })
-                    })
-                    .await
-                    .map_err(|error| error.to_string())
-                    .and_then(|value| value);
-                    (key, result)
-                }));
-                p.phase = BindingPhase::Preparing;
+                let request = BindingMotionPreparationRequest {
+                    correlation: token,
+                    context: p.context,
+                    before_revision: revision,
+                    source_object: EntityId(saved.player.entity.object_id),
+                    source: saved.player.entity.state.clone(),
+                    current,
+                };
+                if self.preparation.try_submit_binding(request).is_ok() {
+                    p.phase = BindingPhase::Preparing {
+                        correlation: token,
+                        revision,
+                    };
+                }
             }
             BindingPhase::Ready => {
                 let prepared = p.prepared.as_ref().ok_or("binding motion missing")?;
@@ -381,6 +445,11 @@ impl GameRuntime {
             _ => {}
         }
         Ok(())
+    }
+    fn binding_session_closing(&self, key: SessionKey) -> bool {
+        self.sessions
+            .get(&key)
+            .is_none_or(|s| s.terminated || s.disconnected)
     }
     pub(super) fn project_binding_event(&mut self, event: RecallEvent) -> Result<(), String> {
         let context = match &event {
@@ -405,6 +474,7 @@ impl GameRuntime {
             .pending
             .get(&key)
             .ok_or("binding event owner missing")?;
+        let closing = self.binding_session_closing(key);
         let mut terminal = false;
         let mut steps = Vec::new();
         let mut started = false;
@@ -413,6 +483,10 @@ impl GameRuntime {
             RecallEvent::Retry { .. } => {
                 if !matches!(p.phase, BindingPhase::Submitted) {
                     return Err("binding retry phase".into());
+                }
+                if closing {
+                    self.recalls.bindings.pending.remove(&key);
+                    return Ok(());
                 }
                 let p = self
                     .recalls
@@ -481,6 +555,10 @@ impl GameRuntime {
                 return Ok(());
             }
             RecallEvent::Rejected { error, .. } => {
+                if *error == RecallError::Stale || closing {
+                    self.recalls.bindings.pending.remove(&key);
+                    return Ok(());
+                }
                 let code = match error {
                     RecallError::NoAllegiance => 0x414,
                     RecallError::Invalid if p.kind == BindingKind::Allegiance => 0x535,
@@ -497,13 +575,14 @@ impl GameRuntime {
             RecallEvent::Cancelled { .. } => terminal = true,
             _ => unreachable!(),
         }
-        if !steps.is_empty() || started {
+        if (!steps.is_empty() || started) && !closing {
             let observer_count = if action_started && p.kind == BindingKind::Allegiance {
                 2
             } else {
                 1
             };
-            if self.network_output.len() >= self.limits.messages
+            if self.visibility.service.pending()
+                || self.network_output.len() >= self.limits.messages
                 || !self.observer_room(observer_count, 16 * 1024)
             {
                 return Err("binding output pressure retained".into());
@@ -611,6 +690,11 @@ impl GameRuntime {
             self.recalls.bindings.pending.remove(&key);
             return Ok(());
         }
+        if self.binding_session_closing(key) {
+            self.recalls.bindings.completions.remove(&operation);
+            self.recalls.bindings.pending.remove(&key);
+            return Ok(());
+        }
         if self.network_output.len() >= self.limits.messages {
             return Ok(());
         }
@@ -704,3 +788,7 @@ fn binding_objects(bytes: usize) -> bace_wire::ObjectCodecLimits {
         max_string_bytes: 4096,
     }
 }
+
+#[cfg(test)]
+#[path = "bindings/tests.rs"]
+mod tests;

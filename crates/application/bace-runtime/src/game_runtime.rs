@@ -437,10 +437,10 @@ impl GameRuntime {
         self.players
             .flush_entered(&self.simulation.input(), self.limits.work_per_poll);
         if let Err(error) = self.poll_social_outputs() {
-            first_error.get_or_insert(error);
+            first_error.get_or_insert(format!("social output: {error}"));
         }
         if let Err(error) = self.poll_reward_outputs() {
-            first_error.get_or_insert(error);
+            first_error.get_or_insert(format!("reward output: {error}"));
         }
         if let Err(error) = self.poll_staff() {
             first_error.get_or_insert(error);
@@ -523,7 +523,10 @@ impl GameRuntime {
             || self.unexpected_admission.is_some()
             || self.unexpected_entered.is_some()
             || self.world.as_ref().is_some_and(|w| {
-                w.regions.has_pending() || w.generators.has_pending() || !w.events.is_empty()
+                w.pending.is_some()
+                    || w.regions.has_pending()
+                    || w.generators.has_pending()
+                    || !w.events.is_empty()
             })
     }
 }

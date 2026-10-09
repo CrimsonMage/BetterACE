@@ -113,6 +113,24 @@ impl Kernel {
                 reached_maximum,
             });
         }
+        if change.after.target == ProgressionTarget::Attribute(AttributeId::Endurance) {
+            let Some(mut health) = character.projection(ProgressionTarget::Vital(
+                bace_gameplay_api::VitalId::MaxHealth,
+            )) else {
+                return Ok(());
+            };
+            let Some(TraitDetails::Vital { starting_value, .. }) = health.details else {
+                return Ok(());
+            };
+            let Ok(pool) = self.world.vital(actor, bace_entity::EntityVital::Health) else {
+                return Ok(());
+            };
+            health.details = Some(TraitDetails::Vital {
+                starting_value,
+                current: pool.current,
+            });
+            change.follow_up_vital = Some(health);
+        }
         Ok(())
     }
     pub fn configure_combat_random_shared(

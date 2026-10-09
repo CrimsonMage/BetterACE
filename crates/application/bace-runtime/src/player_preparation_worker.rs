@@ -8,7 +8,7 @@ use crate::{
     player_entry::PreparedEntryAppearanceAssets,
     region_activation::{RegionAssetManifest, VerifiedRegionAssets},
 };
-use bace_gameplay_api::{CharacterBinding, EnchantmentProjection};
+use bace_gameplay_api::{ActionContext, CharacterBinding, EnchantmentProjection};
 use bace_session::SessionKey;
 use std::{collections::BTreeMap, sync::Arc, thread};
 
@@ -37,8 +37,37 @@ pub struct PlayerPreparationCompletion {
     pub binding: CharacterBinding,
     pub result: Result<PreparedPlayerCold, String>,
 }
+pub struct BindingMotionPreparationRequest {
+    pub correlation: u64,
+    pub context: ActionContext,
+    pub before_revision: u64,
+    pub source: bace_content::WeenieV1,
+    pub source_object: bace_types::EntityId,
+    pub current: bace_motion::SourceMotionState,
+}
+pub struct BindingMotionPreparationCompletion {
+    pub correlation: u64,
+    pub context: ActionContext,
+    pub before_revision: u64,
+    pub result: Result<PreparedBindingMotionData, String>,
+}
+pub struct PreparedBindingMotionData {
+    pub style: Option<Arc<bace_motion::PreparedMotionChain>>,
+    pub motion: Arc<bace_motion::PreparedMotionChain>,
+    pub seconds: f64,
+}
+enum PreparationJob {
+    Admission(PlayerPreparationRequest),
+    BindingMotion(Box<BindingMotionPreparationRequest>),
+}
+pub enum PlayerPreparationResult {
+    Admission(Box<PlayerPreparationCompletion>),
+    BindingMotion(BindingMotionPreparationCompletion),
+}
 pub struct PlayerPreparationWorker {
-    lane: lane::Lane<PlayerPreparationRequest, PlayerPreparationCompletion>,
+    lane: lane::Lane<PreparationJob, PlayerPreparationResult>,
+    admission_waiting: bool,
+    capacity: usize,
 }
 impl PlayerPreparationWorker {
     /// At most four requests including executing and completed-but-unclaimed work.
@@ -46,23 +75,50 @@ impl PlayerPreparationWorker {
     /// immutable shared region/spell inputs are never copied into a second owner.
     pub fn start(manifest: RegionAssetManifest, capacity: usize) -> Result<Self, String> {
         let mut assets = None;
-        let lane = lane::Lane::start(capacity, move |request: PlayerPreparationRequest| {
+        let lane = lane::Lane::start(capacity, move |request: PreparationJob| {
             let assets = assets.get_or_insert_with(|| VerifiedRegionAssets::open(&manifest));
-            let correlation = request.correlation;
-            let key = request.loaded.key;
-            let binding = request.loaded.binding;
-            let result = assets
-                .as_mut()
-                .map_err(|e| e.clone())
-                .and_then(|assets| prepare(assets, request));
-            PlayerPreparationCompletion {
-                correlation,
-                key,
-                binding,
-                result,
+            match request {
+                PreparationJob::Admission(request) => {
+                    let correlation = request.correlation;
+                    let key = request.loaded.key;
+                    let binding = request.loaded.binding;
+                    let result = assets
+                        .as_mut()
+                        .map_err(|e| e.clone())
+                        .and_then(|assets| prepare(assets, request));
+                    PlayerPreparationResult::Admission(Box::new(PlayerPreparationCompletion {
+                        correlation,
+                        key,
+                        binding,
+                        result,
+                    }))
+                }
+                PreparationJob::BindingMotion(request) => {
+                    let result = assets
+                        .as_mut()
+                        .map_err(|e| e.clone())
+                        .and_then(|assets| {
+                            assets.prepare_binding_motion(&request.source, request.current)
+                        })
+                        .map(|prepared| PreparedBindingMotionData {
+                            style: prepared.style,
+                            motion: prepared.motion,
+                            seconds: prepared.seconds,
+                        });
+                    PlayerPreparationResult::BindingMotion(BindingMotionPreparationCompletion {
+                        correlation: request.correlation,
+                        context: request.context,
+                        before_revision: request.before_revision,
+                        result,
+                    })
+                }
             }
         })?;
-        Ok(Self { lane })
+        Ok(Self {
+            lane,
+            admission_waiting: false,
+            capacity,
+        })
     }
     pub fn try_submit(
         &mut self,
@@ -77,11 +133,46 @@ impl PlayerPreparationWorker {
         {
             return Err(Box::new(request));
         }
-        self.lane
-            .try_submit(request.correlation, request)
-            .map_err(Box::new)
+        if self.pending() >= self.capacity {
+            self.admission_waiting = true;
+            return Err(Box::new(request));
+        }
+        match self
+            .lane
+            .try_submit(request.correlation, PreparationJob::Admission(request))
+        {
+            Ok(()) => {
+                self.admission_waiting = false;
+                Ok(())
+            }
+            Err(PreparationJob::Admission(request)) => {
+                self.admission_waiting = true;
+                Err(Box::new(request))
+            }
+            Err(PreparationJob::BindingMotion(_)) => unreachable!("admission job identity"),
+        }
     }
-    pub fn try_recv(&mut self) -> Result<Option<PlayerPreparationCompletion>, String> {
+    pub fn try_submit_binding(
+        &mut self,
+        request: BindingMotionPreparationRequest,
+    ) -> Result<(), Box<BindingMotionPreparationRequest>> {
+        if request.correlation == 0
+            || request.source_object != request.context.actor
+            || self.admission_waiting
+            || self.pending() >= self.capacity.saturating_sub(1).max(1)
+        {
+            return Err(Box::new(request));
+        }
+        match self.lane.try_submit(
+            request.correlation,
+            PreparationJob::BindingMotion(Box::new(request)),
+        ) {
+            Ok(()) => Ok(()),
+            Err(PreparationJob::BindingMotion(request)) => Err(request),
+            Err(PreparationJob::Admission(_)) => unreachable!("binding job identity"),
+        }
+    }
+    pub fn try_recv(&mut self) -> Result<Option<PlayerPreparationResult>, String> {
         self.lane.try_recv()
     }
     pub fn pending(&self) -> usize {
@@ -91,7 +182,11 @@ impl PlayerPreparationWorker {
     pub fn try_shutdown(self) -> Result<thread::JoinHandle<()>, Box<Self>> {
         match self.lane.try_shutdown() {
             Ok(thread) => Ok(thread),
-            Err(lane) => Err(Box::new(Self { lane: *lane })),
+            Err(lane) => Err(Box::new(Self {
+                lane: *lane,
+                admission_waiting: self.admission_waiting,
+                capacity: self.capacity,
+            })),
         }
     }
 }

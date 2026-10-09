@@ -230,6 +230,33 @@ fn tree_receipt_requires_complete_root_partition_and_all_descendants() {
 }
 
 #[test]
+fn rejected_world_npc_root_without_item_source_cannot_leave_orphan_publication() {
+    let def = definition::definition();
+    let key = bace_gameplay_api::GeneratorSpawnKey {
+        generator: def.identity,
+        profile_id: 0,
+        occurrence: 1,
+    };
+    let rejected = EntityId(100);
+    let accepted = EntityId(200);
+    let rejected_gear = EntityId(101);
+    let accepted_gear = EntityId(201);
+    // NPC roots are prepared as public descriptions, while only their gear
+    // enters the transient RegionItemSource batch. The authoritative admission
+    // explicitly rejected one root and admitted the other root with its gear.
+    let receipt = bace_simulation::GeneratorItemAdmission {
+        key,
+        roots: vec![accepted],
+        entities: vec![accepted, accepted_gear],
+        failed_roots: vec![rejected],
+    };
+    assert_eq!(
+        delivery::failed_sources(&[rejected_gear, accepted_gear], &receipt),
+        vec![rejected, rejected_gear]
+    );
+}
+
+#[test]
 fn id_reservation_receipt_reuses_materialization_and_retains_unexpected_outcomes() {
     let (_dir, mut service, regions) = service();
     let def = definition::definition();
@@ -462,8 +489,10 @@ fn treasure_forest_preserves_creature_and_container_root_order() {
     )
     .unwrap();
     assert!(
-        matches!(raw, materialization::Materialized::Creature { .. }),
-        "single creature treasure retains the constructed owner path"
+        matches!(raw, materialization::Materialized::Mixed(ref roots)
+            if matches!(roots.as_slice(), [materialization::Materialized::NestedItems { creatures, .. }]
+                if creatures.len() == 1 && creatures[0].root_index == 0)),
+        "single creature treasure retains the constructed forest owner path"
     );
     creature.weenie_type = 12;
     assert!(
@@ -535,13 +564,329 @@ fn contained_create_list_leaf_creature_keeps_source_parent_and_reserved_order() 
     let materialization::Materialized::Mixed(trees) = raw else {
         panic!("contained creature tree must use constructed forest admission");
     };
-    let [materialization::Materialized::Items(items)] = trees.as_slice() else {
+    let [materialization::Materialized::NestedItems { items, creatures }] = trees.as_slice() else {
         panic!("source-ordered contained CreateList tree");
     };
     assert_eq!(items.len(), 3);
     assert_eq!(items[2].source.weenie_type, 10);
     assert_eq!(items[2].generator_parent_index, Some(0));
     assert_eq!(items[2].source_destination, Some(1));
+    assert_eq!(creatures.len(), 1);
+    assert_eq!(creatures[0].root_index, 2);
+    assert!(creatures[0].gear.is_empty());
+    service.cold.shutdown().unwrap();
+}
+
+#[test]
+fn contained_creature_and_cow_construct_selected_wield_loadouts_with_reserved_ids() {
+    let (_dir, service, mut regions) = service();
+    let def = definition::definition();
+    let request = GeneratorHostRequest {
+        intent: bace_gameplay_api::GeneratorSpawnIntent {
+            key: bace_gameplay_api::GeneratorSpawnKey {
+                generator: def.identity,
+                profile_id: 0,
+                occurrence: 1,
+            },
+            profile: def.profiles[0].clone(),
+            destination: bace_gameplay_api::GeneratorDestination::Contain {
+                container: EntityId(1),
+            },
+            first_spawn: true,
+            due_tick: 0,
+            random_identity: [9; 16],
+            random_key_version: 1,
+        },
+        entities: (100..106).map(EntityId).collect(),
+        landblock: 0x0101,
+        next_slots: Some((0, 0)),
+    };
+    let mut parent = template(10, true);
+    for (database_record_id, weenie_class_id) in [(2, 210), (3, 211)] {
+        parent
+            .properties
+            .create_list
+            .push(bace_content::CreateListEntry {
+                database_record_id,
+                destination_type: 1,
+                weenie_class_id,
+                stack_size: 1,
+                palette: 0,
+                shade: 0.0,
+                try_to_bond: false,
+            });
+    }
+    let mut weapon = template(212, false);
+    weapon.weenie_type = 3;
+    weapon.properties.ints.push(bace_content::Property {
+        id: 9,
+        value: 0x100000,
+    });
+    for (id, kind) in [(210, 10), (211, 15)] {
+        let mut creature = template(id, false);
+        creature.weenie_type = kind;
+        creature
+            .properties
+            .create_list
+            .push(bace_content::CreateListEntry {
+                database_record_id: 4,
+                destination_type: 2,
+                weenie_class_id: 212,
+                stack_size: 1,
+                palette: 0,
+                shade: 0.0,
+                try_to_bond: false,
+            });
+        Arc::get_mut(&mut regions.region)
+            .unwrap()
+            .catalog
+            .templates
+            .insert(id, Arc::new(creature));
+    }
+    Arc::get_mut(&mut regions.region)
+        .unwrap()
+        .catalog
+        .templates
+        .insert(212, Arc::new(weapon));
+    let raw = mixed::materialize(
+        &regions.region,
+        &request,
+        vec![parent],
+        &service.config.random,
+        false,
+    )
+    .unwrap();
+    assert_eq!(raw.count(), 6);
+    let materialization::Materialized::Mixed(trees) = raw else {
+        panic!("constructed Contain forest");
+    };
+    let [materialization::Materialized::NestedItems { items, creatures }] = trees.as_slice() else {
+        panic!("nested Creature sidecars");
+    };
+    assert_eq!(items.len(), 4);
+    assert_eq!(creatures.len(), 2);
+    assert_eq!(creatures[0].root_index, 2);
+    assert_eq!(creatures[0].gear_start, 4);
+    assert_eq!(creatures[0].source.weenie_type, 10);
+    assert_eq!(creatures[1].root_index, 3);
+    assert_eq!(creatures[1].gear_start, 5);
+    assert_eq!(creatures[1].source.weenie_type, 15);
+    for sidecar in creatures {
+        assert_eq!(sidecar.gear.len(), 1);
+        assert_eq!(sidecar.gear[0].source.weenie_id, 212);
+        assert_ne!(sidecar.gear[0].wielded_location, 0);
+        assert_eq!(sidecar.gear[0].equip_order, Some(0));
+        assert!(!sidecar.gear[0].death_drop);
+    }
+    let mut table = None;
+    let prepared = materialization::bind(
+        Err("contained roots do not require world geometry".into()),
+        &mut table,
+        &regions.region.generation,
+        &regions.region,
+        &request,
+        &trees[0],
+    )
+    .unwrap();
+    let GeneratorAction::AdmitItemTrees { items, roots, .. } = prepared.action else {
+        panic!("generic prefix of nested forest");
+    };
+    assert_eq!(roots, [EntityId(100)]);
+    assert_eq!(
+        items.iter().map(|item| item.id).collect::<Vec<_>>(),
+        (100..104).map(EntityId).collect::<Vec<_>>()
+    );
+    assert_eq!(prepared.sources.len(), 4);
+    service.cold.shutdown().unwrap();
+}
+
+#[test]
+fn nested_creature_gear_creature_recursively_reserves_a_distinct_constructed_root() {
+    let (_dir, service, mut regions) = service();
+    let def = definition::definition();
+    let request = GeneratorHostRequest {
+        intent: bace_gameplay_api::GeneratorSpawnIntent {
+            key: bace_gameplay_api::GeneratorSpawnKey {
+                generator: def.identity,
+                profile_id: 0,
+                occurrence: 2,
+            },
+            profile: def.profiles[0].clone(),
+            destination: bace_gameplay_api::GeneratorDestination::Contain {
+                container: EntityId(1),
+            },
+            first_spawn: true,
+            due_tick: 0,
+            random_identity: [8; 16],
+            random_key_version: 1,
+        },
+        entities: (100..105).map(EntityId).collect(),
+        landblock: 0x0101,
+        next_slots: Some((0, 0)),
+    };
+    let mut parent = template(10, true);
+    parent
+        .properties
+        .create_list
+        .push(bace_content::CreateListEntry {
+            database_record_id: 2,
+            destination_type: 1,
+            weenie_class_id: 210,
+            stack_size: 1,
+            palette: 0,
+            shade: 0.0,
+            try_to_bond: false,
+        });
+    let mut creature = template(210, false);
+    creature.weenie_type = 10;
+    creature
+        .properties
+        .create_list
+        .push(bace_content::CreateListEntry {
+            database_record_id: 3,
+            destination_type: 2,
+            weenie_class_id: 211,
+            stack_size: 1,
+            palette: 0,
+            shade: 0.0,
+            try_to_bond: false,
+        });
+    let mut cow = template(211, false);
+    cow.weenie_type = 15;
+    cow.properties
+        .create_list
+        .push(bace_content::CreateListEntry {
+            database_record_id: 4,
+            destination_type: 2,
+            weenie_class_id: 212,
+            stack_size: 1,
+            palette: 0,
+            shade: 0.0,
+            try_to_bond: false,
+        });
+    let mut weapon = template(212, false);
+    weapon.weenie_type = 3;
+    weapon.properties.ints.push(bace_content::Property {
+        id: 9,
+        value: 0x100000,
+    });
+    for source in [creature, cow, weapon] {
+        Arc::get_mut(&mut regions.region)
+            .unwrap()
+            .catalog
+            .templates
+            .insert(source.weenie_id, Arc::new(source));
+    }
+    let raw = mixed::materialize(
+        &regions.region,
+        &request,
+        vec![parent],
+        &service.config.random,
+        false,
+    )
+    .unwrap();
+    assert_eq!(raw.count(), 5);
+    let materialization::Materialized::Mixed(trees) = raw else {
+        panic!("nested constructed forest");
+    };
+    let [materialization::Materialized::NestedItems { items, creatures }] = trees.as_slice() else {
+        panic!("nested constructed sidecars");
+    };
+    assert_eq!(items.len(), 3);
+    assert_eq!(creatures.len(), 2);
+    assert_eq!((creatures[0].root_index, creatures[0].gear_start), (2, 3));
+    assert_eq!(creatures[0].gear[0].source.weenie_type, 15);
+    assert_eq!(creatures[0].gear[0].wielded_location, 0);
+    assert_eq!((creatures[1].root_index, creatures[1].gear_start), (3, 4));
+    assert_eq!(creatures[1].gear[0].source.weenie_id, 212);
+    assert_ne!(creatures[1].gear[0].wielded_location, 0);
+    service.cold.shutdown().unwrap();
+}
+
+#[test]
+fn contained_creature_root_and_nested_cow_share_one_constructed_forest() {
+    let (_dir, service, mut regions) = service();
+    let def = definition::definition();
+    let request = GeneratorHostRequest {
+        intent: bace_gameplay_api::GeneratorSpawnIntent {
+            key: bace_gameplay_api::GeneratorSpawnKey {
+                generator: def.identity,
+                profile_id: 0,
+                occurrence: 3,
+            },
+            profile: def.profiles[0].clone(),
+            destination: bace_gameplay_api::GeneratorDestination::Contain {
+                container: EntityId(1),
+            },
+            first_spawn: true,
+            due_tick: 0,
+            random_identity: [7; 16],
+            random_key_version: 1,
+        },
+        entities: (100..103).map(EntityId).collect(),
+        landblock: 0x0101,
+        next_slots: Some((0, 0)),
+    };
+    let mut creature = template(210, false);
+    creature.weenie_type = 10;
+    creature
+        .properties
+        .create_list
+        .push(bace_content::CreateListEntry {
+            database_record_id: 3,
+            destination_type: 2,
+            weenie_class_id: 211,
+            stack_size: 1,
+            palette: 0,
+            shade: 0.0,
+            try_to_bond: false,
+        });
+    let mut cow = template(211, false);
+    cow.weenie_type = 15;
+    cow.properties
+        .create_list
+        .push(bace_content::CreateListEntry {
+            database_record_id: 4,
+            destination_type: 2,
+            weenie_class_id: 212,
+            stack_size: 1,
+            palette: 0,
+            shade: 0.0,
+            try_to_bond: false,
+        });
+    let mut weapon = template(212, false);
+    weapon.weenie_type = 3;
+    weapon.properties.ints.push(bace_content::Property {
+        id: 9,
+        value: 0x100000,
+    });
+    for source in [creature.clone(), cow, weapon] {
+        Arc::get_mut(&mut regions.region)
+            .unwrap()
+            .catalog
+            .templates
+            .insert(source.weenie_id, Arc::new(source));
+    }
+    let raw = mixed::materialize(
+        &regions.region,
+        &request,
+        vec![creature],
+        &service.config.random,
+        false,
+    )
+    .unwrap();
+    assert_eq!(raw.count(), 3);
+    let materialization::Materialized::Mixed(trees) = raw else {
+        panic!("contained constructed root");
+    };
+    let [materialization::Materialized::NestedItems { items, creatures }] = trees.as_slice() else {
+        panic!("constructed root and child sidecars");
+    };
+    assert_eq!(items.len(), 1);
+    assert_eq!((creatures[0].root_index, creatures[0].gear_start), (0, 1));
+    assert_eq!(creatures[0].gear[0].source.weenie_type, 15);
+    assert_eq!((creatures[1].root_index, creatures[1].gear_start), (1, 2));
+    assert_eq!(creatures[1].gear[0].source.weenie_id, 212);
     service.cold.shutdown().unwrap();
 }
 

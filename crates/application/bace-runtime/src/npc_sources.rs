@@ -141,13 +141,20 @@ impl PreparedNpcRegistration {
 }
 
 pub fn requires_source(source: &bace_content::WeenieV1) -> bool {
-    !source.properties.emotes.is_empty()
+    // Pinned ACE WorldObjectFactory constructs every WeenieType.Vendor as a
+    // Vendor, including Shops without authored emotes or Bool79. Their cold
+    // source is needed by the admitted Shop Use/Buy owner.
+    source.weenie_type == 12
+        || !source.properties.emotes.is_empty()
         || source
             .properties
             .bools
             .iter()
             .any(|p| p.id == 79 && p.value)
 }
+
+#[cfg(test)]
+mod tests;
 /// The caller supplies the exact cold actor row and immutable selected generation.
 pub fn prepare_generated_registration(
     actor: EntityId,

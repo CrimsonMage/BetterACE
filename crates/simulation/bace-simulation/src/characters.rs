@@ -6,6 +6,7 @@ mod equipment;
 mod portals;
 mod read_snapshot;
 mod staff_spells;
+mod vendor_buy;
 pub use read_snapshot::CharacterReadSnapshot;
 mod admission;
 mod death;
@@ -57,6 +58,7 @@ struct OwnedCharacter {
     death: Option<u64>,
     crafting: Option<u64>,
     equipment: Option<u64>,
+    vendor_buy: Option<u64>,
     rare: Option<bace_gameplay_api::CharacterRareState>,
     rare_pending: Option<(u64, bace_gameplay_api::RareDecision)>,
 }
@@ -83,7 +85,8 @@ impl Characters {
                 || entry.reward.is_some()
                 || (entry.social_reward.is_some() || entry.gag.is_some())
                 || (entry.death.is_some()
-                    || (entry.crafting.is_some() || entry.equipment.is_some())))
+                    || (entry.crafting.is_some()
+                        || (entry.equipment.is_some() || entry.vendor_buy.is_some()))))
             || entry.rare_pending.is_some()
             || entry.skill.is_some()
             || entry.attribute_transfer.is_some()
@@ -124,7 +127,9 @@ impl Characters {
         if ((entry.portal.is_some() || entry.staff_spell.is_some())
             || entry.reward.is_some()
             || (entry.social_reward.is_some() || entry.gag.is_some())
-            || (entry.death.is_some() || (entry.crafting.is_some() || entry.equipment.is_some())))
+            || (entry.death.is_some()
+                || (entry.crafting.is_some()
+                    || (entry.equipment.is_some() || entry.vendor_buy.is_some()))))
             || entry.rare_pending.is_some()
             || entry.skill.is_some()
             || entry.attribute_transfer.is_some()
@@ -188,6 +193,7 @@ impl Characters {
                 death: None,
                 crafting: None,
                 equipment: None,
+                vendor_buy: None,
                 rare: None,
                 rare_pending: None,
             },
@@ -205,7 +211,8 @@ impl Characters {
                     || entry.reward.is_some()
                     || (entry.social_reward.is_some() || entry.gag.is_some())
                     || (entry.death.is_some()
-                        || (entry.crafting.is_some() || entry.equipment.is_some())))
+                        || (entry.crafting.is_some()
+                            || (entry.equipment.is_some() || entry.vendor_buy.is_some()))))
                     || entry.rare_pending.is_some()
                     || entry.skill.is_some())
                 || entry.attribute_transfer.is_some()
@@ -252,7 +259,9 @@ impl Characters {
             || (entry.portal.is_some() || entry.staff_spell.is_some())
             || entry.reward.is_some()
             || (entry.social_reward.is_some() || entry.gag.is_some())
-            || (entry.death.is_some() || (entry.crafting.is_some() || entry.equipment.is_some()))
+            || (entry.death.is_some()
+                || (entry.crafting.is_some()
+                    || (entry.equipment.is_some() || entry.vendor_buy.is_some())))
         {
             return Err(());
         }
@@ -271,7 +280,9 @@ impl Characters {
             || (entry.portal.is_some() || entry.staff_spell.is_some())
             || entry.reward.is_some()
             || (entry.social_reward.is_some() || entry.gag.is_some())
-            || (entry.death.is_some() || (entry.crafting.is_some() || entry.equipment.is_some()))
+            || (entry.death.is_some()
+                || (entry.crafting.is_some()
+                    || (entry.equipment.is_some() || entry.vendor_buy.is_some())))
         {
             return Err(());
         }
@@ -282,7 +293,8 @@ impl Characters {
             ((e.portal.is_some() || e.staff_spell.is_some())
                 || e.reward.is_some()
                 || (e.social_reward.is_some() || e.gag.is_some())
-                || (e.death.is_some() || (e.crafting.is_some() || e.equipment.is_some())))
+                || (e.death.is_some()
+                    || (e.crafting.is_some() || (e.equipment.is_some() || e.vendor_buy.is_some()))))
                 || e.rare_pending.is_some()
                 || e.skill.is_some()
                 || e.attribute_transfer.is_some()
@@ -300,7 +312,8 @@ impl Characters {
                     || entry.reward.is_some()
                     || (entry.social_reward.is_some() || entry.gag.is_some())
                     || (entry.death.is_some()
-                        || (entry.crafting.is_some() || entry.equipment.is_some())))
+                        || (entry.crafting.is_some()
+                            || (entry.equipment.is_some() || entry.vendor_buy.is_some()))))
                     || entry.rare_pending.is_some()
                     || entry.skill.is_some()
                     || entry.attribute_transfer.is_some()

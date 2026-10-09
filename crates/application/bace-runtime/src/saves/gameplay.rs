@@ -15,6 +15,7 @@ pub(super) enum GameplayWrite {
     NpcStage(Box<NpcStageOperation>),
     Placement(PlacementOperation),
     WorldPlacement(WorldPlacementOperation),
+    VendorStock(bace_persistence::VendorStockOperation),
     ConstructedCreaturePromotion(bace_persistence::ConstructedCreaturePromotionOperation),
     HousingLifecycle(HousingOperation),
     Housing(Box<HousingWrite>),
@@ -250,6 +251,40 @@ impl SaveHandle {
             .checked_add(8)
             .ok_or(SaveSubmitError::Invalid)?;
         self.submit_gameplay(bytes, || GameplayWrite::WorldPlacement(operation.clone()))
+    }
+    /// Marker CAS and player/item/vendor snapshots share one bounded critical
+    /// slot. A failed admission leaves the caller's exact request untouched.
+    pub fn try_vendor_stock(
+        &self,
+        operation: &bace_persistence::VendorStockOperation,
+    ) -> Result<SaveTicket, SaveSubmitError> {
+        let marker = bace_storage_codec::VendorStockSaveV1::decode(&operation.marker.bytes)
+            .map_err(|_| SaveSubmitError::Invalid)?;
+        if operation.world_epoch == 0
+            || operation.world_epoch > i64::MAX as u64
+            || operation.vendor_expected_version <= 0
+            || operation.marker.marker_object_id == 0
+            || operation.marker.expected_version < 0
+            || operation.marker.bytes.is_empty()
+            || operation.marker.bytes.len() > 17 * 1024 * 1024
+            || marker.marker_object_id != operation.marker.marker_object_id
+            || marker.stock_revision <= operation.marker.expected_stock_revision
+            || !operation
+                .inventory
+                .participants
+                .contains(&marker.vendor_object_id)
+            || !operation
+                .inventory
+                .participants
+                .contains(&marker.marker_object_id)
+        {
+            return Err(SaveSubmitError::Invalid);
+        }
+        let bytes = placement_bytes_inner(&operation.inventory, true)?
+            .checked_add(8 + 8 + 8 + 8 + 8)
+            .and_then(|n| n.checked_add(operation.marker.bytes.len() as u32))
+            .ok_or(SaveSubmitError::Invalid)?;
+        self.submit_gameplay(bytes, || GameplayWrite::VendorStock(operation.clone()))
     }
     /// Fresh generated Creature/Cow graphs require their own durable graph
     /// check before the simulation owner can adopt the acquisition receipt.
