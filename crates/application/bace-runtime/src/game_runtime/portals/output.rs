@@ -3,6 +3,14 @@
 use super::*;
 use bace_replication::InventoryProjection as P;
 use bace_replication::{BatchLimits, PortalPhase, PortalView, SequenceKind};
+
+#[derive(Clone, Copy)]
+enum LinkRecipient {
+    Binding,
+    Detached,
+    Live(SessionKey),
+}
+
 impl GameRuntime {
     pub(super) fn project_portal_deliveries(&mut self) -> Result<(), String> {
         for _ in 0..self.limits.work_per_poll {
@@ -13,18 +21,24 @@ impl GameRuntime {
             // already transferred its terminal result to magic; binding owns
             // its own exact receipt. Recall-origin failures still error below
             // and retain the ticket because ACE has no post-Teleport callback.
-            let packetless = match &delivery.work {
+            let (link, packetless) = match &delivery.work {
                 PortalDeliveryWork::Completed(_)
                 | PortalDeliveryWork::Event(
                     PortalServiceEvent::Blocked { .. }
                     | PortalServiceEvent::AbortedAfterCommit { .. },
-                ) => true,
-                PortalDeliveryWork::Event(PortalServiceEvent::Linked { operation, .. }) => {
-                    self.portals.tickets.get(operation).is_some_and(|ticket| {
-                        ticket.origin == bace_simulation::PortalServiceOrigin::Binding
-                    })
+                ) => (None, true),
+                PortalDeliveryWork::Event(PortalServiceEvent::Linked { operation, actor }) => {
+                    (Some((*operation, *actor)), false)
                 }
-                _ => false,
+                _ => (None, false),
+            };
+            let packetless = if let Some((operation, actor)) = link {
+                !matches!(
+                    self.portal_link_recipient(operation, actor)?,
+                    LinkRecipient::Live(_)
+                )
+            } else {
+                packetless
             };
             if !packetless
                 && (self.visibility.service.pending()
@@ -32,6 +46,11 @@ impl GameRuntime {
             {
                 break;
             }
+            let delivery = self
+                .portals
+                .deliveries
+                .front()
+                .expect("retained portal delivery");
             match &delivery.work {
                 PortalDeliveryWork::Event(PortalServiceEvent::Linked { operation, actor }) => {
                     let (sequence, operation, actor) = (delivery.sequence, *operation, *actor);
@@ -100,6 +119,11 @@ impl GameRuntime {
                     if self.portals.tickets.get(&operation) != Some(&completion.work.ticket) {
                         return Err("portal completion ticket identity mismatch; retained".into());
                     }
+                    if self.portals.ticket_bindings.get(&operation)
+                        != Some(&completion.work.bindings)
+                    {
+                        return Err("portal completion captured binding mismatch; retained".into());
+                    }
                     if (!committed || aborted)
                         && matches!(
                             completion.work.ticket.origin,
@@ -112,6 +136,7 @@ impl GameRuntime {
                         self.record_binding_portal_completion(operation, false)?;
                     }
                     self.portals.tickets.remove(&operation);
+                    self.portals.ticket_bindings.remove(&operation);
                     self.portals.blocked_effects.remove(&operation);
                     self.portals.acknowledge(sequence)?;
                     continue;
@@ -326,26 +351,94 @@ impl GameRuntime {
         }
         Ok(())
     }
-    fn project_portal_link(&mut self, operation: u64, actor: EntityId) -> Result<(), String> {
+    fn portal_link_recipient(
+        &mut self,
+        operation: u64,
+        actor: EntityId,
+    ) -> Result<LinkRecipient, String> {
         let ticket = self
             .portals
             .tickets
             .get(&operation)
-            .ok_or("portal link ticket missing")?
-            .clone();
+            .ok_or("portal link ticket missing; retained")?;
         if ticket.actor != actor {
-            return Err("portal link actor mismatch".into());
+            return Err("portal link actor mismatch; retained".into());
         }
+        let bindings = self
+            .portals
+            .ticket_bindings
+            .get(&operation)
+            .ok_or("portal link captured binding missing; retained")?;
+        if bindings.len() != ticket.participants.len()
+            || ticket.participants.iter().any(|(id, _, _)| {
+                bindings
+                    .iter()
+                    .filter(|binding| binding.actor == *id)
+                    .count()
+                    != 1
+            })
+        {
+            return Err("portal link captured binding identity mismatch; retained".into());
+        }
+        let binding = *bindings
+            .iter()
+            .find(|binding| binding.actor == actor)
+            .ok_or("portal link recipient binding missing; retained")?;
         if ticket.origin == bace_simulation::PortalServiceOrigin::Binding {
+            return Ok(LinkRecipient::Binding);
+        }
+        let Some(replication) = self.players.replication(actor) else {
+            return Ok(LinkRecipient::Detached);
+        };
+        if replication.binding != binding {
+            // A replacement authenticated session must never inherit an old
+            // spell's private success after its durable operation completed.
+            return Ok(LinkRecipient::Detached);
+        }
+        let session = self
+            .sessions
+            .get(&replication.key)
+            .ok_or("portal link canonical session missing; retained")?;
+        if session.terminated || session.disconnected {
+            return Ok(LinkRecipient::Detached);
+        }
+        if session
+            .loading
+            .as_ref()
+            .is_none_or(|loading| loading.loaded.binding != binding)
+        {
+            return Err("portal link canonical binding mismatch; retained".into());
+        }
+        Ok(LinkRecipient::Live(replication.key))
+    }
+
+    fn project_portal_link(&mut self, operation: u64, actor: EntityId) -> Result<(), String> {
+        let recipient = self.portal_link_recipient(operation, actor)?;
+        if matches!(recipient, LinkRecipient::Binding) {
             return self.record_binding_portal_completion(operation, true);
         }
-        let bace_simulation::PortalServiceEffect::Link(change) = ticket.effect else {
+        let ticket = self
+            .portals
+            .tickets
+            .get(&operation)
+            .expect("validated link");
+        let bace_simulation::PortalServiceEffect::Link(change) = &ticket.effect else {
             return Err("portal link effect mismatch".into());
         };
-        let text = if change.position_slot == 4 {
-            "You have successfully linked with the life stone."
-        } else {
-            "You have successfully linked with the portal."
+        // Pinned ACE HandleCastSpell_PortalLink sends the lifestone line for
+        // LifestoneTie1. That spell writes LinkedLifestone (slot 15); slot 4
+        // belongs to the separate durable binding sanctuary operation.
+        let text = match (ticket.origin, change.position_slot) {
+            (bace_simulation::PortalServiceOrigin::Spell, 15) => {
+                "You have successfully linked with the life stone."
+            }
+            (bace_simulation::PortalServiceOrigin::Spell, 8 | 16) => {
+                "You have successfully linked with the portal."
+            }
+            _ => return Err("portal link source slot/origin mismatch; retained".into()),
+        };
+        let LinkRecipient::Live(key) = recipient else {
+            return Ok(());
         };
         if self.network_output.len() >= self.limits.messages {
             return Err("portal link output pressure retained".into());
@@ -354,6 +447,9 @@ impl GameRuntime {
             .players
             .replication(actor)
             .ok_or("portal link recipient missing")?;
+        if r.key != key {
+            return Err("portal link recipient session changed; retained".into());
+        }
         let batch = r
             .events
             .project_inventory_with_actor(

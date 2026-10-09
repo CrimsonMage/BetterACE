@@ -242,11 +242,15 @@ impl Kernel {
                     ActivationFailure::MissingValue,
                 ))?;
             let spell = u32::from(0x8000 | group);
-            if registry.entries().iter().any(|entry| {
-                entry.spell == spell
-                    && entry.spec.duration >= 0.0
-                    && entry.start_time > -entry.spec.duration
-            }) {
+            // Pinned ACE EnchantmentManager.GetCooldown/CheckCooldown checks
+            // the f32 difference for a retained row. Match the generic item
+            // activation owner even when heartbeat has not removed that row.
+            if !registry
+                .entries()
+                .iter()
+                .find(|entry| entry.spell == spell)
+                .is_none_or(|entry| (entry.spec.duration - entry.start_time.abs()) as f32 == 0.0)
+            {
                 return Err(SkillDeviceError::Activation(ActivationFailure::Cooldown));
             }
             return Ok(());

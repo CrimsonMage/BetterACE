@@ -255,6 +255,51 @@ fn cooldown_only_device_requires_registry_and_cannot_bypass_item_ownership() {
         "mixed requirements must retain the generic authoritative value check"
     );
 }
+
+#[test]
+fn cooldown_only_device_matches_pinned_ace_retained_entry_boundary() {
+    // Pinned ACE EnchantmentManager.GetCooldown returns the f32 cast of
+    // Duration - Abs(StartTime); CheckCooldown accepts only exact zero (or
+    // no row). The generic inventory activation path uses the same check.
+    let request = |start_time: Option<f64>| {
+        let mut k = kernel(31);
+        let registry = if let Some(start_time) = start_time {
+            let mut entries = registry(30.0).into_entries();
+            entries[0].spell = 0x8007;
+            entries[0].start_time = start_time;
+            EnchantmentRegistry::restore(16, 20, entries).unwrap()
+        } else {
+            EnchantmentRegistry::new(16).unwrap()
+        };
+        k.register_magic_registry(EntityId(1), registry, true)
+            .unwrap();
+        k.register_skill_device_with_cooldown(
+            EntityId(10),
+            1,
+            PreparedSkillDevice::Specialize(31),
+            Some(ActivationRequirements {
+                cooldown: Some(7),
+                ..Default::default()
+            }),
+            Some(30.0),
+        )
+        .unwrap();
+        k.request_skill_device(context(1), EntityId(10), 100)
+    };
+    assert!(request(None).is_ok(), "no cooldown row");
+    assert_eq!(
+        request(Some(-29.0)),
+        Err(SkillDeviceError::Activation(ActivationFailure::Cooldown)),
+        "active cooldown row"
+    );
+    assert!(request(Some(-30.0)).is_ok(), "exact source boundary");
+    assert_eq!(
+        request(Some(-31.0)),
+        Err(SkillDeviceError::Activation(ActivationFailure::Cooldown)),
+        "retained overrun row is not an absent row in pinned ACE"
+    );
+}
+
 #[test]
 fn specialize_confirmation_combines_consumption_and_skill_after_exact_durable_receipt() {
     let mut k = kernel(31);

@@ -168,6 +168,10 @@ async fn summoned_gateway_create_and_lifetime_removal_wait_for_observer_receipts
     runtime.portals.tickets.insert(operation, ticket.clone());
     runtime
         .portals
+        .ticket_bindings
+        .insert(operation, vec![binding]);
+    runtime
+        .portals
         .push(PortalDeliveryWork::Event(PortalServiceEvent::Summoned {
             operation,
             entity,

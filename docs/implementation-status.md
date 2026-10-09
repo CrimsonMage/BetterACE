@@ -417,6 +417,10 @@ Committed split-to-wield output now selects the fresh equipped ID from the
 exact proposal and verifies both source and created rows before private
 publication and observer visibility. Two focused runtime output tests pass;
 stock-client equipment playback remains deferred.
+The dequip equipment owner now checks the complete accepted direct-equipped
+roster, each item's revision and location, before using thrown-weapon metadata
+to select the authored combat stance. Omitted, duplicated and nested forged
+slot metadata are rejected instead of changing the post-dequip mode.
 
 The generator stash review found no missing generator implementation to restore:
 stash `500c62799cde7f6bf6efbdbf9f181b7ad3f7e48a` contains 34 relevant files,
@@ -580,6 +584,13 @@ their exact ticket checks. Binding-origin Linked also hands its result to the
 binding output owner without waiting for unrelated packet room. A zero-capacity
 regression covers these drains and confirms recall-origin post-Teleport failure
 remains explicitly retained because the pinned source has no callback.
+Spell-origin Linked output now uses the pinned life-stone success line for
+LifestoneTie1's durable slot 15 and the portal line for PortalTie1/2 slots
+8/16. Portal work retains the exact authenticated participant bindings after
+successful staging and verifies them at completion. Disconnected or replaced
+sessions drain committed spell links without a private packet; missing or
+mismatched bindings and unsupported source slots retain the obligation. All 20
+focused portal-module tests and strict runtime-lib Clippy pass for this slice.
 Player death now freezes the accepted
 death action before save latency and projects its source text and canonical
 motion. The committed Started output now orders Health, death count, level,
@@ -711,11 +722,14 @@ CloseGroundContainer, and stale corpse/session rejection; it supplies the
 post-ack cache source rather than exercising a PostgreSQL save-worker receipt.
 A focused real PostgreSQL/save-worker test now commits the corpse permit Open and
 IsLooted Close with exact V5 revision/version acknowledgments, reloads both
-rows, and projects the private ViewContents and CloseGroundContainer packets.
+rows, advances the actual runtime `Phase::Cache` through
+`RegionService::replace_corpse_source` after each receipt, checks its retained
+source against the accepted region cache, and projects the private ViewContents
+and CloseGroundContainer packets.
 A separate runtime regression holds expiry load while the exact viewer remains
-open and releases it after the viewer handoff. These tests supply the post-ack
-cache source and do not join simulation Inspect/Adopt, in-memory region
-replacement, logout and visibility delivery. The full live Close transcript
+open and releases it after the viewer handoff. The test seeds the accepted V5
+corpse source and does not join physical Use, simulation Inspect/Adopt, logout
+or peer delivery. The full live Close transcript
 remains open.
 Retained `DeathDelivery` protection expiry and dispel events now carry the
 entered session binding frozen by the simulation. The runtime emits the pinned
@@ -837,8 +851,13 @@ requirements retain their full eligibility checks. Pinned Use plus Talk skill
 devices now admit bounded String17 and retain source-ordered ActivationTalk chat
 between confirmation and UseDone; five focused runtime tests, including packet
 order, and strict targeted Clippy pass. Emotes, activation targets and other
-response flags remain held across skill and attribute devices. Pinned Int119
-Active=0 on an authenticated skill-device Use now checks the accepted item
+response flags remain held across skill and attribute devices.
+The skill-only cooldown shortcut now uses pinned ACE
+`EnchantmentManager.GetCooldown`/`CheckCooldown` float-boundary behavior, as
+the existing generic activation owner does. Its regression covers absent,
+active, exact-boundary and retained-overrun rows without inventing an expiry
+rule.
+Pinned Int119 Active=0 on an authenticated skill-device Use now checks the accepted item
 revision, skips cooldown and all activation effects, and emits only UseDone;
 focused simulation/runtime tests and strict all-target Clippy pass.
 The same pinned Active=0 rule now reaches authenticated

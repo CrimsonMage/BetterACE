@@ -273,6 +273,10 @@ async fn rejected_portal_completion_requires_exact_ticket_and_never_projects_lin
         .portals
         .tickets
         .insert(ticket.operation, ticket.clone());
+    runtime
+        .portals
+        .ticket_bindings
+        .insert(ticket.operation, vec![binding]);
     // Kernel portal completion hands spell failure to the magic terminal
     // owner. Blocked and exact failed/aborted tickets publish no portal packet.
     runtime.limits.messages = 0;
@@ -327,6 +331,7 @@ async fn rejected_portal_completion_requires_exact_ticket_and_never_projects_lin
             heading: 0.,
         }]);
     runtime.portals.tickets.insert(72, aborted.clone());
+    runtime.portals.ticket_bindings.insert(72, vec![binding]);
     runtime.portals.push(PortalDeliveryWork::Event(
         PortalServiceEvent::AbortedAfterCommit {
             operation: 72,
@@ -352,6 +357,7 @@ async fn rejected_portal_completion_requires_exact_ticket_and_never_projects_lin
     binding_link.operation = 73;
     binding_link.origin = bace_simulation::PortalServiceOrigin::Binding;
     runtime.portals.tickets.insert(73, binding_link.clone());
+    runtime.portals.ticket_bindings.insert(73, vec![binding]);
     runtime
         .portals
         .push(PortalDeliveryWork::Event(PortalServiceEvent::Linked {
@@ -380,6 +386,7 @@ async fn rejected_portal_completion_requires_exact_ticket_and_never_projects_lin
     runtime.sessions.get_mut(&key).unwrap().terminated = true;
     runtime.sessions.get_mut(&key).unwrap().disconnected = true;
     runtime.portals.tickets.insert(71, recall.clone());
+    runtime.portals.ticket_bindings.insert(71, vec![binding]);
     runtime
         .portals
         .push(PortalDeliveryWork::Completed(Box::new(PortalCompletion {
@@ -420,6 +427,7 @@ async fn rejected_portal_completion_requires_exact_ticket_and_never_projects_lin
     let sequence = runtime.portals.deliveries.front().unwrap().sequence;
     runtime.portals.acknowledge(sequence).unwrap();
     runtime.portals.tickets.remove(&71);
+    runtime.portals.ticket_bindings.remove(&71);
     runtime
         .players
         .test_clear_replication(key, binding)

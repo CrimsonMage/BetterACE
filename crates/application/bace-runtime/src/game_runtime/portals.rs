@@ -40,6 +40,7 @@ pub(super) struct PortalRuntime {
     unmatched_resolution: Option<PortalResolutionOutcome>,
     deliveries: VecDeque<PortalDelivery>,
     tickets: BTreeMap<u64, PortalServiceTicket>,
+    ticket_bindings: BTreeMap<u64, Vec<bace_gameplay_api::CharacterBinding>>,
     blocked_effects: std::collections::BTreeSet<u64>,
     next: u64,
     publications: publications::PortalPublications,
@@ -72,6 +73,7 @@ impl PortalRuntime {
             unmatched_resolution: None,
             deliveries: VecDeque::new(),
             tickets: BTreeMap::new(),
+            ticket_bindings: BTreeMap::new(),
             blocked_effects: Default::default(),
             next: 0,
             publications: publications::PortalPublications::default(),
@@ -98,6 +100,7 @@ impl PortalRuntime {
             || self.unmatched_resolution.is_some()
             || !self.deliveries.is_empty()
             || !self.tickets.is_empty()
+            || !self.ticket_bindings.is_empty()
             || !self.blocked_effects.is_empty()
             || self.summon_job.is_some()
             || self.summon_ready.is_some()
@@ -297,12 +300,15 @@ impl GameRuntime {
                 let ticket = self.portals.ticket.take().expect("checked portal ticket");
                 let operation = ticket.operation;
                 if self.portals.tickets.contains_key(&operation)
+                    || self.portals.ticket_bindings.contains_key(&operation)
                     || self.portals.tickets.len() >= DELIVERY_CAPACITY
+                    || self.portals.ticket_bindings.len() >= DELIVERY_CAPACITY
                 {
                     self.portals.ticket = Some(ticket);
                     return Err("portal output ticket capacity or duplicate".into());
                 }
                 let retained = ticket.clone();
+                let retained_bindings = bindings.clone();
                 if let Err(work) = self.portals.service.stage(PortalWork {
                     epoch: self.bootstrap.world_owner.epoch(),
                     bindings,
@@ -314,6 +320,9 @@ impl GameRuntime {
                     );
                 }
                 self.portals.tickets.insert(operation, retained);
+                self.portals
+                    .ticket_bindings
+                    .insert(operation, retained_bindings);
             }
         }
         let token = self.token()?;

@@ -499,8 +499,9 @@ mod tests {
 
     #[tokio::test]
     async fn corpse_open_and_close_output_follow_exact_worker_and_postgres_receipts() {
-        // The private event projector is fed after a real save-worker ACK and
-        // exact PgStore load. Simulation adoption is exercised separately.
+        // The private event projector is fed after a real save-worker ACK,
+        // exact PgStore load and the runtime's region-cache replacement.
+        // Simulation adoption is exercised separately.
         let (_cluster, _directory, mut runtime, key, binding) =
             crate::game_runtime::portals::tests::output_runtime().await;
         let corpse = EntityId(0x8000_0042);
@@ -551,6 +552,13 @@ mod tests {
             }]
         );
         source.item.persisted_version = 1;
+        runtime
+            .world
+            .as_mut()
+            .unwrap()
+            .regions
+            .record_committed_corpse_sources(0x1234, vec![source.clone()])
+            .unwrap();
 
         let (open_operation, opened) = crate::game_runtime::deaths::access_saves::freeze(
             epoch,
@@ -581,11 +589,7 @@ mod tests {
             .unwrap();
         assert_eq!(row.persisted_version, 2);
         assert_eq!(CorpseSaveV5::decode(&row.bytes).unwrap(), opened);
-        source.item.persisted_version = row.persisted_version;
-        source.item.entity = opened.corpse.entity.clone();
-        source.item.corpse = Some(Box::new(opened.clone()));
-        source.corpse = Some(opened);
-        let open = present(
+        let mut open = present(
             key,
             binding,
             corpse,
@@ -594,6 +598,45 @@ mod tests {
                 consume_permit: true,
             },
         );
+        assert!(
+            !runtime
+                .world
+                .as_ref()
+                .unwrap()
+                .regions
+                .corpse_source(corpse)
+                .unwrap()
+                .corpse
+                .as_ref()
+                .unwrap()
+                .access
+                .permittees
+                .contains(&binding.actor.0)
+        );
+        assert!(
+            !runtime
+                .advance_corpse_access(
+                    &mut open,
+                    Phase::Cache {
+                        after: Box::new(opened),
+                        version: row.persisted_version,
+                    },
+                    0,
+                )
+                .unwrap()
+        );
+        assert!(matches!(open.phase, Phase::Adopt));
+        assert!(same_source_revision(
+            &open.source,
+            runtime
+                .world
+                .as_ref()
+                .unwrap()
+                .regions
+                .corpse_source(corpse)
+                .unwrap()
+        ));
+        source = open.source.clone();
         let first_sequence = runtime
             .players
             .replication(binding.actor)
@@ -632,17 +675,37 @@ mod tests {
         assert_eq!(row.persisted_version, 3);
         assert_eq!(CorpseSaveV5::decode(&row.bytes).unwrap(), closed);
         assert!(closed.access.looted);
-        source.item.persisted_version = row.persisted_version;
-        source.item.entity = closed.corpse.entity.clone();
-        source.item.corpse = Some(Box::new(closed.clone()));
-        source.corpse = Some(closed);
-        let close = present(
+        let mut close = present(
             key,
             binding,
             corpse,
             source,
             CorpseAccessDecision::Close { mark_looted: true },
         );
+        assert!(
+            !runtime
+                .advance_corpse_access(
+                    &mut close,
+                    Phase::Cache {
+                        after: Box::new(closed),
+                        version: row.persisted_version,
+                    },
+                    0,
+                )
+                .unwrap()
+        );
+        assert!(matches!(close.phase, Phase::Adopt));
+        assert!(same_source_revision(
+            &close.source,
+            runtime
+                .world
+                .as_ref()
+                .unwrap()
+                .regions
+                .corpse_source(corpse)
+                .unwrap()
+        ));
+        assert!(close.source.corpse.as_ref().unwrap().access.looted);
         assert!(runtime.project_corpse_access(&close).unwrap());
         one_event(&mut runtime, 0x0052, corpse);
         assert!(!runtime.deaths.viewers.contains_key(&key));
