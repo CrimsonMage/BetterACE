@@ -287,10 +287,8 @@ impl GameRuntime {
             })
             .collect::<Vec<_>>();
         let chargen = self
-            .sessions
-            .get(&key)
-            .and_then(|s| s.loading.as_ref())
-            .and_then(|l| l.character_assets.as_ref())
+            .character_assets
+            .as_ref()
             .ok_or("NoCorpse equipped chargen absent")?;
         let assets = appearance.borrowed(chargen.char_gen());
         let (children, attachments) =

@@ -1,6 +1,7 @@
 use bace_gameplay_api::{ActionContext, SessionId, locomotion::*};
 use bace_session::*;
 use bace_types::{AccountId, EntityId};
+use bace_wire::{MovementEpochs, opcode::GameActionType};
 fn binding() -> ActionContext {
     ActionContext {
         actor: EntityId(9),
@@ -8,6 +9,90 @@ fn binding() -> ActionContext {
         session: SessionId(7),
         sequence: 0,
     }
+}
+#[test]
+fn pinned_gdle_movement_stamps_admit_valid_controls_and_reject_stale_teleports() {
+    // Golden decisions from pinned GDLE ClientEvents.cpp MoveToState at
+    // 3905-3940, AutonomousPosition at 4125-4167, and MathLib.cpp 365-372.
+    let current = MovementEpochs {
+        instance: 10,
+        server_control: 20,
+        teleport: 30,
+        force_position: 40,
+    };
+    let mut client = MovementEpochs {
+        instance: 99,
+        server_control: 99,
+        ..current
+    };
+    assert!(movement_epochs_compatible(
+        GameActionType::MoveToState,
+        client,
+        current
+    ));
+    assert!(!movement_epochs_compatible(
+        GameActionType::AutonomousPosition,
+        client,
+        current
+    ));
+    client.instance = current.instance;
+    assert!(movement_epochs_compatible(
+        GameActionType::AutonomousPosition,
+        client,
+        current
+    ));
+    client.teleport = 29;
+    assert!(!movement_epochs_compatible(
+        GameActionType::MoveToState,
+        client,
+        current
+    ));
+    client.teleport = 31;
+    assert!(movement_epochs_compatible(
+        GameActionType::MoveToState,
+        client,
+        current
+    ));
+    client.teleport = 30;
+    client.force_position = 39;
+    assert!(!movement_epochs_compatible(
+        GameActionType::AutonomousPosition,
+        client,
+        current
+    ));
+    client.force_position = 41;
+    assert!(movement_epochs_compatible(
+        GameActionType::AutonomousPosition,
+        client,
+        current
+    ));
+    // GDLE compares 16-bit stamps with wrap-around, so ffff is older than 0.
+    client.teleport = u16::MAX;
+    let wrapped = MovementEpochs {
+        teleport: 0,
+        ..current
+    };
+    assert!(!movement_epochs_compatible(
+        GameActionType::MoveToState,
+        client,
+        wrapped
+    ));
+    client.teleport = 0;
+    let wrapped = MovementEpochs {
+        teleport: u16::MAX,
+        ..current
+    };
+    assert!(movement_epochs_compatible(
+        GameActionType::MoveToState,
+        client,
+        wrapped
+    ));
+    // Jump's stronger admitted boundary is unchanged by this movement policy.
+    assert!(!movement_epochs_compatible(
+        GameActionType::Jump,
+        client,
+        wrapped
+    ));
 }
 fn hex(text: &str) -> Vec<u8> {
     text.as_bytes()

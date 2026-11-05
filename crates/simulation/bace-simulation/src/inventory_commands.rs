@@ -123,7 +123,7 @@ impl InventoryCommand {
                     prepared,
                 } => {
                     *operation != 0
-                        && prepared.motions.len() <= 64
+                        && prepared.motions.len() <= 128
                         && prepared.locomotion_styles.len() <= 4
                         && prepared.death_motions.len() <= 16
                         && prepared.source.equipment.len() <= 64

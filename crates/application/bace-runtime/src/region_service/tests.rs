@@ -5,6 +5,25 @@ use bace_storage_codec::{
     CorpseSaveV1, CorpseSaveV2, CorpseSaveV3, CorpseSaveV4, CorpseSaveV5, EntitySaveV1,
     ItemPlacementV2, ItemSaveV2, ItemSaveV4,
 };
+
+#[test]
+#[ignore = "requires accepted native world pack"]
+fn retail_door_guid_is_found_in_its_actual_active_landblock() {
+    use bace_storage_codec::{PackLimits, load_manifest};
+    let path = std::path::PathBuf::from(std::env::var_os("BACE_WORLD_MANIFEST").unwrap());
+    let manifest = load_manifest(&path, PackLimits::default()).unwrap();
+    let generation = manifest
+        .open(path.parent().unwrap(), PackLimits::default())
+        .unwrap();
+    let region = crate::world_content::prepare(&generation, 0x7f03).unwrap();
+    let door = EntityId(0x77f0_3033);
+    assert_ne!((door.0 >> 16) as u16, region.landblock);
+    assert!(region_contains_door(&region, door));
+    assert!(!region_contains_door(&region, EntityId(0x77f0_3034)));
+    let source = region_appraisal_source(&region, door).unwrap();
+    assert_eq!(source.weenie_id, 12705);
+    assert_eq!(source.weenie_type, 19);
+}
 fn source(id: u32, parent: Option<u32>, generated: bool) -> LocatedSnapshot {
     let mut state = WeenieV1 {
         schema_version: 1,

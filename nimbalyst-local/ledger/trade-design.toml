@@ -1,0 +1,650 @@
+# P0-H player-to-player trade design (read-only). No crate or docs edits were made.
+# ACE pin: 47edade3bd3f6044b676d4eb877c4965c7eda62b, read from .reference/ACE-47edade3bd3f6044b676d4eb877c4965c7eda62b/Source.
+# GDLE pin: gdlenhanced 353cbab (TradeManager.cpp). Authority: ACE owns default gameplay; trade is not in the GDLE-owned list (docs/baselines.toml authority_policy).
+# Owner of trade logic: bace-economy (ARCHITECTURE.md:50 'Vendors, currency and player trades'; architecture.toml bace-economy).
+
+[meta]
+ace_player_trade = ".reference/ACE-47edade3bd3f6044b676d4eb877c4965c7eda62b/Source/ACE.Server/WorldObjects/Player_Trade.cs"
+ace_handlers_dir = ".reference/ACE-47edade3bd3f6044b676d4eb877c4965c7eda62b/Source/ACE.Server/Network/GameAction/Actions"
+gdle_trade = "gdlenhanced/Source/TradeManager.cpp"
+gap_summary = "No player trade exists in BACE: no simulation owner, no runtime phase machine, no output producer. Decoders and outbound encoders exist but are unused, and inventory.rs excludes trade opcodes (docs/action-coverage.toml rows 0x01F6-0x0204 decoded-closed). docs/gameplay-parity.toml economy.remaining = Player trade negotiation and commit."
+
+# ---------------------------------------------------------------------------
+# 1) ACE flow
+# ---------------------------------------------------------------------------
+
+[[ace_steps]]
+id = "S1-open"
+gameaction = "OpenTradeNegotiations 0x01F6 (u32 partner guid)"
+ace_refs = ["GameActionOpenTradeNegotiations.cs:8-13", "Player_Trade.cs:30-100"]
+preconditions = "Olthoi cannot trade (chat only, no WeenieError). Initiator checks: partner is not Olthoi; partner IgnoreAllTradeRequests option; neither IsTrading; both CombatMode NonCombat."
+state_before = "both Idle (IsTrading=false)"
+action = "Initiator runs CreateMoveToChain to partner (async). On move success, sends RegisterTrade to initiator and calls partner.HandleActionOpenTradeNegotiations(initiator,false)."
+state_after = "both IsTrading=true, TradePartner set both ways, ItemsInTradeWindow cleared both, TradeTransferInProgress=false both"
+events = ["RegisterTrade 0x01FD to initiator: (initiator guid, partner guid, u64 0) at Player_Trade.cs:80", "RegisterTrade 0x01FD to partner: (partner guid, partner guid, u64 0) at Player_Trade.cs:98"]
+weenie_errors = ["0x044C TradeIgnoringRequests (initiator only, line 51)", "0x044F TradeAlreadyTrading (either party, line 58)", "0x0455 TradeNonCombatMode (either party, line 65)", "0x044E TradeMaxDistanceExceeded (initiator, async move failure, line 76)"]
+note = "ACE quirk: the distance/move callback re-enters the partner branch without re-running the busy and combat checks. Initiator copy and partner copy use different guid pairs."
+
+[[ace_steps]]
+id = "S2-add"
+gameaction = "AddToTrade 0x01F8 (u32 item guid, u32 window slot)"
+ace_refs = ["GameActionAddToTrade.cs:7-13", "Player_Trade.cs:116-175"]
+preconditions = "TradeTransferInProgress false. TradePartner resolves to an online player and item guid nonzero. Item found in main pack or side packs (Container.cs:245-275) or equipped."
+state_before = "both IsTrading; both TradeAccepted may be set"
+action = "Clears own TradeAccepted and partner TradeAccepted. Adds item guid to own ItemsInTradeWindow (slot value is ignored). Registers known-trade-object tracking for partner and tracks the object."
+state_after = "window contains item; both acceptance flags false"
+events = ["AddToTrade 0x0200 to self: (item, side 1 Self, 0) at line 163", "AddToTrade 0x0200 to partner: (item, side 2 Partner, 0) after 0.001 s delay at line 172"]
+failures = ["Attuned or contains attuned: chat 'You cannot trade that!' + TradeFailure 0x0207 (item, 0x0426 AttunedItem), lines 142-143", "Pet device with active pet: chat 'You must unsummon your pet before you can trade this item!' + TradeFailure (item, 0x0426), lines 149-150", "Unique item the partner cannot carry: TradeFailure (item, 0x0000 None), line 157", "Item not found or no partner: silent return, lines 121-137"]
+note = "ACE does not check duplicate adds (HashSet dedupes but still emits the event), has no window cap, and ignores the slot argument."
+
+[[ace_steps]]
+id = "S3-reset"
+gameaction = "ResetTrade 0x0204"
+ace_refs = ["GameActionResetTrade.cs:8-20", "Player_Trade.cs:177-186"]
+preconditions = "TradeTransferInProgress false (per player)."
+state_before = "both negotiating"
+action = "Both players clear own window and TradeAccepted. Requester guid is passed as whoReset to both."
+state_after = "both windows empty, acceptance false, still IsTrading"
+events = ["ResetTrade 0x0205 (who=requester guid) to both sides"]
+weenie_errors = []
+
+[[ace_steps]]
+id = "S4-clear-acceptance"
+ace_refs = ["Player_Trade.cs:188-194"]
+action = "Helper for busy and inventory-verification failures. Clears window and acceptance for one player."
+events = ["ClearTradeAcceptance 0x0208 (empty payload)"]
+note = "Called on both sides by the busy and capacity checks in S7."
+
+[[ace_steps]]
+id = "S5-accept"
+gameaction = "AcceptTrade 0x01FA (ACE reads partner u32, stamp f64, status u32, initiator u32, two u32 flags; ALL ignored)"
+ace_refs = ["GameActionAcceptTrade.cs:9-19", "Player_Trade.cs:196-216"]
+preconditions = "TradeTransferInProgress false."
+state_before = "negotiating"
+action = "Sets own TradeAccepted=true. If partner is online, sends accept to both and then calls FinalizeTrade when partner.TradeAccepted is already true."
+state_after = "own accepted; finalize when both accepted"
+events = ["AcceptTrade 0x0202 (who=self guid) to self", "CommunicationTransientString 'You have accepted the offer' to self", "AcceptTrade 0x0202 (who=self guid) to partner", "CommunicationTransientString '<Name> has accepted the offer' to partner"]
+note = "Client payload flags never influence acceptance. BACE must derive acceptance server-side (AUTH-01). The decoder in bace-wire already reads all six fields with the same layout (inventory_input.rs:166-173, ACE reads f64 at GameActionAcceptTrade.cs:12)."
+
+[[ace_steps]]
+id = "S6-decline"
+gameaction = "DeclineTrade 0x01FB"
+ace_refs = ["GameActionDeclineTrade.cs:7-10", "Player_Trade.cs:307-323"]
+preconditions = "TradeTransferInProgress false."
+state_before = "negotiating"
+action = "Clears own TradeAccepted only. Does not close the trade and does not clear the partner acceptance."
+state_after = "still negotiating; caller not accepted"
+events = ["DeclineTrade 0x0203 (who=decliner guid) to both", "CommunicationTransientString 'Trade confirmation failed...' to both"]
+note = "ACE quirk: the partner TradeAccepted flag is left set after a decline. Decision needed (see divergences)."
+
+[[ace_steps]]
+id = "S7-finalize"
+ace_refs = ["Player_Trade.cs:218-283 FinalizeTrade", "Player_Trade.cs:342-360 VerifyTrade_BusyState", "Player_Trade.cs:362-425 VerifyTrade_Inventory", "Player_Trade.cs:285-305 GetItemsInTradeWindow"]
+trigger = "S5 when both TradeAccepted are true."
+checks = ["Busy: if either IsBusy, send 'too busy' chat to each side and ClearTradeAcceptance both, return.", "Window resolution: every window item must still be in main/side packs or equipped; else the owner of the missing item runs S6 decline and returns.", "Capacity: CanAddToInventory for each side's incoming items. Failure sends encumbered or no-free-slot chat to each side, ClearTradeAcceptance both, returns."]
+action_on_pass = "Sets IsBusy and TradeTransferInProgress on both. Chat 'The items are being traded' to both. Removes every window item from its owner (TryRemoveFromInventoryWithNetworking or TryDequipObjectWithNetworking, reason TradeItem). Schedules a 0.5 s chain on CurrentLandblock."
+deferred_chain = ["Create swapped items in the new owner inventories (TryCreateInInventoryWithNetworking).", "WeenieError 0x0529 TradeComplete to both.", "Clear TradeTransferInProgress and IsBusy on both.", "DatabaseManager.Shard.SaveBiotasInParallel(tradedItems, null): fire-and-forget, result not awaited.", "HandleActionResetTrade(own guid) on both (S3 events)."]
+state_after = "IsTrading remains true; windows empty; acceptance false. Trade window stays open until a client close."
+events = ["CommunicationTransientString 'The items are being traded' x2", "inventory remove/create events (existing inventory output family)", "WeenieError 0x0529 TradeComplete x2 (GameEventWeenieError 0x028A)", "ResetTrade 0x0205 x2"]
+note = "ACE persistence is not atomic with the in-memory swap: items leave both inventories before any durable write and a crash in the 0.5 s window loses items. BACE must not copy this (SAVE-02, AUTH-04 deviation with tests)."
+
+[[ace_steps]]
+id = "S8-close"
+gameaction = "CloseTradeNegotiations 0x01F7"
+ace_refs = ["GameActionCloseTradeNegotiations.cs:8-19", "Player_Trade.cs:102-114"]
+preconditions = "Partner resolved online. Per player: returns early when TradeTransferInProgress."
+state_before = "negotiating (or completed, window open)"
+action = "Calls close on the initiator then on the partner. Each clears IsTrading, TradeAccepted, TradeTransferInProgress, window and TradePartner."
+state_after = "both Idle"
+events = ["CloseTrade 0x01FF (reason u32 1 Normal) to each side", "WeenieError 0x0451 TradeClosed to each side"]
+note = "Reason value 1 is ACE EndTradeReason.Normal (ACE.Entity/Enum/EndTradeReason.cs:5). Retail observation disagrees (see divergences D1)."
+
+[[ace_steps]]
+id = "S9-combat-switch"
+ace_refs = ["Player_Trade.cs:325-340 HandleActionTradeSwitchToCombatMode", "Creature_Combat.cs:175,200,245 callers"]
+trigger = "A trading player becomes non-NonCombat (creature attack paths in Creature_Combat.cs)."
+action = "Both sides: WeenieError 0x0455 TradeNonCombatMode, then close with reason 2 EnteredCombat."
+events = ["WeenieError 0x0455 x2", "CloseTrade 0x01FF (reason 2) x2", "WeenieError 0x0451 x2 (from close)"]
+
+[[ace_steps]]
+id = "S10-logout"
+ace_refs = ["Player.cs:536-541"]
+trigger = "A trading player logs out (Player logout path)."
+action = "Partner runs HandleActionCloseTradeNegotiations() with default reason Normal. The logging-out side is not sent a close by this path."
+events = ["CloseTrade 0x01FF (reason 1) to partner", "WeenieError 0x0451 to partner"]
+note = "Matches divergence 23 shard report (reason 0x1 at partner logout)."
+
+[[ace_steps]]
+id = "S11-restrictions"
+ace_refs = ["Player_Commerce.cs:31,282", "Player_Inventory.cs:600,860,1402,2320,2528", "Player_Use.cs:122,188", "Player_Crafting.cs:165", "Player_House.cs:256,275,766"]
+action = "While IsTrading, sell, use, drop, craft and housing moves refuse items that are in the trade window or contain one (IsBeingTradedOrContainsItemBeingTraded). The item is not moved."
+note = "Required invariant for BACE: a window item must be locked against other owners (vendor sell, craft, use, drop) until S7 completes or S8 closes."
+
+# Source-derived GameEvent sends per step are listed above. Opcodes come from ACE GameEventType.cs:52-61, WeenieError from WeenieError.cs.
+
+# ---------------------------------------------------------------------------
+# State machine (per player, as in ACE Player fields)
+# ---------------------------------------------------------------------------
+
+[state_machine]
+per_player_fields = ["IsTrading", "TradePartner", "ItemsInTradeWindow (HashSet, unbounded in ACE)", "TradeAccepted", "TradeTransferInProgress", "IsBusy (shared with other busy activities)"]
+states = ["Idle", "Negotiating(both IsTrading, window editable)", "Transferring(TradeTransferInProgress on both, items removed, deferred create pending)", "Completed(window open, empty, IsTrading still true)"]
+transitions = [
+  "Idle -OpenTrade ok-> Negotiating",
+  "Negotiating -AddToTrade-> Negotiating (acceptance cleared both)",
+  "Negotiating -ResetTrade-> Negotiating (window cleared both)",
+  "Negotiating -DeclineTrade-> Negotiating (only decliner acceptance cleared)",
+  "Negotiating -AcceptTrade (one side)-> Negotiating (one accepted)",
+  "Negotiating -AcceptTrade (both accepted) and verify ok-> Transferring",
+  "Negotiating -AcceptTrade (both accepted) and verify fails-> Negotiating (acceptance cleared both)",
+  "Transferring -0.5 s chain-> Completed (TradeComplete both)",
+  "Completed -AddToTrade or ResetTrade-> Negotiating",
+  "Negotiating|Completed -CloseTrade (either side, logout, combat switch)-> Idle",
+]
+invariants = ["Transfer is never started while either side is busy or any window item is missing.", "A window item must be moved by exactly one transfer.", "Close is refused while TradeTransferInProgress (ACE returns early); BACE must instead keep the trade in Transferring until the durable outcome is known (SAVE-02)."]
+
+# ---------------------------------------------------------------------------
+# Outbound events and error codes (ACE values)
+# ---------------------------------------------------------------------------
+
+[[events]]
+name = "RegisterTrade"
+opcode = "0x01FD"
+ace_writer = "GameEventRegisterTrade.cs:7-13"
+payload = "u32 initiator, u32 partner, u64 0 (20 total)"
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:135-140 (InventoryEvent::RegisterTrade)"
+bace_status = "encoder present, no producer"
+note = "Initiator copy is (initiator, partner); partner copy is (partner, partner). Encoder takes two ids, so the caller must mirror ACE."
+
+[[events]]
+name = "CloseTrade"
+opcode = "0x01FF"
+ace_writer = "GameEventCloseTrade.cs:7-10"
+payload = "u32 EndTradeReason (1 Normal, 2 EnteredCombat, 0x51 Canceled)"
+bace_encoder = "inventory_output.rs:151 (CloseTrade reason as raw u32)"
+bace_status = "encoder present, no producer; no EndTradeReason enum in BACE"
+
+[[events]]
+name = "AddToTrade"
+opcode = "0x0200"
+ace_writer = "GameEventAddToTrade.cs:7-13"
+payload = "u32 object, u32 side (1 Self, 2 Partner), u32 0"
+bace_encoder = "inventory_output.rs:143-147"
+bace_status = "encoder present; TradeSide enum not in BACE"
+
+[[events]]
+name = "AcceptTrade"
+opcode = "0x0202"
+ace_writer = "GameEventAcceptTrade.cs:7-10"
+payload = "guid who"
+bace_encoder = "inventory_output.rs:148"
+bace_status = "encoder present, no producer"
+
+[[events]]
+name = "DeclineTrade"
+opcode = "0x0203"
+ace_writer = "GameEventDeclineTrade.cs:7-10"
+payload = "guid who"
+bace_encoder = "inventory_output.rs:148"
+bace_status = "encoder present, no producer"
+
+[[events]]
+name = "ResetTrade"
+opcode = "0x0205"
+ace_writer = "GameEventResetTrade.cs:7-10"
+payload = "guid who"
+bace_encoder = "inventory_output.rs:148"
+bace_status = "encoder present, no producer"
+
+[[events]]
+name = "ClearTradeAcceptance"
+opcode = "0x0208"
+ace_writer = "GameEventClearTradeAcceptance.cs:8-11"
+payload = "empty"
+bace_encoder = "inventory_output.rs:152"
+bace_status = "encoder present, no producer"
+
+[[events]]
+name = "TradeFailure"
+opcode = "0x0207"
+ace_writer = "GameEventTradeFailure.cs:7-11"
+payload = "u32 object, u32 WeenieError"
+bace_encoder = "inventory_output.rs:153-156"
+bace_status = "encoder present, no producer"
+
+[[events]]
+name = "WeenieError (carries trade errors)"
+opcode = "0x028A"
+ace_writer = "GameEventWeenieError.cs:7-8 (ACE.Server/Network/GameEvent/Events)"
+bace_encoder = "crates/network/bace-wire/src/weenie_error.rs (WeenieError enum; check the GameEvent encoder before use)"
+
+[[events]]
+name = "CommunicationTransientString (trade chat lines)"
+opcode = "0x02EB"
+ace_writer = "GameEventCommunicationTransientString"
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:50 (GameEventType mapping); reuse for trade text"
+
+[[error_codes]]
+name = "TradeIgnoringRequests"
+value = "0x044C"
+bace = "crates/network/bace-wire/src/weenie_error.rs:176"
+used_by = "S1 initiator only"
+
+[[error_codes]]
+name = "TradeMaxDistanceExceeded"
+value = "0x044E"
+bace = "weenie_error.rs:178"
+used_by = "S1 initiator async move failure"
+
+[[error_codes]]
+name = "TradeAlreadyTrading"
+value = "0x044F"
+bace = "weenie_error.rs:179"
+used_by = "S1 either side"
+
+[[error_codes]]
+name = "TradeClosed"
+value = "0x0451"
+bace = "weenie_error.rs:181"
+used_by = "S8 and S10, every close"
+
+[[error_codes]]
+name = "TradeNonCombatMode"
+value = "0x0455"
+bace = "weenie_error.rs:185"
+used_by = "S1 and S9"
+
+[[error_codes]]
+name = "AttunedItem"
+value = "0x0426"
+bace = "weenie_error.rs:143"
+used_by = "S2 attuned and pet-summoned items (via TradeFailure)"
+
+[[error_codes]]
+name = "TradeComplete"
+value = "0x0529"
+bace = "weenie_error.rs:318"
+used_by = "S7 success only, after durable commit in BACE"
+
+[[error_codes]]
+name = "None (TradeFailure reason)"
+value = "0x0000"
+bace = "weenie_error.rs (None variant, if present)"
+used_by = "S2 unique item partner cannot carry"
+
+# ---------------------------------------------------------------------------
+# 2) Existing BACE pieces
+# ---------------------------------------------------------------------------
+
+[[existing]]
+area = "decoders (bace-wire)"
+items = [
+  "crates/network/bace-wire/src/inventory_input.rs:11-18 TradeAcceptance {partner_id, trade_stamp f64, status, initiator_id, initiator_accepts, partner_accepts}: matches ACE GameActionAcceptTrade.cs:11-16 byte-for-byte.",
+  "inventory_input.rs:69-77 InventoryAction variants OpenTrade, CloseTrade, AddToTrade{item_id, slot}, AcceptTrade, DeclineTrade, ResetTrade.",
+  "inventory_input.rs:160-175 decode arms for the six trade opcodes (0x01F6, 0x01F7, 0x01F8, 0x01FA, 0x01FB, 0x0204).",
+  "inventory_input.rs:11-18 pins 28 bytes for AcceptTrade; ACE reads the same 28 bytes.",
+]
+gap = "No oracle or golden test ties these decoders to ACE GameAction*.cs Read sequences. The tests in crates/network/bace-wire/tests/inventory.rs:45 only check length errors."
+
+[[existing]]
+area = "session dispatch (bace-session)"
+items = [
+  "crates/network/bace-session/src/inventory.rs:23-34 allowlist: PutItemInContainer, GetAndWieldItem, DropItem, StackableMerge, StackableSplitToContainer, StackableSplitTo3D, StackableSplitToWield only.",
+  "Trade opcodes fall to DispatchError::UnsupportedAction at inventory.rs:33 and the runtime ignores them with a warning (ingress.rs:754).",
+]
+
+[[existing]]
+area = "outbound encoders (bace-wire)"
+items = [
+  "crates/network/bace-wire/src/inventory_output.rs:37-60 InventoryEvent trade variants (RegisterTrade, AddToTrade, AcceptTrade, DeclineTrade, ResetTrade, CloseTrade, ClearTradeAcceptance, TradeFailure).",
+  "inventory_output.rs:78-85 event opcode mapping; inventory_output.rs:135-156 wire layout (matches ACE writers).",
+  "crates/network/bace-wire/src/opcode_event.rs:56-65 opcode constants 0x01FD-0x0208 match ACE GameEventType.cs:52-61.",
+  "inventory_output.rs test at crates/network/bace-wire/tests/inventory.rs:49-65 checks size caps only, no ACE fixture.",
+]
+gap = "No producer anywhere in crates/ (grep of InventoryEvent::RegisterTrade etc. returns no non-test caller)."
+
+[[existing]]
+area = "economy crate (bace-economy)"
+items = [
+  "crates/gameplay/bace-economy/src/lib.rs: modules pricing (vendor_buy_cost, vendor_sell_cost), vendor_buy_quote (VendorBuyQuote, VendorDefaultOffer, quote_default_buy), vendor_stock (VendorStock, VendorStockReceipt, VendorStockProposal, VendorLazyStockProposal).",
+  "No trade module exists. The crate doc line says 'player trading' and ARCHITECTURE.md:50 assigns it.",
+  "Allowed deps (architecture.toml bace-economy): bace-types, bace-geometry, bace-gameplay-api, bace-content, bace-entity.",
+]
+
+[[existing]]
+area = "simulation owner pattern (bace-simulation)"
+items = [
+  "crates/simulation/bace-simulation/src/vendor_commands.rs:27 VendorAction::ReserveDefaultBuy {context, vendor, source, requests, prepared, operation_id}: the simulation reserves, the runtime commits.",
+  "bace-simulation depends on bace-economy and bace-inventory (architecture.toml simulation allowed_dependencies), so a trade kernel can call economy and inventory.",
+  "crates/simulation/bace-gameplay-api/src/inventory_actions.rs:53 TradeReserved error and crates/gameplay/bace-inventory/src/actions.rs:241 TradeReserved: the inventory owner already rejects moves of reserved items.",
+]
+gap = "No trade variants in bace-gameplay-api or bace-simulation kernel. No trade lock on items."
+
+[[existing]]
+area = "durable receipt pattern (PostgreSQL)"
+items = [
+  "crates/storage/bace-persistence/src/placements.rs:16-35: PlacementChange{item, expected, destination}, PlacementOperation{operation_id, snapshots, participants, leases, changes, storage_views}. Supports several participants and leases, so a two-party trade fits.",
+  "crates/storage/bace-persistence/src/offline.rs:21-25 CharacterLease{character_id, epoch, state}.",
+  "crates/storage/bace-db-postgres/src/placements.rs:25-30 placement_operation(&PlacementOperation) -> OperationOutcome; :137 execute; :432-444 durable_operations(operation_id, request_fingerprint) ON CONFLICT DO NOTHING; same fingerprint returns AlreadyCommitted, different returns OperationMismatch.",
+  "crates/storage/bace-db-postgres/src/inventory.rs:18-122 inventory_operation (V1 path). Line 58 rejects items already tracked in item_places ('V2 items require explicit placement transaction'). Use placement_operation for trade.",
+  "crates/storage/bace-db-postgres/src/vendor_stock.rs:81-93 vendor_stock_operation wraps the same placement executor with a vendor marker extension (placements.rs PlacementExtensions).",
+]
+
+[[existing]]
+area = "vendor Buy receipt (reuse template)"
+items = [
+  "crates/application/bace-runtime/src/game_runtime/vendors/buy.rs:41-60 Phase enum: Cold, Reserve, AwaitReserve, Barrier, Capture, Capturing, Freeze, Save, Saving, Retry, Confirm, AwaitConfirm, Output, Publishing, Reject, AwaitReject, Rejected, Blocked.",
+  "buy.rs:89-100 reservation accepted only when vendor, actor and operation_id match.",
+  "buy.rs:314-320 Barrier: online_saves.critical_ready then begin_critical; buy.rs:346-374 Freeze builds the exact after-state operation and preflights reliable output size before SQL; cancel_critical on reject.",
+  "buy.rs:394-414 Saving: Ok(outcome) -> receipt -> Confirm; Err -> failures counter and Retry with exponential backoff; buy.rs:415-430 Retry re-submits the same operation (same operation_id and fingerprint), so an uncertain commit is resolved by idempotent replay.",
+  "crates/application/bace-runtime/src/game_runtime/vendors/buy_freezing.rs:300 receipt(ticket, operation, outcome): builds the receipt from the operation; AlreadyCommitted is accepted (test at line 744).",
+  "Only after Confirm does the runtime publish the success output (Publishing/Output phases).",
+]
+
+[[existing]]
+area = "runtime ingress"
+items = [
+  "crates/application/bace-runtime/src/game_runtime/ingress.rs:680 handle_inventory_message call in the ordered cascade. Trade must be inserted before the inventory handler and added to the ingress blocked-list checks in handle_event_inner (the inventory and vendor blocked checks are the pattern).",
+  "crates/application/bace-runtime/src/game_runtime/logout.rs: logout path. Add the trade close hook (S10) here.",
+]
+gap = "ingress.rs has heavy uncommitted WIP from other workers. Coordinate before any edit."
+
+[[existing]]
+area = "parity and coverage docs"
+items = [
+  "docs/gameplay-parity.toml:85-90 [features] economy: remaining = Vendors, Currency, Player trade negotiation and commit; acceptance = Trade success follows durable commit; Logout/cancel/uncertain commit resolve without duplicate transfer; reported_divergences = [21, 23].",
+  "docs/action-coverage.toml rows for OpenTradeNegotiations, CloseTradeNegotiations, AddToTrade, AcceptTrade, DeclineTrade, ResetTrade: decoded-closed.",
+  "docs/divergences.toml id 23 (close reason, UNVERIFIED).",
+]
+
+# ---------------------------------------------------------------------------
+# GDLE comparison (TradeManager.cpp), for disagreements only
+# ---------------------------------------------------------------------------
+
+[[gdle_comparison]]
+topic = "Equipped items"
+ace = "Equipped items are tradeable: TryDequipObjectWithNetworking at Player_Trade.cs:239,249."
+gdle = "TradeManager.cpp:134-190 refuses IsWielded or IsAttunedOrContainsAttuned items at accept time, with 'You cannot trade X!' text."
+decision = "Follow ACE (authority). Record as disagreement."
+
+[[gdle_comparison]]
+topic = "Distance enforcement during trade"
+ace = "Checked only at open (CreateMoveToChain). No periodic check."
+gdle = "TradeManager.cpp:322-334 CheckDistance closes both with reason 1 when DistanceTo >= 1."
+decision = "Open. Hardening candidate under AUTH-04 with valid-client and invalid-input tests; needs main approval."
+
+[[gdle_comparison]]
+topic = "Failure at accept time"
+ace = "Decline-style failures (missing item, capacity, busy) clear acceptance and keep the trade open."
+gdle = "TradeManager.cpp:232 CloseTrade(initiator, 0) closes both on any failed accept."
+decision = "Follow ACE for the default flow. Record."
+
+[[gdle_comparison]]
+topic = "Success"
+ace = "TradeComplete, reset windows, trade stays open (ResetTrade)."
+gdle = "TradeManager.cpp:215-226 TradeComplete, ResetTrade, keeps the trade open."
+decision = "Agree."
+
+# ---------------------------------------------------------------------------
+# Divergences and open decisions
+# ---------------------------------------------------------------------------
+
+[[divergences]]
+id = "D1"
+topic = "CloseTrade reason"
+ace = "Reason 1 (Normal) on client close, partner logout, and reason 2 on combat switch (EndTradeReason.cs:5-6)."
+retail = "docs/divergences.toml id 23: retail client closes with reason 1105 (0x0451, the TradeClosed WeenieError value) in 211 of 211 samples. Source status UNVERIFIED."
+decision = "Keep ACE values until a capture is verified. Do not claim retail parity (AUTH-04). Owner: main (docs)."
+
+[[divergences]]
+id = "D2"
+topic = "Persistence of completed trade"
+ace = "In-memory swap first, SaveBiotasInParallel without awaiting, crash loses items (Player_Trade.cs:270-282)."
+decision = "BACE deviation, mandatory: success only after the PostgreSQL commit returns Committed or AlreadyCommitted (SAVE-02, vendor Buy pattern). Document as a hardening deviation with a crash-window test (AUTH-04)."
+
+[[divergences]]
+id = "D3"
+topic = "Window size"
+ace = "No cap; ItemsInTradeWindow is an unbounded HashSet. Slot argument ignored."
+decision = "BACE bounds the window (WIRE-04, COST-01). The cap value needs a source. Open: retail slot count not verified in this pass."
+
+[[divergences]]
+id = "D4"
+topic = "Client acceptance flags"
+ace = "AcceptTrade ignores all payload fields."
+decision = "Agree in effect: BACE derives acceptance only from the server-side state (AUTH-01)."
+
+[[divergences]]
+id = "D5"
+topic = "Decline and partner acceptance"
+ace = "Decline clears only the decliner's acceptance; partner flag stays set (Player_Trade.cs:307-323)."
+decision = "Open. Recommended: clear both on any decline, record as a deliberate difference from ACE, cover with a test."
+
+[[divergences]]
+id = "D6"
+topic = "Item lookup depth"
+ace = "GetInventoryItem searches the main pack and side packs (Container.cs:263-275). GDLE requires top-level owner."
+decision = "Follow ACE (main pack and side packs). Record the GDLE disagreement."
+
+[[divergences]]
+id = "D7"
+topic = "Locks on window items"
+ace = "Sell, use, drop, craft and housing refuse window items while IsTrading (S11)."
+decision = "Required in BACE: a window item is locked for other owners until the transfer resolves."
+
+[[divergences]]
+id = "D8"
+topic = "Olthoi"
+ace = "Olthoi cannot initiate or accept trades (chat text only)."
+decision = "Reuse the simulation olthoi presence flag already used by social speech (kernel social.rs). Confirm the flag reaches the trade owner."
+
+[[divergences]]
+id = "D9"
+topic = "Retail AcceptTrade layout"
+ace = "Reads u32, f64, u32, u32, u32, u32 (GameActionAcceptTrade.cs:11-16)."
+bace = "inventory_input.rs:166-173 matches."
+decision = "Agree. Lock with an ACE-derived fixture (card P1-T01)."
+
+# ---------------------------------------------------------------------------
+# 3) Proposed task breakdown (narrow cards)
+# ---------------------------------------------------------------------------
+
+[[cards]]
+id = "P1-T01"
+title = "ACE-derived oracle for trade wire layouts"
+owner_crate = "bace-wire"
+files = [
+  "crates/network/bace-wire/oracle/trade_generate.py (new; compile verbatim ACE sources with BACE_DOTNET defaulting to /home/jokerfactor/.dotnet/dotnet)",
+  "crates/network/bace-wire/tests/fixtures/trade_events.csv (new)",
+  "crates/network/bace-wire/tests/trade.rs (new)",
+  "crates/network/bace-wire/src/inventory_output.rs (only if a mismatch is found)",
+  "crates/network/bace-wire/src/inventory_input.rs (only if a mismatch is found)",
+  "crates/network/bace-wire/src/lib.rs (re-exports only, if needed)",
+]
+ace_source = [
+  "GameActionOpenTradeNegotiations.cs, GameActionCloseTradeNegotiations.cs, GameActionAddToTrade.cs, GameActionAcceptTrade.cs, GameActionDeclineTrade.cs, GameActionResetTrade.cs (Read sequences)",
+  "GameEventRegisterTrade.cs, GameEventCloseTrade.cs, GameEventAddToTrade.cs, GameEventAcceptTrade.cs, GameEventDeclineTrade.cs, GameEventResetTrade.cs, GameEventClearTradeAcceptance.cs, GameEventTradeFailure.cs (writers)",
+  "ACE.Server/Network/GameEvent/GameEventType.cs:52-61; ACE.Entity/Enum/TradeSide.cs; EndTradeReason.cs; WeenieError.cs trade block 476-491",
+]
+oracle = "Compile the event writers and Read sequences, emit fixture CSV, compare every encoder byte-for-byte including RegisterTrade (initiator and partner pairs)."
+depends_on = []
+acceptance = "All trade encoders and decoders match fixtures. Invalid-input test: AcceptTrade payload 27 bytes is rejected. No self round-trip used as evidence (WIRE-03)."
+parallel = true
+
+[[cards]]
+id = "P1-T02"
+title = "Trade session decode and dispatch"
+owner_crate = "bace-session"
+files = [
+  "crates/network/bace-session/src/trade.rs (new: DispatchedTrade, decode_trade for the six opcodes)",
+  "crates/network/bace-session/src/lib.rs (re-export only)",
+  "crates/network/bace-session/tests/trade.rs (new)",
+]
+ace_source = ["GameAction*Trade*.cs handlers (see P1-T01)"]
+oracle = "Shares the P1-T01 fixture. Not an oracle itself."
+depends_on = []
+acceptance = "Trade opcodes decode with WorldConnected state only. Client acceptance fields are parsed and carried as untrusted hints, never as authority. AddToTrade slot is bounded. Inventory.rs allowlist unchanged."
+parallel = true
+note = "Keep trade out of inventory.rs (which returns UnsupportedAction) so trade gets its own ingress."
+
+[[cards]]
+id = "P1-T03"
+title = "Shared gameplay-api trade contract (main approval required)"
+owner_crate = "bace-gameplay-api"
+files = [
+  "crates/simulation/bace-gameplay-api/src/trade.rs (new: TradeRequest variants, TradeOutcome, TradeEvent intents, TradeEndReason)",
+  "crates/simulation/bace-gameplay-api/src/lib.rs (re-export only)",
+]
+ace_source = ["Player_Trade.cs:30-340 operations and events"]
+oracle = "None (types only). Shape is checked by P1-T04 and P2-T05 tests."
+depends_on = []
+acceptance = "Shared contract approved by main before P1-T02, P2-T05 or P3 use it (OWN-04). Types carry no client authority."
+parallel = false
+note = "Requires explicit main approval: shared contract changes must be coordinated (OWN-04)."
+
+[[cards]]
+id = "P1-T04"
+title = "Pure trade state machine in bace-economy"
+owner_crate = "bace-economy"
+files = [
+  "crates/gameplay/bace-economy/src/trade/mod.rs (new; lib.rs re-export only)",
+  "crates/gameplay/bace-economy/src/trade/session.rs (new: states S1-S8 transitions, invariants, bounded window)",
+  "crates/gameplay/bace-economy/tests/trade_transcripts.rs (new)",
+  "crates/gameplay/bace-economy/tests/fixtures/trade_transcripts.toml (new; hand-cited ACE steps)",
+]
+ace_source = ["Player_Trade.cs:30-340, 342-425 (state rules)", "GameActionAcceptTrade.cs:9-19"]
+oracle = "Source-transcript golden, not compiled: each fixture row cites ACE line numbers. Labelled as such. Compiling Player_Trade.cs needs Player and is out of scope."
+depends_on = ["P1-T03"]
+acceptance = "Transcript tests cover: open, add (including attuned and unique failures), reset, accept/decline, finalize-to-Transferring, verify failure, close, combat switch. Invalid-input tests: add in Idle, accept while Transferring, window over cap. No clock, no I/O (AUTH-03)."
+parallel = true
+note = "Only pure logic. Does not touch simulation or persistence."
+
+[[cards]]
+id = "P2-T05"
+title = "Simulation trade owner"
+owner_crate = "bace-simulation"
+files = [
+  "crates/simulation/bace-simulation/src/trade.rs (new, under 1000 lines; register in kernel with a re-export only)",
+  "crates/simulation/bace-simulation/src/kernel/trade.rs (new: command dispatch, emits intents)",
+  "crates/simulation/bace-simulation/tests/trade.rs (new)",
+]
+ace_source = ["Player_Trade.cs:30-340", "Creature_Combat.cs:175,200,245", "Player.cs:536-541", "Player_Inventory.cs:212-217 (removal shape)"]
+oracle = "Transcript tests tied to P1-T04 fixtures. Combat and logout hooks checked against the cited ACE lines."
+depends_on = ["P1-T04", "P1-T03"]
+acceptance = "Single simulation owner for trade state (AUTH-05). Checks: online partner, same landblock/range at open, combat-mode gating (0x0455), busy flag, item locks (S11). Emits only intents, never packets (AUTH-03)."
+parallel = false
+note = "Serialized with P2-T06 because both touch the kernel command table."
+
+[[cards]]
+id = "P2-T06"
+title = "Two-party transfer proposal (placement computation)"
+owner_crate = "bace-inventory"
+files = [
+  "crates/gameplay/bace-inventory/src/trade_transfer.rs (new: builds the item moves for both sides with expected and destination places)",
+  "crates/gameplay/bace-inventory/src/lib.rs (re-export only)",
+  "crates/gameplay/bace-inventory/tests/trade_transfer.rs (new)",
+]
+ace_source = ["Player_Trade.cs:362-425 (CanAddToInventory checks)", "Container.cs:400-420 CanAddToInventory", "Player_Trade.cs:270-283 (create side)"]
+oracle = "Transcript fixtures for capacity outcomes (encumbered, no slot) against the ACE branches."
+depends_on = ["P1-T03"]
+acceptance = "Produces exactly one change per moved item, rejects duplicate items, rejects destinations that are the moved item or outside the two participants, returns capacity results without side effects. Bounded by the window cap."
+parallel = true
+
+[[cards]]
+id = "P2-T07"
+title = "Durable two-participant placement validation (PostgreSQL)"
+owner_crate = "bace-persistence (types) and bace-db-postgres (SQL tests)"
+files = [
+  "crates/storage/bace-persistence/src/trade.rs (new thin validator/wrapper over PlacementOperation, only if needed)",
+  "crates/storage/bace-db-postgres/tests/trade_placement.rs (new; uses the existing cluster harness)",
+]
+ace_source = ["Player_Trade.cs:270-283 (what must be durable)"]
+oracle = "No ACE oracle for SQL. Acceptance is behavioural: atomic commit, idempotent replay, mismatch rejection."
+depends_on = []
+acceptance = "Reuse placement_operation (durable_operations receipt). Tests: both participants and leases required; expected place must match the sender; replay with same operation_id returns AlreadyCommitted; changed fingerprint returns OperationMismatch; crash between commit and reply leaves a single transfer. Requires PostgreSQL (ignored unless the cluster is available)."
+parallel = true
+note = "Default decision: reuse PlacementOperation without a new SQL extension. Add an extension like vendor only if a check cannot be expressed in Rust."
+
+[[cards]]
+id = "P3-T08"
+title = "Runtime trade commit phase machine (vendor Buy template)"
+owner_crate = "bace-runtime"
+files = [
+  "crates/application/bace-runtime/src/game_runtime/trade.rs (new entry; module is the adapter only)",
+  "crates/application/bace-runtime/src/game_runtime/trade/freezing.rs (new: receipt(ticket, operation, outcome), mirrors buy_freezing.rs:300)",
+  "crates/application/bace-runtime/src/game_runtime/trade/tests.rs (new)",
+]
+ace_source = ["Player_Trade.cs:218-283 (finalize)"]
+oracle = "None (behaviour). Cites the vendor Buy phase machine in vendors/buy.rs:41-430."
+depends_on = ["P1-T02", "P2-T05", "P2-T06", "P2-T07"]
+acceptance = "Phases: Reserve -> Barrier (both actors critical_ready and begin_critical) -> Freeze (exact after-state, output preflight) -> Save (placement_operation) -> Saving -> Retry (same operation_id) -> Confirm -> Output. WeenieError 0x0529 only after Committed or AlreadyCommitted. Cancel only before Save. Uncertain outcome never retried with a new operation_id (SAVE-02)."
+parallel = false
+note = "Touches shared runtime files. Needs an ingress coordination slot (P3-T10)."
+
+[[cards]]
+id = "P3-T09"
+title = "Runtime trade output for both clients"
+owner_crate = "bace-runtime"
+files = [
+  "crates/application/bace-runtime/src/game_runtime/trade/output.rs (new: RegisterTrade, AddToTrade, AcceptTrade, DeclineTrade, ResetTrade, CloseTrade, ClearTradeAcceptance, TradeFailure, WeenieError, transient text)",
+  "crates/application/bace-runtime/src/game_runtime/trade/output/tests.rs (new)",
+]
+ace_source = ["Player_Trade.cs:80,98 (RegisterTrade pairs)", "Player_Trade.cs:163,172 (AddToTrade sides)", "Player_Trade.cs:203-212 (accept)", "Player_Trade.cs:268 and 279 (complete, reset)"]
+oracle = "P1-T01 event fixtures."
+depends_on = ["P1-T01", "P3-T08"]
+acceptance = "Exact ACE event order per step. Reliable output preflight against the message cap. Initiator and partner copies match the ACE pairs."
+parallel = true
+
+[[cards]]
+id = "P3-T10"
+title = "Ingress wiring, logout and combat closure"
+owner_crate = "bace-runtime"
+files = [
+  "crates/application/bace-runtime/src/game_runtime/ingress.rs (coordinate: heavy WIP; add trade handler before inventory and to the blocked-list check)",
+  "crates/application/bace-runtime/src/game_runtime/logout.rs (partner close on logout, S10)",
+  "crates/application/bace-runtime/src/game_runtime/trade/lifecycle.rs (new)",
+]
+ace_source = ["Player.cs:536-541 (logout close)", "Player_Trade.cs:325-340 (combat switch)"]
+oracle = "Behavioural: runtime tests with a logout during Negotiating (partner gets CloseTrade 1 and TradeClosed) and during Saving (no cancel, waits for the durable outcome)."
+depends_on = ["P3-T08", "P3-T09"]
+acceptance = "Logout during Negotiating closes the partner. Logout during Transferring or Saving does not cancel a durable operation (SAVE-02). Combat switch sends 0x0455 and close reason 2 to both."
+parallel = false
+note = "Blocked by ingress.rs WIP. Coordinate with the owner of ingress.rs first."
+
+[[cards]]
+id = "P4-T11"
+title = "Coverage, parity and divergence records"
+owner_crate = "docs (main)"
+files = [
+  "docs/action-coverage.toml (trade rows)",
+  "docs/gameplay-parity.toml (economy feature: remaining and evidence)",
+  "docs/divergences.toml (id 23 capture plan; new rows for D2, D5)",
+]
+ace_source = ["Player_Trade.cs", "TradeManager.cpp:134-334"]
+oracle = "None."
+depends_on = ["P3-T10"]
+acceptance = "Each deviation D2 and D5 has a test reference. D1 remains UNVERIFIED with a capture procedure. No parity claim before the stock-client transcript exists."
+parallel = false
+
+# ---------------------------------------------------------------------------
+# Durability rules that every card must honour
+# ---------------------------------------------------------------------------
+
+[durability]
+rule = "Trade success is reported only after the atomic PostgreSQL commit returns Committed or AlreadyCommitted for a durable operation id (SAVE-02)."
+receipt_pattern = "Reuse the vendor Buy pattern: PlacementOperation with participants and leases, durable_operations fingerprint, AlreadyCommitted on replay, same operation_id on retry (vendors/buy.rs:394-430, buy_freezing.rs:300)."
+uncertain_outcome = "Retry with the identical operation (same id and fingerprint). Never mint a new id for the same transfer."
+logout = "A logout while Saving waits for the outcome. A logout before Save cancels the reservation and closes both sides (S10)."
+no_duplicate_transfer = "Items are removed only by the committed operation. Window items stay locked until commit or close (S11, D7)."
+
+[validation]
+commands = [
+  "cargo test -p bace-wire trade",
+  "cargo test -p bace-session trade",
+  "cargo test -p bace-economy trade",
+  "cargo test -p bace-simulation trade",
+  "cargo test -p bace-inventory trade_transfer",
+  "cargo test -p bace-db-postgres trade_placement (PostgreSQL required)",
+  "cargo test -p bace-runtime trade (filtered only)",
+]
+note = "Per worker rules: crate-scoped tests only; rustfmt --edition 2024 on the files edited, never cargo fmt."

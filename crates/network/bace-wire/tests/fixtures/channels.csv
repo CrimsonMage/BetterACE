@@ -1,0 +1,10 @@
+# ACE.Server/Network/GameAction/Actions/GameActionChannelList.cs 880acaaa864a3f09cd5c4c0de5e16407ca7db986a381069bc933d31c00fe6ca4
+# ACE.Server/Network/GameAction/Actions/GameActionChannelIndex.cs 2047fae121670153cd32c649d89b6f3c7a49a0f533e23d5c262b270b0f5ed8a3
+# ACE.Server/Network/GameAction/Actions/GameActionEnterPkLite.cs 7e36f324ccbc1c8d923e8fd38b60e83b68b98e66429e67458986fbafe3db0820
+case,ListChannels,01000000,4,1
+case,ListChannels,FFFFFFFF,4,4294967295
+case,ListChannels,0100000005060708,4,1
+case,ListChannels,0100,0,EndOfStream
+case,ListChannels,,0,EndOfStream
+case,IndexChannels,,0,none
+case,IndexChannels,0100000000,0,none

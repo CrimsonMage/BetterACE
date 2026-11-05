@@ -105,6 +105,37 @@ impl GameRuntimeStartup {
     pub fn failure(&self) -> Option<&str> {
         self.failure.as_deref()
     }
+    pub(crate) fn stage(&self) -> &'static str {
+        if self.kernel.is_none() && self.simulation.is_none() {
+            "construct simulation kernel"
+        } else if !self.kernel_configured {
+            "configure simulation kernel"
+        } else if self.players.is_none() {
+            "construct player services"
+        } else if self.preparation.is_none() {
+            "start player asset worker"
+        } else if self.dat.is_none() {
+            "prepare DAT distribution catalog"
+        } else if self.npc_inventory.is_none() {
+            "load NPC recovery inventory"
+        } else if self.regions.is_none() {
+            "start region service"
+        } else if self.generators.is_none() {
+            "start generator service"
+        } else if self.saves.is_none() {
+            "open reserved save writer"
+        } else if self.authentication.is_none() {
+            "start authentication workers"
+        } else if !self.chat_started {
+            "start chat service"
+        } else if self.network.is_none() {
+            "bind game UDP sockets"
+        } else if self.simulation.is_none() {
+            "start simulation worker"
+        } else {
+            "finish game services"
+        }
+    }
     /// Construct at most one owner per call. Async I/O is restricted to opening
     /// the reserved save writer and optional HTTP service. The caller may cancel
     /// this borrow without dropping the retained startup state.
@@ -209,11 +240,9 @@ impl GameRuntimeStartup {
             return Ok(None);
         }
         if self.npc_inventory.is_none() {
-            let pending =
-                crate::npc_recovery::pending_source_inventory(&bootstrap.store, 65536).await?;
-            let archived =
-                crate::npc_recovery::archived_source_inventory(&bootstrap.store, 65536).await?;
-            self.npc_inventory = Some((Arc::new(pending), Arc::new(archived)));
+            // NPC incarnations begin with their accepted .bace landblock.
+            // Player-owned quest and item rows have separate save owners.
+            self.npc_inventory = Some((Arc::default(), Arc::default()));
             return Ok(None);
         }
         if self.regions.is_none() {

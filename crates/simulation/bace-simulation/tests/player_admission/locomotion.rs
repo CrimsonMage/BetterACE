@@ -104,6 +104,79 @@ fn state() -> RawLocomotionState {
     }
 }
 #[test]
+fn independent_body_cursor_rejects_replayed_state_and_jump() {
+    let (mut kernel, binding) = admitted();
+    assert!(
+        kernel
+            .apply_locomotion(command(binding, 1, LocomotionRequest::State(state())))
+            .result
+            .is_ok()
+    );
+    assert_eq!(
+        kernel
+            .apply_locomotion(command(binding, 1, LocomotionRequest::State(state())))
+            .result,
+        Err(LocomotionRejection::Stale)
+    );
+    kernel.step().unwrap();
+    assert!(
+        kernel
+            .apply_locomotion(command(binding, 2, LocomotionRequest::Jump { extent: 1.0 }))
+            .result
+            .is_ok()
+    );
+    assert_eq!(
+        kernel
+            .apply_locomotion(command(binding, 2, LocomotionRequest::Jump { extent: 1.0 }))
+            .result,
+        Err(LocomotionRejection::Stale)
+    );
+}
+#[test]
+fn released_forward_key_stops_authoritative_motion() {
+    let (mut kernel, binding) = admitted();
+    assert!(
+        kernel
+            .apply_locomotion(command(binding, 1, LocomotionRequest::State(state())))
+            .result
+            .is_ok()
+    );
+    for _ in 0..10 {
+        kernel.step().unwrap();
+    }
+    let moving = kernel
+        .world()
+        .body(binding.actor)
+        .unwrap()
+        .accepted()
+        .position();
+
+    // ACE Player_Tick.OnMoveToState_ClientMethod releases the previous motion
+    // when ForwardCommand becomes Invalid; raw-state handling selects Ready.
+    let mut released = state();
+    released.forward = (0x41000003, 0, 1.0);
+    assert!(
+        kernel
+            .apply_locomotion(command(binding, 2, LocomotionRequest::State(released)))
+            .result
+            .is_ok()
+    );
+    for _ in 0..10 {
+        kernel.step().unwrap();
+    }
+    let stopped = kernel
+        .world()
+        .body(binding.actor)
+        .unwrap()
+        .accepted()
+        .position();
+    assert!(moving.y > 0.0);
+    assert!(
+        (stopped.y - moving.y).abs() < 0.001,
+        "{moving:?} -> {stopped:?}"
+    );
+}
+#[test]
 fn accepted_raw_controls_move_through_collision_and_observations_never_teleport() {
     let (mut kernel, binding) = admitted();
     let result = kernel.apply_locomotion(command(binding, 1, LocomotionRequest::State(state())));

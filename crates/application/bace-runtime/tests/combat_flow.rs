@@ -680,6 +680,7 @@ use bace_simulation::{PreparedDoor, PreparedDoorAnimation, PreparedDoorHook};
 use bace_world::DoorCollider;
 fn door() -> PreparedDoor {
     PreparedDoor {
+        style: 0x3d,
         collider: DoorCollider {
             cell: CellId(1),
             position: Vec3::new(3.1, 0.0, 0.5),

@@ -27,7 +27,8 @@ fn unapproved_dat_never_produces_region_assets() {
             portal: path.clone(),
             cell: path,
             portal_sha256: "0".repeat(64),
-            cell_sha256: "0".repeat(64)
+            cell_sha256: "0".repeat(64),
+            store: None,
         })
         .is_err()
     );
@@ -103,6 +104,7 @@ fn verified_complete_region_supports_encounters_and_real_building_filter() {
         cell: dir.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     };
     let mut assets = VerifiedRegionAssets::open(&manifest).unwrap();
     let region = assets.prepare_geometry(0xa260).unwrap();
@@ -143,6 +145,7 @@ fn native_creature_uses_real_dat_motions_health_and_bodyparts() {
         cell: dir.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     };
     let mut assets = VerifiedRegionAssets::open(&manifest).unwrap();
     let mut portal = bace_dat::DatArchive::open(&manifest.portal).unwrap();

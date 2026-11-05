@@ -111,8 +111,15 @@ impl SquelchDatabase {
         self.global.write(writer, max_filters, max_string_bytes)
     }
 }
-pub(crate) fn string(writer: &mut Writer, value: &str, max_bytes: usize) -> Result<(), WireError> {
-    if value.chars().count() > max_bytes {
+/// Writes a string16 under a wire limit measured in Windows-1252 bytes.
+/// Every representable char encodes to exactly one byte, so the char count equals the
+/// wire length. Unrepresentable chars are rejected by `Writer::string16` (InvalidEncoding).
+pub(crate) fn string(
+    writer: &mut Writer,
+    value: &str,
+    max_wire_bytes: usize,
+) -> Result<(), WireError> {
+    if value.chars().count() > max_wire_bytes {
         return Err(WireError::LimitExceeded);
     }
     writer.string16(value)

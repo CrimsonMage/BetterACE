@@ -29,20 +29,41 @@ fn use_stone(k: &mut Kernel, sequence: u32, revision: u64) {
 }
 
 #[test]
-fn live_stone_use_requires_authenticated_owner_range_and_cancel_clears_action() {
+fn live_stone_use_auto_approaches_then_preserves_authenticated_cancel() {
     let mut k = prepared();
     let revision = k.character(EntityId(1)).unwrap().revision();
     k.register_binding_object(stone(BindingKind::Lifestone, 0.1))
         .unwrap();
     use_stone(&mut k, 1, revision);
+    assert!(k.take_recall_event().is_none());
+    let before_approach = k.world().actor_state(EntityId(1)).unwrap().1.position();
+    let mut started = false;
+    for _ in 0..300 {
+        step(&mut k);
+        if matches!(
+            k.take_recall_event(),
+            Some(RecallEvent::BindingStarted { .. })
+        ) {
+            started = true;
+            break;
+        }
+    }
+    assert!(
+        started,
+        "arriving at the authored stone starts its existing action"
+    );
+    assert_ne!(
+        k.world().actor_state(EntityId(1)).unwrap().1.position(),
+        before_approach
+    );
+    k.apply_recall_command(RecallCommand::Cancel { actor: EntityId(1) })
+        .unwrap();
     assert!(matches!(
         k.take_recall_event(),
-        Some(RecallEvent::Rejected {
-            error: RecallError::MovedTooFar,
-            ..
-        })
+        Some(RecallEvent::Cancelled { .. })
     ));
-    k.unregister_binding_objects(&[EntityId(2)]).unwrap();
+    let mut k = prepared();
+    let revision = k.character(EntityId(1)).unwrap().revision();
     k.register_binding_object(stone(BindingKind::Lifestone, 5.0))
         .unwrap();
     let mut stale = context(2);
@@ -63,13 +84,17 @@ fn live_stone_use_requires_authenticated_owner_range_and_cancel_clears_action() 
     ));
     let stone_pose = k.world().actor_state(EntityId(2)).unwrap().1.position();
     use_stone(&mut k, 3, revision);
-    assert!(matches!(
-        k.take_recall_event(),
-        Some(RecallEvent::BindingStarted {
-            object: EntityId(2),
-            ..
-        })
-    ));
+    let started_event = k.take_recall_event();
+    assert!(
+        matches!(
+            started_event,
+            Some(RecallEvent::BindingStarted {
+                object: EntityId(2),
+                ..
+            })
+        ),
+        "{started_event:?}"
+    );
     assert_eq!(
         k.world().source_motion_token(EntityId(1)).unwrap().domain,
         bace_motion::MotionDomain::Recall
@@ -88,6 +113,35 @@ fn live_stone_use_requires_authenticated_owner_range_and_cancel_clears_action() 
         k.world().actor_state(EntityId(2)).unwrap().1.position(),
         stone_pose
     );
+}
+
+#[test]
+fn stone_approach_cancel_and_region_retirement_never_activate() {
+    for retire in [false, true] {
+        let mut k = prepared();
+        let revision = k.character(EntityId(1)).unwrap().revision();
+        k.register_binding_object(stone(BindingKind::Lifestone, 0.1))
+            .unwrap();
+        use_stone(&mut k, 1, revision);
+        for _ in 0..5 {
+            step(&mut k);
+        }
+        if retire {
+            k.unregister_binding_objects(&[EntityId(2)]).unwrap();
+        } else {
+            k.apply_recall_command(RecallCommand::Cancel { actor: EntityId(1) })
+                .unwrap();
+        }
+        assert!(matches!(
+            k.take_recall_event(),
+            Some(RecallEvent::Cancelled { .. })
+        ));
+        for _ in 0..20 {
+            step(&mut k);
+            assert!(k.take_recall_event().is_none());
+        }
+        assert!(k.take_portal_proposal().is_none());
+    }
 }
 
 #[test]

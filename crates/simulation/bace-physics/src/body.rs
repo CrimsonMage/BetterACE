@@ -35,6 +35,7 @@ impl AcceptedState {
 pub struct Body {
     accepted: AcceptedState,
     geometry_shape: Option<std::sync::Arc<crate::CollisionShape>>,
+    placement_mode: PlacementMode,
     animated: Option<std::sync::Arc<bace_motion::AnimatedLocomotion>>,
     stopped_locomotion: Option<(std::sync::Arc<bace_motion::AnimatedLocomotion>, f32)>,
     root_cursor: bace_motion::RootCursor,
@@ -62,11 +63,23 @@ pub struct Body {
     last_issued_control: Option<TurnControl>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum PlacementMode {
+    Mobile,
+    AuthoredStationary,
+    AuthoredTerrainEmbedded,
+}
+
 impl Body {
     /// Read projection of the actual prepared locomotion interpreter. Rendering
     /// adapters must not derive an animation command from accepted velocity.
     pub fn locomotion_projection(&self) -> Option<(u32, bace_motion::MotionDrive)> {
         Some((self.locomotion_style?, self.locomotion?))
+    }
+    /// The admitted style remains valid while a server movement goal owns the
+    /// body and has superseded its former manual locomotion drive.
+    pub fn prepared_locomotion_style(&self) -> Option<u32> {
+        self.locomotion_style
     }
     pub fn animated_locomotion(&self) -> Option<&std::sync::Arc<bace_motion::AnimatedLocomotion>> {
         self.animated.as_ref()
@@ -85,10 +98,21 @@ impl Body {
     pub fn collision_shape(&self) -> Option<&std::sync::Arc<crate::CollisionShape>> {
         self.geometry_shape.as_ref()
     }
+    pub fn is_authored_static(&self) -> bool {
+        self.placement_mode == PlacementMode::AuthoredTerrainEmbedded
+    }
+    pub fn is_authored_stationary(&self) -> bool {
+        self.placement_mode != PlacementMode::Mobile
+    }
     /// Server-derived capabilities change only after their owning character or
     /// inventory mutation commits. Accepted physical state remains unchanged.
     pub fn update_capabilities(&mut self, capabilities: Capabilities) -> Result<(), PhysicsError> {
         let capabilities = capabilities.validate()?;
+        if self.is_authored_stationary()
+            && (capabilities.speed != 0.0 || capabilities.jump_impulse != 0.0)
+        {
+            return Err(PhysicsError::InvalidState);
+        }
         if self.server_move.is_some() && capabilities.speed * self.server_move_speed > 50.0 {
             return Err(PhysicsError::InvalidState);
         }
@@ -98,6 +122,25 @@ impl Body {
     pub fn spawn_geometry(
         region: &crate::GeometryRegion,
         input: GeometrySpawn,
+    ) -> Result<Self, PhysicsError> {
+        Self::spawn_geometry_checked(region, input, PlacementMode::Mobile)
+    }
+    pub fn spawn_authored_stationary_geometry(
+        region: &crate::GeometryRegion,
+        input: GeometrySpawn,
+    ) -> Result<Self, PhysicsError> {
+        Self::spawn_geometry_checked(region, input, PlacementMode::AuthoredStationary)
+    }
+    pub fn spawn_authored_static_geometry(
+        region: &crate::GeometryRegion,
+        input: GeometrySpawn,
+    ) -> Result<Self, PhysicsError> {
+        Self::spawn_geometry_checked(region, input, PlacementMode::AuthoredTerrainEmbedded)
+    }
+    fn spawn_geometry_checked(
+        region: &crate::GeometryRegion,
+        input: GeometrySpawn,
+        placement_mode: PlacementMode,
     ) -> Result<Self, PhysicsError> {
         let GeometrySpawn {
             cell,
@@ -113,7 +156,18 @@ impl Body {
         {
             return Err(PhysicsError::InvalidState);
         }
-        region.validate_placement(cell, position, &shape, &[], 0)?;
+        if placement_mode != PlacementMode::Mobile
+            && (capabilities.speed != 0.0
+                || capabilities.jump_impulse != 0.0
+                || maximum_turn_rate != 0.0)
+        {
+            return Err(PhysicsError::InvalidState);
+        }
+        if placement_mode == PlacementMode::AuthoredTerrainEmbedded {
+            region.validate_authored_static_placement(cell, position, &shape)?;
+        } else {
+            region.validate_placement(cell, position, &shape, &[], 0)?;
+        }
         let radius = shape.spheres().iter().map(|s| s.radius).fold(0.0, f32::max);
         Ok(Self {
             accepted: AcceptedState {
@@ -124,6 +178,7 @@ impl Body {
                 heading: heading.rem_euclid(std::f32::consts::TAU),
             },
             geometry_shape: Some(shape),
+            placement_mode,
             animated: None,
             stopped_locomotion: None,
             root_cursor: Default::default(),
@@ -169,6 +224,9 @@ impl Body {
         allowed_restrictions: &[u32],
         player_status_override: Option<u32>,
     ) -> Result<u32, PhysicsError> {
+        if self.is_authored_stationary() {
+            return Err(PhysicsError::InvalidState);
+        }
         let shape = self
             .geometry_shape
             .as_ref()
@@ -328,6 +386,7 @@ impl Body {
         let (position, velocity, grounded) = scene.move_body(position, Vec3::ZERO, radius, 0.0);
         Ok(Self {
             geometry_shape: None,
+            placement_mode: PlacementMode::Mobile,
             animated: None,
             stopped_locomotion: None,
             root_cursor: Default::default(),

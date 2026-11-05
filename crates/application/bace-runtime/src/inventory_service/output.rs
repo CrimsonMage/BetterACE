@@ -141,6 +141,17 @@ pub fn project_inventory_completion(
             .iter()
             .find(|c| c.after.id == id)
             .ok_or(SessionProjectionError::InvalidProjection)?;
+        if matches!(p.request, InventoryRequest::Move { .. })
+            && let ItemPlace::Contained { container, .. } = change.after.place
+        {
+            // ACE DoHandleActionPutItemInContainer publishes the new parent
+            // property immediately before ItemServerSaysContainId, even when
+            // both the old and new locations are in the player's inventory.
+            steps.push(InventoryProjection::Container {
+                item: id,
+                value: container.0,
+            });
+        }
         steps.push(InventoryProjection::Event(placement(
             &change.after,
             container_type(completion, change.after.id)?,

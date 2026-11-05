@@ -46,7 +46,7 @@ pub fn apply(
             options1,
             options2,
             filters,
-            shortcuts,
+            shortcuts: _,
             bars,
             components: desired,
             gameplay,
@@ -56,9 +56,8 @@ pub fn apply(
                 next.options2 = v;
             }
             next.filters = filters;
-            if let Some(v) = shortcuts {
-                next.shortcuts = v;
-            }
+            // Pinned ACE consumes the Shortcut section of SetCharacterOptions
+            // without applying it. Only AddShortCut/RemoveShortCut own changes.
             if bars.len() > 8 {
                 return Err(UiError::Invalid);
             }

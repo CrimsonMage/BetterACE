@@ -412,6 +412,7 @@ fn static_creature_region_admission_is_atomic_and_uses_population() {
             rotation: [0., 0., 0., 1.],
         },
         shape: geometry.shape,
+        authored_static: false,
         creature: Some(creature),
         loadout: None,
     };

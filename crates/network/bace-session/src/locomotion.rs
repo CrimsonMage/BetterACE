@@ -87,6 +87,34 @@ pub fn decode_locomotion(
 pub fn movement_epochs_match(observed: MovementEpochs, current: MovementEpochs) -> bool {
     observed == current
 }
+/// GDLE ClientEvents.cpp at 353cbab52ef7da2b7063bc3e3f008461d8531693:
+/// MoveToState ignores instance/server-control stamps; AutonomousPosition checks
+/// instance equality. Both ignore server-control and reject older client
+/// teleport/force-position stamps. Jump retains the stricter local boundary.
+/// This admission concerns client controls only; it never accepts client pose.
+pub fn movement_epochs_compatible(
+    action: GameActionType,
+    observed: MovementEpochs,
+    current: MovementEpochs,
+) -> bool {
+    match action {
+        GameActionType::MoveToState | GameActionType::AutonomousPosition => {
+            (action != GameActionType::AutonomousPosition || observed.instance == current.instance)
+                && !gdle_newer_event_stamp(observed.teleport, current.teleport)
+                && !gdle_newer_event_stamp(observed.force_position, current.force_position)
+        }
+        _ => movement_epochs_match(observed, current),
+    }
+}
+/// Source/PhatSDK/MathLib.cpp at the pinned GDLE commit, preserving its
+/// half-range comparison rather than substituting a non-wrapping integer test.
+fn gdle_newer_event_stamp(old: u16, stamp: u16) -> bool {
+    if (i32::from(stamp) - i32::from(old)).abs() >= 0x8000 {
+        old > stamp
+    } else {
+        stamp > old
+    }
+}
 fn move_to_state(
     bytes: &[u8],
     limit: usize,

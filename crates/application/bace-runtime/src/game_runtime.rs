@@ -1,19 +1,23 @@
 //! Single adapter-owner lifecycle pump. Fixed retained I/O futures keep SQL and
 //! cold assets off the event pump. Dropping this owner is never a shutdown path.
 mod allegiance;
+mod appraisal;
 mod combat;
 mod crafting;
 mod ddd;
 mod deaths;
+mod doors;
 mod pets;
 mod pve_deaths;
 pub use deaths::{CorpseSpillPresentation, DeathDelivery, DeathDeliveryWork};
 mod attribute_transfer;
 mod creation;
 mod entry;
+mod healing_kits;
 mod ingress;
 mod inventory;
 mod magic;
+mod mana_stones;
 mod movement;
 mod npc;
 mod skill_devices;
@@ -33,6 +37,7 @@ mod policy;
 mod portals;
 pub use portals::{PortalDelivery, PortalDeliveryWork};
 mod observer_output;
+mod ping;
 mod progression;
 mod publication;
 mod pump;
@@ -141,7 +146,10 @@ pub struct GameRuntime {
     social: social::SocialRuntime,
     allegiance: allegiance::AllegianceRuntime,
     progression: progression::ProgressionRuntime,
+    appraisal: appraisal::AppraisalRuntime,
     inventory: inventory::InventoryRuntime,
+    healing_kits: healing_kits::HealingKitRuntime,
+    mana_stones: mana_stones::ManaStoneRuntime,
     vendors: vendors::VendorRuntime,
     crafting: crafting::CraftingRuntime,
     combat: combat::CombatRuntime,
@@ -153,6 +161,7 @@ pub struct GameRuntime {
     attribute_transfers: attribute_transfer::AttributeTransferRuntime,
     creation: creation::CreationRuntime,
     npc: npc::NpcRuntime,
+    doors: doors::DoorRuntime,
     magic: magic::MagicRuntime,
     visibility: visibility::VisibilityRuntime,
     movement: movement::MovementRuntime,
@@ -172,12 +181,17 @@ pub struct GameRuntime {
     preparation: PlayerPreparationWorker,
     dat: Option<ddd::DatRuntime>,
     unexpected_cold: Option<crate::player_preparation_worker::PlayerPreparationCompletion>,
+    /// One immutable approved character table owner for all entered sessions.
+    character_assets: Option<Arc<crate::character_assets::PreparedCharacterAssets>>,
     assets: GameRuntimeAssets,
     limits: GameRuntimeLimits,
     clock: GameClock,
     last_elapsed: Duration,
     lifecycle_cursor: Option<SessionKey>,
     sessions: BTreeMap<SessionKey, Session>,
+    entry_pending: std::collections::BTreeSet<SessionKey>,
+    deferred_entry_actions: std::collections::BTreeSet<SessionKey>,
+    entry_phase_timing: BTreeMap<SessionKey, (lifecycle::Phase, Duration)>,
     login_job: Option<Job<PlayerIoCompletion>>,
     login_key: Option<SessionKey>,
     metadata_job: Option<Job<lifecycle::MetadataCompletion>>,
@@ -206,6 +220,8 @@ pub struct GameRuntime {
     next: u64,
     draining: bool,
     failure: Option<String>,
+    diagnostic_log: Option<Arc<bace_observability::LogStore>>,
+    reported_session_failures: BTreeMap<SessionKey, String>,
 }
 impl GameRuntime {
     pub fn new(
@@ -291,7 +307,10 @@ impl GameRuntime {
             social: social::SocialRuntime::new(chat_api, lookup),
             allegiance,
             progression: progression::ProgressionRuntime::new(),
+            appraisal: appraisal::AppraisalRuntime::default(),
             inventory: inventory::InventoryRuntime::new(),
+            healing_kits: healing_kits::HealingKitRuntime::new(),
+            mana_stones: mana_stones::ManaStoneRuntime::new(),
             vendors: vendors::VendorRuntime::new(),
             crafting: crafting::CraftingRuntime::new(),
             combat: combat::CombatRuntime::new(),
@@ -303,6 +322,7 @@ impl GameRuntime {
             attribute_transfers: attribute_transfer::AttributeTransferRuntime::new(),
             creation,
             npc: npc::NpcRuntime::new(),
+            doors: doors::DoorRuntime::default(),
             magic: magic::MagicRuntime::new(),
             visibility,
             movement: movement::MovementRuntime::new(),
@@ -326,12 +346,16 @@ impl GameRuntime {
             preparation,
             dat,
             unexpected_cold: None,
+            character_assets: None,
             assets,
             limits,
             clock,
             last_elapsed: Duration::ZERO,
             lifecycle_cursor: None,
             sessions: BTreeMap::new(),
+            entry_pending: Default::default(),
+            deferred_entry_actions: Default::default(),
+            entry_phase_timing: BTreeMap::new(),
             login_job: None,
             login_key: None,
             metadata_job: None,
@@ -360,6 +384,8 @@ impl GameRuntime {
             next: 0x4752_0000_0000_0000,
             draining: false,
             failure: None,
+            diagnostic_log: None,
+            reported_session_failures: BTreeMap::new(),
         }))
     }
     fn token(&mut self) -> Result<u64, String> {
@@ -371,6 +397,77 @@ impl GameRuntime {
     }
     pub fn failure(&self) -> Option<&str> {
         self.failure.as_deref()
+    }
+    pub fn attach_diagnostic_log(&mut self, log: Arc<bace_observability::LogStore>) {
+        self.diagnostic_log = Some(log);
+    }
+    fn diagnostic(&self, level: &str, event: &str, message: &str) {
+        let message: String = message
+            .chars()
+            .take(512)
+            .map(|c| if c.is_control() { ' ' } else { c })
+            .collect();
+        eprintln!("{event}: {message}");
+        if let Some(log) = &self.diagnostic_log {
+            log.record(level, event, &message);
+        }
+    }
+    fn report_session_failures(&mut self) {
+        let mut current = BTreeMap::new();
+        for (&key, session) in &self.sessions {
+            if let Some(error) = &session.failure {
+                current.insert(key, error.clone());
+                if self.reported_session_failures.get(&key) != Some(error) {
+                    self.diagnostic(
+                        "error",
+                        "game.session_failure",
+                        &format!("session {} generation {}: {error}", key.id, key.generation),
+                    );
+                }
+            }
+        }
+        self.reported_session_failures = current;
+    }
+    fn report_entry_phases(&mut self, elapsed: Duration) {
+        let phases: Vec<_> = self
+            .sessions
+            .iter()
+            .filter_map(|(&key, session)| {
+                session.loading.as_ref().map(|loading| (key, loading.phase))
+            })
+            .collect();
+        let previous = std::mem::take(&mut self.entry_phase_timing);
+        for (key, phase) in phases {
+            match previous.get(&key) {
+                Some((old, started)) if *old == phase => {
+                    self.entry_phase_timing.insert(key, (phase, *started));
+                }
+                Some((old, started)) => {
+                    self.diagnostic(
+                        "info",
+                        "game.entry_stage",
+                        &format!(
+                            "session {} generation {}: {old:?} ended after {:.3}s; {phase:?} start",
+                            key.id,
+                            key.generation,
+                            elapsed.saturating_sub(*started).as_secs_f64()
+                        ),
+                    );
+                    self.entry_phase_timing.insert(key, (phase, elapsed));
+                }
+                None => {
+                    self.diagnostic(
+                        "info",
+                        "game.entry_stage",
+                        &format!(
+                            "session {} generation {}: {phase:?} start",
+                            key.id, key.generation
+                        ),
+                    );
+                    self.entry_phase_timing.insert(key, (phase, elapsed));
+                }
+            }
+        }
     }
     pub fn player_failure(&self, key: SessionKey) -> Option<&str> {
         self.sessions.get(&key)?.failure.as_deref()
@@ -394,9 +491,14 @@ impl GameRuntime {
             .checked_add(u64::try_from(elapsed.as_millis()).map_err(|_| "game clock overflow")?)
             .ok_or("game clock overflow")?;
         let result = self.poll_inner(elapsed, unix);
+        self.report_entry_phases(elapsed);
         if let Err(error) = &result {
+            if self.failure.as_deref() != Some(error) {
+                self.diagnostic("error", "game.lifecycle_failure", error);
+            }
             self.failure = Some(error.clone());
         }
+        self.report_session_failures();
         result
     }
     fn poll_inner(&mut self, elapsed: Duration, unix: u64) -> Result<(), String> {
@@ -418,12 +520,16 @@ impl GameRuntime {
             self.poll_npcs(elapsed),
             self.poll_portal_publications(),
             self.poll_observer_outputs(),
+            self.poll_doors(),
             self.poll_visibility(),
             self.poll_movement(),
             self.poll_publication(elapsed),
             self.poll_social_ingress(),
             self.poll_progression(),
+            self.poll_appraisal(),
             self.poll_inventory(),
+            self.poll_healing_kits(),
+            self.poll_mana_stones(),
             self.poll_vendors(),
             self.poll_crafting(),
             self.poll_recalls(),
@@ -494,8 +600,11 @@ impl GameRuntime {
             || self.social.has_pending()
             || self.allegiance.has_pending()
             || self.progression.has_pending()
+            || self.appraisal.has_pending()
             || self.publication.has_pending()
             || self.inventory.has_pending()
+            || self.healing_kits.has_pending()
+            || self.mana_stones.has_pending()
             || self.vendors.has_pending()
             || self.crafting.has_pending()
             || self.deaths.has_pending()
@@ -559,6 +668,8 @@ impl GameRuntime {
             "waiting for generator lifecycle"
         } else if self.npc.has_pending() {
             "waiting for NPC lifecycle"
+        } else if self.appraisal.has_pending() {
+            "waiting for item appraisal query"
         } else if self.players.requires_drain() || self.online_saves.requires_drain() {
             "waiting for player saves"
         } else if self.dat.as_ref().is_some_and(ddd::DatRuntime::pending) {

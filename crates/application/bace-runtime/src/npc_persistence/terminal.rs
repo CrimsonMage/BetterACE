@@ -35,9 +35,6 @@ impl PendingNpcCheckpoint {
         &self.operation
     }
     pub fn submit(&mut self, saves: &SaveHandle) -> Result<(), SaveSubmitError> {
-        if !super::source_inventory::joined(&self.operation) {
-            return Err(SaveSubmitError::Invalid);
-        }
         if self.receiver.is_some() || self.terminal {
             return Err(SaveSubmitError::Invalid);
         }

@@ -31,6 +31,10 @@ pub struct MagicDamageResult {
 }
 pub fn validate_magic_damage_profile(p: &MagicDamageProfile) -> Result<(), E> {
     if p.spellcraft.is_some_and(|v| v > i32::MAX as u32)
+        || p.mana_conversion_weapon
+            .is_some_and(|weapon| weapon.entity == 0 || !weapon.base_modifier.is_finite())
+        || p.wand_spell_cost
+            .is_some_and(|(spell, cost)| spell == 0 || cost > i32::MAX as u32)
         || p.proc_items.len() > 64
         || p.boost_resistances
             .iter()

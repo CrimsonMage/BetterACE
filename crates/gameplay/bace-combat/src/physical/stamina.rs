@@ -1,6 +1,8 @@
 use super::PhysicalError;
 use bace_gameplay_api::weapon_combat::PhysicalKind;
-/// GDLE MeleeAttackEventData::HandleAttackHook / MissileAttackEventData::FireMissile.
+
+/// Pinned ACE Player_Combat.GetAttackStamina, using StaminaTable's descending
+/// burden denominations for both melee power and missile accuracy.
 pub struct AttackStaminaInput {
     pub kind: PhysicalKind,
     pub player: bool,
@@ -11,14 +13,15 @@ pub struct AttackStaminaInput {
     pub power: f32,
     pub roll: f64,
 }
+
 pub fn attack_stamina(input: AttackStaminaInput) -> Result<u32, PhysicalError> {
     let AttackStaminaInput {
-        kind,
+        kind: _,
         player,
         base_endurance,
         weapon_burden,
         shield_burden,
-        shield_placement,
+        shield_placement: _,
         power,
         roll,
     } = input;
@@ -30,53 +33,37 @@ pub fn attack_stamina(input: AttackStaminaInput) -> Result<u32, PhysicalError> {
     {
         return Err(PhysicalError::InvalidInput);
     }
-    let mut cost = match kind {
-        PhysicalKind::Melee => {
-            let w = weapon_burden as f32 * (1.0 / 450.0);
-            let s = shield_burden as f32
-                * if shield_placement {
-                    1.0 / 680.0
-                } else {
-                    1.0 / 450.0
-                };
-            let factor = (0.25 + f64::from(power) * 0.75) as f32;
-            ((2.0 + w + s) * factor.min(1.0) + 0.5) as u32
-        }
-        PhysicalKind::Missile => {
-            let burden = weapon_burden
-                .checked_add(shield_burden)
-                .ok_or(PhysicalError::Overflow)? as f32;
-            let divisor = if power < 0.33 {
-                900.0
-            } else if power < 0.66 {
-                600.0
-            } else {
-                300.0
-            };
-            (burden / divisor).round() as u32
-        }
+    // At this pin, Monster_Melee and Creature_Missile do not spend attack
+    // stamina. The player-only cost is charged once per swing or launch.
+    if !player {
+        return Ok(0);
     }
-    .max(1);
-    if player {
-        match kind {
-            PhysicalKind::Melee if base_endurance >= 50 => {
-                let e = base_endurance as f32;
-                let factor =
-                    ((f64::from(e * e) * -0.000003175) - (f64::from(e) * 0.0008889) + 1.052) as f32;
-                cost = (f64::from(cost as f32 * factor.clamp(0.5, 1.0)) + roll) as u32;
-            }
-            PhysicalKind::Missile => {
-                let factor = (1.0 - (base_endurance as f32 - 100.0) / 600.0).clamp(0.5, 1.0);
-                cost = (cost as f32 * factor).round() as u32;
-            }
-            _ => {}
-        }
+    let burden = weapon_burden
+        .checked_add(shield_burden)
+        .ok_or(PhysicalError::Overflow)?;
+    let mut burden = i32::try_from(burden).map_err(|_| PhysicalError::Overflow)?;
+    let costs = if power < 0.33 {
+        [1.5_f32, 1.0, 1.0]
+    } else if power < 0.66 {
+        [3.0, 2.0, 1.0]
+    } else {
+        [6.0, 4.0, 2.0]
+    };
+    let mut base = 0.0_f32;
+    for (denomination, cost) in [(1600, costs[0]), (1200, costs[1]), (700, costs[2])] {
+        let count = burden / denomination;
+        base += cost * count as f32;
+        burden -= denomination * count;
     }
-    Ok(cost.max(1))
+    let modifier = (1.0_f32 - (base_endurance as f32 - 50.0) / 480.0).clamp(0.5, 1.0);
+    Ok((base * modifier).max(1.0).round_ties_even() as u32)
 }
-/// Successful player evasion spends no point only on the source endurance roll.
+
+/// Pinned ACE Player_Combat.OnEvade/OnDamage: noncombat players and creatures
+/// lose no stamina, and trained defense can avoid the one-point evade cost.
 pub fn defense_stamina(
     player: bool,
+    in_combat: bool,
     evaded: bool,
     advancement: u32,
     endurance: u32,
@@ -85,14 +72,13 @@ pub fn defense_stamina(
     if !roll.is_finite() || !(0.0..1.0).contains(&roll) || endurance > 65535 {
         return Err(PhysicalError::InvalidInput);
     }
-    if player && evaded && advancement >= 2 {
+    if !player || !in_combat {
+        return Ok(0);
+    }
+    if evaded && advancement >= 2 {
         let e = endurance as f32;
-        let chance = if endurance >= 50 {
-            ((f64::from(e * e) * 0.000005) + (f64::from(e) * 0.00124) - 0.07) as f32
-        } else {
-            0.0
-        };
-        Ok(u32::from(roll > f64::from(chance.min(0.75))))
+        let chance = ((e * e * 0.000005) + (e * 0.00124) - 0.07).clamp(0.0, 0.75);
+        Ok(u32::from(f64::from(chance) <= roll))
     } else {
         Ok(1)
     }

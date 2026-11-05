@@ -559,6 +559,26 @@ impl GeometryRegion {
             .and_then(|d| d.player_status);
         self.validate_placement_for(cell, position, shape, dynamics, ignore, status)
     }
+    /// Source-authored stationary portals can intersect the terrain they are
+    /// mounted in. Keep their cell, primary-sphere and terrain support checks;
+    /// their collision shape remains present for movement queries.
+    pub fn validate_authored_static_placement(
+        &self,
+        cell: u32,
+        position: Vec3,
+        shape: &CollisionShape,
+    ) -> Result<(), GeometryError> {
+        self.validate_cell_center(cell, position, shape)?;
+        let geometry = self.cells.get(&cell).ok_or(GeometryError::MissingCell)?;
+        if !geometry.terrain {
+            return self.validate_placement(cell, position, shape, &[], 0);
+        }
+        let (floor, _) = self.ground_at(cell, position)?;
+        if position.z < floor - 0.25 {
+            return Err(GeometryError::Invalid);
+        }
+        Ok(())
+    }
     #[allow(clippy::too_many_arguments)]
     fn validate_placement_for(
         &self,

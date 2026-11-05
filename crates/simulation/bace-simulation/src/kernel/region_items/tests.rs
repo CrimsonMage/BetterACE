@@ -143,6 +143,7 @@ fn fixture() -> (Kernel, PreparedResidentRegion) {
             source_manifest: [1; 32],
             refresh: None,
             bindings: vec![],
+            doors: vec![],
             visibility: geometry
                 .cell_ids()
                 .filter(|id| id & 0xffff >= 0x100)
@@ -184,6 +185,68 @@ fn restores_complete_tree_registry_and_original_corpse_deadline_atomically() {
     );
 }
 #[test]
+fn invalid_authored_door_rejects_before_region_root_and_item_adoption() {
+    let (mut kernel, mut input) = fixture();
+    let shape = input.items.roots[0].shape.clone();
+    let location = bace_gameplay_api::GeneratorLocation {
+        cell: 0x12340001,
+        origin: [17., 17., 0.],
+        rotation: [0., 0., 0., 1.],
+    };
+    let invalid = EntityId(0);
+    input.region.roots.push(crate::PreparedGeneratorRoot {
+        script: None,
+        entity: invalid,
+        location,
+        shape,
+        authored_static: false,
+        creature: None,
+        loadout: None,
+    });
+    input.doors.push((
+        invalid,
+        crate::PreparedDoor {
+            collider: bace_world::DoorCollider {
+                cell: bace_types::CellId(location.cell),
+                position: Vec3::new(17., 17., 0.),
+                bounds: bace_geometry::Aabb::new(
+                    Vec3::new(16.5, 16.5, 0.),
+                    Vec3::new(17.5, 17.5, 2.),
+                )
+                .unwrap(),
+                solid: true,
+            },
+            style: 0x3d,
+            initially_open: false,
+            initially_locked: false,
+            reset_interval_ticks: None,
+            use_radius: 0.,
+            open: crate::PreparedDoorAnimation {
+                duration_ticks: 1,
+                hooks: vec![crate::PreparedDoorHook {
+                    offset_ticks: 1,
+                    ethereal: true,
+                }],
+            },
+            close: crate::PreparedDoorAnimation {
+                duration_ticks: 1,
+                hooks: vec![crate::PreparedDoorHook {
+                    offset_ticks: 1,
+                    ethereal: false,
+                }],
+            },
+        },
+    ));
+    assert!(kernel.admit_resident_region_complete(input).is_err());
+    assert!(kernel.world.body(invalid).is_err());
+    assert!(kernel.world.door(invalid).is_none());
+    assert!(kernel.inventory.item(EntityId(100)).is_none());
+    assert_eq!(
+        kernel.region_residency.state(0x1234).unwrap().phase,
+        crate::RegionPhase::Preparing
+    );
+}
+#[test]
 fn occupied_region_refresh_adds_and_removes_plain_authored_visibility() {
     let (mut k, initial) = fixture();
     assert!(k.admit_resident_region_complete(initial).is_ok());
@@ -201,6 +264,7 @@ fn occupied_region_refresh_adds_and_removes_plain_authored_visibility() {
             rotation: [0., 0., 0., 1.],
         },
         shape,
+        authored_static: false,
         creature: None,
         loadout: None,
     });

@@ -42,6 +42,6 @@ fn crafting_dispatch_binds_identity_and_scopes_confirmation_type() {
     other[12..16].copy_from_slice(&2u32.to_le_bytes());
     assert_eq!(
         decode_crafting(SessionState::WorldConnected, binding, &other, 128),
-        Err(DispatchError::InvalidTarget(2))
+        Err(DispatchError::UnsupportedAction(0x0275))
     );
 }

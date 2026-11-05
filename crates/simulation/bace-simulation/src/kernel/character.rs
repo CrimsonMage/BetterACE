@@ -339,6 +339,7 @@ impl Kernel {
             || self.has_skill_device_work()
             || !self.attribute_transfer_outcomes.is_empty()
             || self.has_attribute_transfer_work()
+            || self.has_healing_kit_work()
             || !self.skill_outcomes.is_empty()
             || !self.ui_outcomes.is_empty()
             || self.commands.iter().any(|c| {

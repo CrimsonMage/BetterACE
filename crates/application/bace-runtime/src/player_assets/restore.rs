@@ -238,7 +238,20 @@ pub fn prepare_loaded_avatar(
             current(43)?,
         ],
         magic_defense: current(15)?,
-        mana_conversion: current(16)?,
+        // ACE CalculateManaUsage ignores Mana Conversion below Trained even
+        // when the projected untrained skill has a nonzero current value.
+        mana_conversion: stats
+            .physical_skills
+            .iter()
+            .find(|(id, _)| *id == 16)
+            .map(|(_, skill)| {
+                if skill.advancement >= 2 {
+                    skill.current
+                } else {
+                    0
+                }
+            })
+            .ok_or("required avatar skill missing")?,
         components_required: policy.components_required,
         safe_components: policy.safe_components,
     };

@@ -101,3 +101,20 @@ occupancy methods are exercised by 2,112 compiled-original vectors in
 `oracle/wield_slots`. Clothing normalization and Aetheria regression cases are
 source-reviewed separately. The older generic proposal API retains its existing
 replacement semantics; the live equipment owner uses the explicit checked path.
+
+`propose_healing_kit_charge` freezes ACE `Healer.DoHealing` Structure/Value
+accounting for an owned healing kit. One completed attempt decrements Structure
+even when Healing fails; the final use removes the item. The Value decrement
+uses cached template `Value / MaxStructure`, with a zero floor. The caller
+provides the accepted template values and only calls this after the heal motion.
+Focused tests cover final charge depletion and impossible/stale Structure; the
+simulation owns Healing skill, target and motion admission, vital effects and
+durable receipt.
+
+`propose_mana_stone_use` models the pinned ACE `ManaStone.cs` empty-stone
+extraction, charged single-target pour, equipped-item rationing, item mana
+augmentation, unlimited-use refill and destroy roll. `propose_mana_stone_inventory`
+reserves the affected stone/target item revisions in one proposal. The runtime
+currently routes only one owned-item target per UseWithTarget. Full equipped-item
+distribution and consuming an equipped target are still unsupported live actions;
+the pure decision tests alone do not qualify a retail transcript.

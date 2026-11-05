@@ -21,7 +21,7 @@ fn setup() -> Kernel {
     let mut k = synthetic_scenario(1, 0).unwrap();
     let ranks = RankTable::new(&[0, 10, 100]).unwrap();
     let ids = [6, 21, 44, 48];
-    let states: Vec<_> = ids
+    let mut states: Vec<_> = ids
         .into_iter()
         .map(|skill| TraitState {
             progress: TraitProgress {
@@ -36,6 +36,16 @@ fn setup() -> Kernel {
             },
         })
         .collect();
+    states.extend((1..=6).map(|attribute| TraitState {
+        progress: TraitProgress {
+            target: ProgressionTarget::Attribute(AttributeId::try_from(attribute).unwrap()),
+            advancement: SkillAdvancement::Inactive,
+            experience_spent: 0,
+        },
+        details: TraitDetails::Attribute {
+            starting_value: 100,
+        },
+    }));
     let costs: Vec<_> = ids
         .into_iter()
         .map(|skill| SkillCosts {
@@ -210,6 +220,55 @@ fn general_skill_buffs_compose_once_with_dirty_fighting_and_expire() {
     ticks(&mut k, 149);
     assert_eq!(current(&k, 21), 100);
     assert_eq!(current(&k, 44), 100);
+}
+#[test]
+fn ace_attribute_and_skill_buffs_compose_into_effective_skill_and_expire() {
+    let mut k = setup();
+    let entry = |spell, category, stat_type, stat_key, value| EnchantmentEntry {
+        spell,
+        caster: 2,
+        school: MagicSchool::Creature,
+        spec: EnchantmentSpec {
+            category,
+            power: 100,
+            duration: 5.0,
+            layer: 1,
+            stat_type,
+            stat_key,
+            value,
+            beneficial: true,
+            set_id: None,
+        },
+        start_time: 0.0,
+        is_set_spell: false,
+        is_level8_aura: false,
+        metadata: EnchantmentMetadata::default(),
+    };
+    k.register_magic_registry(
+        EntityId(1),
+        EnchantmentRegistry::restore(
+            8,
+            0,
+            vec![
+                entry(10, 10, 0x9001, 1, 20.0),  // Strength: ACE Attribute | Additive.
+                entry(11, 11, 0x9010, 21, 30.0), // Healing: ACE Skill | Additive.
+            ],
+        )
+        .unwrap(),
+        true,
+    )
+    .unwrap();
+    k.step().unwrap();
+    assert_eq!(current(&k, 21), 150);
+    assert_eq!(
+        k.character_skill_projection(EntityId(1), 21)
+            .unwrap()
+            .1
+            .base,
+        100
+    );
+    ticks(&mut k, 149);
+    assert_eq!(current(&k, 21), 100);
 }
 fn ticks(k: &mut Kernel, count: usize) {
     for _ in 0..count {

@@ -135,7 +135,9 @@ impl GameRuntime {
                 boot: None,
             }));
         }
-        let Phase::Ban(mut ban) = std::mem::replace(&mut pending.phase, Phase::Awaiting) else {
+        let phase = std::mem::replace(&mut pending.phase, Phase::Awaiting);
+        let Phase::Ban(mut ban) = phase else {
+            pending.phase = phase;
             self.staff.pending = Some(pending);
             return Ok(());
         };

@@ -272,3 +272,120 @@ fn first_generated_acquisition_uses_absent_durable_source_and_preserves_live_fen
     stale[0].entity.mutation_revision = 6;
     assert!(freeze_generated_inventory(input(&stale), &[id], 4).is_err());
 }
+
+#[test]
+fn healing_charge_persists_value_without_a_stack_change() {
+    let owner = 0x5000_0001;
+    let id = 0x8000_0001;
+    let before = InventoryItem {
+        id: EntityId(id),
+        revision: 4,
+        template: 10,
+        stack_key: 10,
+        place: ItemPlace::Contained {
+            container: EntityId(owner),
+            slot: 0,
+            equipped: 0,
+        },
+        stack: 1,
+        maximum_stack: 1,
+        unit_burden: 5,
+        unit_value: 100,
+        structure: Some(3),
+        pack_slot: false,
+        is_container: false,
+        attuned: false,
+        trade_reserved: false,
+        active_pet: false,
+        unique: false,
+        quest_allowed: true,
+        valid_wield: 0,
+        incompatible_wield: 0,
+        wield_requirements_met: true,
+    };
+    let mut after = before.clone();
+    after.revision = 5;
+    after.structure = Some(2);
+    after.unit_value = 67;
+    let proposal = InventoryProposal {
+        changes: vec![ItemChange {
+            before: Some(before),
+            after,
+        }],
+        participants: vec![(EntityId(id), 4)],
+        actor_burden: 5,
+        requires_pickup_motion: false,
+    };
+    let mut state = WeenieV1 {
+        schema_version: 1,
+        weenie_id: 10,
+        class_name: "healing_kit".into(),
+        weenie_type: 28,
+        last_modified: None,
+        properties: Default::default(),
+    };
+    state.properties.ints = vec![
+        Property { id: 19, value: 100 },
+        Property { id: 92, value: 3 },
+    ];
+    let items = [FrozenInventoryItem {
+        corpse: None,
+        construction: None,
+        source_destination: Some(0),
+        enchantments: vec![],
+        entity: EntitySaveV1 {
+            object_id: id,
+            template_revision: 1,
+            mutation_revision: 4,
+            state,
+        },
+        placement: Some(ItemPlacementV2::Contained {
+            container: owner,
+            slot: 0,
+            pack_slot: false,
+            equipped: 0,
+        }),
+        persisted_version: 2,
+    }];
+    let leases = [bace_persistence::CharacterLease {
+        character_id: owner,
+        epoch: 1,
+        state: bace_persistence::OwnershipState::Online,
+    }];
+    let operation = freeze_inventory(InventoryFreezeInput {
+        operation_id: "healer-value-regression",
+        proposal: &proposal,
+        items: &items,
+        other_snapshots: &[],
+        leases: &leases,
+        storage_views: &[],
+        admitted_positions: &BTreeMap::new(),
+    })
+    .unwrap();
+    let saved = bace_storage_codec::ItemSaveV5::decode(&operation.snapshots[0].bytes).unwrap();
+    assert_eq!(
+        saved
+            .entity
+            .state
+            .properties
+            .ints
+            .iter()
+            .find(|p| p.id == 19)
+            .unwrap()
+            .value,
+        67
+    );
+    assert_eq!(
+        saved
+            .entity
+            .state
+            .properties
+            .ints
+            .iter()
+            .find(|p| p.id == 92)
+            .unwrap()
+            .value,
+        2
+    );
+    assert_eq!(saved.entity.mutation_revision, 5);
+}

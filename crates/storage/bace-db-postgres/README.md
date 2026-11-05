@@ -31,6 +31,16 @@ online or offline epoch, source ownership, aggregate CAS and bounded ancestry;
 slots are unique and cycles reject the complete transaction. Duplicate operation
 IDs return their original receipt; changed requests reject. Existing generic
 writers reject owned items/containers/houses, preventing a fencing bypass.
+Creation now stores equipped starting clothes in the relational `equipped` column
+when the frozen item explicitly names the player as Wielder. On the next Loading
+lease, `load_character_inventory` repairs older version-one creation rows that
+still have that marker but `equipped=0`. It holds the hierarchy and ownership
+fences, writes a durable one-time repair receipt, and leaves carried items and
+subsequently changed equipment alone.
+Creation also assigns separate main and pack slots using pinned ACE
+`RequiresBackpackSlotOrIsContainer` (container type 21 or bool 81). A Loading
+lease repairs unchanged version-one starter packs placed in main slots, with a
+separate durable receipt and no change to later item snapshots.
 
 `save_offline` shares login's ownership lock, so either the offline update commits
 before load or its stale lease rejects. `save_house` saves frozen permissions/rent
@@ -96,6 +106,11 @@ Storage views bind actor identity; owner-account or storage-guest permission is
 checked under the same locks. Bounded maintenance pages expose offline leases and
 frozen houses without creating physical actors. Complete static house-link and
 allegiance permission admission still belongs to the authoritative runtime view.
+
+`load_world_item_trees` reads up to 1,024 cells in one transaction under the
+world-item hierarchy lock, with the same item, depth and byte limits as a
+single-cell read. Region activation uses this bounded read so empty cells do not
+each require a database round trip.
 
 Registered gameplay records cannot be overwritten by older schemas or a different
 aggregate kind. Existing rare identities/key versions cannot be erased or changed,

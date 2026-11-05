@@ -477,12 +477,19 @@ impl Combat {
             let stamina_roll = impact_rolls(&attack.random, attack.next_hook, actor)
                 .map(|r| r.attacker_stamina)
                 .unwrap_or(0.0);
-            let cost =
+            let attack_cost =
                 bace_combat::physical::attack_stamina(bace_combat::physical::AttackStaminaInput {
                     kind: PhysicalKind::Melee,
                     player: attack.profile.player,
                     base_endurance: attack.profile.base_endurance,
-                    weapon_burden: weapon.as_ref().map_or(0, |w| w.encumbrance),
+                    weapon_burden: attack
+                        .profile
+                        .main
+                        .as_ref()
+                        .map_or(0, |w| w.encumbrance)
+                        .saturating_add(
+                            attack.profile.offhand.as_ref().map_or(0, |w| w.encumbrance),
+                        ),
                     shield_burden: attack.profile.shield_encumbrance,
                     shield_placement: attack.profile.shield_placement,
                     power: if attack.profile.player {
@@ -493,13 +500,14 @@ impl Combat {
                     roll: stamina_roll,
                 })
                 .unwrap_or(u32::MAX);
-            let impact_power = if source_stamina.current < cost {
+            let impact_power = if source_stamina.current < attack_cost {
                 0.0
             } else if attack.profile.player {
                 attack.power
             } else {
                 0.5
             };
+            let cost = if attack.stamina_spent { 0 } else { attack_cost };
             let (cost, impact_power) = attack.hook_cost.unwrap_or((cost, impact_power));
             if self.physical_procs_enabled && attack.hook_cost.is_none() {
                 attack.hook_cost = Some((cost, impact_power));
@@ -637,6 +645,7 @@ impl Combat {
                 } else {
                     bace_combat::physical::defense_stamina(
                         defender.player,
+                        state.mode() != 1,
                         impact.evaded,
                         defender
                             .skills
@@ -813,7 +822,6 @@ impl Combat {
                 }
             }
             attack.completed_targets = 0;
-            attack.stamina_spent = false;
             attack.hook_cost = None;
             attack.next_hook += 1;
             attack.pending_targets = None;

@@ -2,6 +2,38 @@ use super::*;
 use bace_auth::{AccountRepository, CreateAccountOutcome, NewAccount, PasswordService};
 use bace_types::{AccountId, EntityId};
 
+#[tokio::test]
+async fn ban_poll_preserves_unrelated_target_query() {
+    let (_cluster, _directory, mut runtime) =
+        Box::pin(crate::game_runtime::tests::fixture::fixture()).await;
+    let key = SessionKey {
+        id: 1,
+        generation: 7,
+    };
+    runtime.staff.pending = Some(Pending {
+        key,
+        context: ActionContext {
+            actor: EntityId(1),
+            account: AccountId(1),
+            session: bace_gameplay_api::SessionId(key.generation),
+            sequence: 1,
+        },
+        token: 27,
+        phase: Phase::Capture(StaffRequest::Query(
+            bace_gameplay_api::selection::TargetQueryKind::Health,
+            EntityId(1),
+        )),
+    });
+    runtime.poll_staff_ban().unwrap();
+    assert!(matches!(
+        runtime.staff.pending.as_ref().map(|pending| &pending.phase),
+        Some(Phase::Capture(StaffRequest::Query(
+            bace_gameplay_api::selection::TargetQueryKind::Health,
+            EntityId(1)
+        )))
+    ));
+}
+
 #[test]
 fn source_duration_checks_each_component_and_retains_fractional_time() {
     let now = 1_000_000;

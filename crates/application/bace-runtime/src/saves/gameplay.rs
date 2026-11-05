@@ -12,7 +12,6 @@ pub(super) enum GameplayWrite {
     AllegiancePlacement(Box<bace_persistence::AllegiancePlacementOperation>),
     Allegiance(bace_persistence::AllegianceOperation),
     Inventory(InventoryOperation),
-    NpcStage(Box<NpcStageOperation>),
     Placement(PlacementOperation),
     WorldPlacement(WorldPlacementOperation),
     VendorStock(bace_persistence::VendorStockOperation),
@@ -109,19 +108,35 @@ impl SaveHandle {
                 .inventory
                 .participants
                 .contains(&checkpoint.source)
+            || operation
+                .inventory
+                .snapshots
+                .iter()
+                .any(|row| row.object_id == checkpoint.source)
+            || operation.inventory.changes.iter().any(|change| {
+                change.item == checkpoint.source
+                    || [change.expected, Some(change.destination)]
+                        .into_iter()
+                        .flatten()
+                        .any(|place| matches!(place, bace_persistence::DurableItemPlace::Contained { container, .. } if container == checkpoint.source))
+            })
         {
             return Err(SaveSubmitError::Invalid);
         }
-        let bytes = placement_bytes_inner(&operation.inventory, true)?
-            .checked_add(
-                u32::try_from(operation.workflow.checkpoint.len())
-                    .map_err(|_| SaveSubmitError::Invalid)?,
-            )
-            .and_then(|n| n.checked_add(32))
-            .ok_or(SaveSubmitError::Invalid)?;
-        self.submit_gameplay(bytes, || {
-            GameplayWrite::NpcStage(Box::new(operation.clone()))
-        })
+        let mut player = operation.inventory.clone();
+        player.participants.retain(|id| *id != checkpoint.source);
+        if player.snapshots.is_empty() && player.changes.is_empty() {
+            // The source checkpoint advances only in the resident simulation.
+            // There is no durable player result to wait for on this stage.
+            let (sender, receiver) = tokio::sync::oneshot::channel();
+            let _ = sender.send(SaveReport {
+                result: Ok(WriteOutcome::Valuable(OperationOutcome::Committed(vec![]))),
+                dirty_since: None,
+                started_late_by: std::time::Duration::ZERO,
+            });
+            return Ok(receiver);
+        }
+        self.try_placement(&player)
     }
 
     /// Borrowed input stays with the reserving owner on overload and uncertainty.

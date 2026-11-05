@@ -1,0 +1,655 @@
+# P0-E divergence triage (read-only). Source register: docs/divergences.toml (58 [[observations]], ids 1-58;
+# the task card's "about 108" did not match the file). Gameplay links: docs/gameplay-parity.toml reported_divergences.
+#
+# Rules applied:
+# - authority: needs-retail-evidence rows -> "retail" (only retail can decide). Otherwise by docs/baselines.toml
+#   [authority_policy]: door/monster authority, player cast movement/release, physical+spell combat, salvage and
+#   allegiance XP -> "gdle"; wire layout and everything else -> "ace". Where ACCEPTED retail evidence already
+#   overrides the emulator, the row says so in a comment (policy: verified retail overrides both).
+# - owner: a crate from the register's owners list. Where the register lists only wire/session/replication for a
+#   gameplay item, the gameplay-parity feature owner is used (bace-ai, bace-economy, bace-content).
+# - closed rows with a note are judgements; the note is in the comment above the row.
+# - source_status UNVERIFIED or CONTRADICTION rows are needs-retail-evidence unless the emulator decides them.
+# - Rows whose only oracle is an ACCEPTED retail census are actionable only where a bounded, owner-configured
+#   rule can be written (see comments on rows 41, 42, 43).
+# - bace_status copied verbatim from docs/divergences.toml.
+
+[[triage]]
+id = 1
+area = "movement"
+owner = "bace-motion"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-authority-core"
+authority = "ace"
+task = "After authoritative own-player movement lands, re-anchor each player with its own 0xF748 on the retail cadence (0.31 s indoors / 0.50 s outdoors) instead of echoing 0xF753."
+depends_on = []
+
+[[triage]]
+id = 2
+area = "movement"
+owner = "bace-ai"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-authority-core"
+authority = "gdle"
+task = "Once GDLE-authority monster movement exists, re-issue melee sticky states inside the 1.0 s STICKY_TIMEOUT so the stick never lapses."
+depends_on = []
+
+# Needs retail census: UNVERIFIED; neither emulator decides.
+[[triage]]
+id = 3
+area = "movement"
+owner = "bace-ai"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Census retail 0xF748 messages in the 1.0 s after each sticky arm to decide whether a stuck attacker receives positions."
+depends_on = []
+
+# Actionable: ACE fallback order useRadius ?? target.UseRadius ?? 0.6 is the oracle; retail 0.60 ACCEPTED.
+[[triage]]
+id = 4
+area = "movement"
+owner = "bace-motion"
+bace_status = "requires_pinned_review"
+bucket = "actionable"
+authority = "ace"
+task = "Set the give MoveToObject distance_to_object to the ACE fallback (useRadius, then target UseRadius, then 0.6) and add a fixture for a target with no authored UseRadius."
+depends_on = []
+
+# Melee MoveToObject is built in bace-simulation combat/driver.rs with flags 0x1f09eff0, min 0.1, fail 15, speed 1.5, walk_run 15.
+# Retail type-6 bitfield 0x0041EFF0 (ACCEPTED) overrides ACE/GDLE; policy gdle for physical combat.
+[[triage]]
+id = 5
+area = "combat"
+owner = "bace-combat"
+bace_status = "requires_pinned_review"
+bucket = "actionable"
+authority = "gdle"
+task = "Replace the melee MoveToObject flags 0x1f09eff0 in bace-simulation combat/driver.rs with the retail type-6 bitfield 0x0041EFF0 and confirm distance_to_object against retail 0.5, with a fixture from pinned GDLE."
+depends_on = []
+
+# Plain approach shares the single MoveToObject parameter set (fail 15, speed 1.5); retail plain needs CanCharge+FailWalk, fail FLT_MAX, speed 1.0.
+[[triage]]
+id = 6
+area = "combat"
+owner = "bace-combat"
+bace_status = "requires_pinned_review"
+bucket = "actionable"
+authority = "gdle"
+task = "Split approach parameters by charge option so the plain approach uses CanCharge plus FailWalk, fail_distance f32::MAX and speed 1.0 instead of the shared 15.0 and 1.5 values."
+depends_on = [5]
+
+# Shared server-owned motion goal exists; the stall/charge reach behaviour still needs authoritative collision.
+[[triage]]
+id = 7
+area = "combat"
+owner = "bace-combat"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-authority-core"
+authority = "gdle"
+task = "Run the charge on the single server-owned body from accepted positions with no separate catch-up copy, once authoritative approach motion lands."
+depends_on = [6]
+
+# Client copes with the wrong code path; the 0x3D refusal needs the charge overshoot path to exist first.
+[[triage]]
+id = 8
+area = "combat"
+owner = "bace-combat"
+bace_status = "requires_pinned_review"
+bucket = "actionable"
+authority = "gdle"
+task = "Map the charge overshoot refusal to WeenieError 0x3D and AttackDone 0x3D (retail) instead of AttackDone 0x36, once the plain approach overshoot path exists."
+depends_on = [6]
+
+# Needs retail capture: attack on a target behind a wall is UNVERIFIED.
+[[triage]]
+id = 9
+area = "combat"
+owner = "bace-combat"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-authority-core"
+authority = "gdle"
+task = "Detect a stalled approach against swept wall collision and end it with a type-0 stop plus AttackDone 0x39 at about 1.3 s, once swept collision gates approach motion."
+depends_on = [6]
+
+[[triage]]
+id = 10
+area = "combat"
+owner = "bace-combat"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Capture a retail attack on a target behind a wall to decide whether the server refuses or steers toward it."
+depends_on = []
+
+# Lead gesture as forward command: CLIENT COPES, but correction needs cast motion composition (gdle cast movement).
+[[triage]]
+id = 11
+area = "magic"
+owner = "bace-magic"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-authority-core"
+authority = "gdle"
+task = "Stop emitting the invalid 0x80000000 Lead gesture as the forward command and route scarab windup gestures through authoritative cast motion once the motion table exists."
+depends_on = []
+
+[[triage]]
+id = 12
+area = "magic"
+owner = "bace-magic"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Census retail PlayerDesc captures for Bool 68 SpellComponentsRequired before changing whether players receive it."
+depends_on = []
+
+# CLOSED: source RESOLVED, not a divergence (2026-09-27: @attackable blocked the buff, not the spell rule).
+[[triage]]
+id = 13
+area = "magic"
+owner = "bace-magic"
+bace_status = "requires_pinned_review"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# CLOSED: bace_status approved and fixture-backed (skill-class projection 0x02E2, per gameplay-parity #14).
+[[triage]]
+id = 14
+area = "character"
+owner = "bace-character"
+bace_status = "approved_public_skill_class_projection_0x02E2; independent_wire_fixture_and_durable_skill_worker_tests"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# CLOSED: pinned boundary regression; no fabricated chat is a deliberate choice (retail sends nothing).
+[[triage]]
+id = 15
+area = "character"
+owner = "bace-character"
+bace_status = "maximum_rank_domain_refusal_has_no_fabricated_chat; pinned_boundary_regression"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# CLOSED: rank derives from XP; inconsistent saved rank rejected.
+[[triage]]
+id = 16
+area = "character"
+owner = "bace-character"
+bace_status = "fresh_and_loaded_progression_derives_rank_from_xp; inconsistent_saved_rank_rejected"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# Door state codec and GDLE door regressions exist; the SetState broadcast on Open/FinalizeClose waits for door physics.
+[[triage]]
+id = 17
+area = "objects"
+owner = "bace-interactions"
+bace_status = "state_codec_verified; gdle_server_door_and_synthetic_occupancy_regressions; authentic_projection_pending"
+bucket = "blocked-on-authority-core"
+authority = "gdle"
+task = "After collision-gated door physics is authoritative, stop broadcasting 0xF74B SetState on Open and FinalizeClose to match the retail Create-only On/Off path."
+depends_on = []
+
+# Asset projection of the mana pool (static state 0x1040C) needs its prepared asset.
+[[triage]]
+id = 18
+area = "objects"
+owner = "bace-interactions"
+bace_status = "explicit_physics_state_bits_preserved; asset_projection_pending"
+bucket = "blocked-on-content"
+authority = "ace"
+task = "Load the mana pool object asset so static state 0x1040C projects with its HAS_PHYSICS_BSP bit once its prepared geometry is admitted."
+depends_on = []
+
+# Actionable: missing-object ForceObjdesc recovery; no 0xF6EA handler exists yet in crates/network.
+[[triage]]
+id = 19
+area = "objects"
+owner = "bace-replication"
+bace_status = "appearance_only_and_full_object_codecs_verified; missing_object_recovery_pending"
+bucket = "actionable"
+authority = "ace"
+task = "Add an inbound 0xF6EA ForceObjdesc handler that answers a found object with a full 0xF745 create instead of a bare 0xF625 ObjDescEvent."
+depends_on = []
+
+# CLOSED: client copes; BACE intentionally keeps pinned ACE empty 0x01C9 (word-carrying retail variant is cosmetic). Revisit only if owner wants retail word.
+[[triage]]
+id = 20
+area = "objects"
+owner = "bace-wire"
+bace_status = "pinned_empty_event_verified"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# CLOSED: @fillcomps clear for {0, -1} implemented and tested.
+[[triage]]
+id = 21
+area = "objects"
+owner = "bace-interactions"
+bace_status = "component_zero_minus_one_clear_implemented; bounded_character_UI_and_save_reload_tests"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# Actionable: QueryAge/QueryBirth payload is u32 per retail (ACCEPTED); ACE/shard reads String16L.
+[[triage]]
+id = 22
+area = "objects"
+owner = "bace-wire"
+bace_status = "retail_u32_payload_decoder_verified_exact_4_bytes; runtime_route_and_age_reply_pending"
+bucket = "actionable"
+authority = "ace"
+task = "Route the QueryAge and QueryBirth u32 decoder (TargetQueryInput::Age/Birth, done) to a runtime handler and encode 0x01C3 once an age source exists."
+depends_on = []
+
+# Trade close reason 1105 vs 0x1 is UNVERIFIED on the shard; needs a close-reason read.
+[[triage]]
+id = 23
+area = "objects"
+owner = "bace-economy"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Close a trade at a client 0x01F7 on the shard and read the reason before deciding between retail 1105 and the shard's 0x1."
+depends_on = []
+
+# CLOSED: pinned Turbine plus-eight length arithmetic verified; CLIENT COPES.
+[[triage]]
+id = 24
+area = "chat"
+owner = "bace-social"
+bace_status = "pinned_turbine_plus_eight_length_arithmetic_verified"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# Actionable: friends error texts differ from retail (ACCEPTED); friend handling already exists in crates.
+[[triage]]
+id = 25
+area = "chat"
+owner = "bace-social"
+bace_status = "requires_pinned_review"
+bucket = "actionable"
+authority = "ace"
+task = "Answer friend-add failures with the retail messages (0x02EB unknown character, 0x028B 0x562 already listed) instead of 0xF7E0 text."
+depends_on = []
+
+# Jump_NonAutonomous caller is UNVERIFIED; capture needed.
+[[triage]]
+id = 26
+area = "other"
+owner = "bace-session"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Capture which client code path calls DoJump(false) before deciding whether 0xF7C9 Jump_NonAutonomous needs handling."
+depends_on = []
+
+# @settime crash cause UNVERIFIED on retail.
+[[triage]]
+id = 27
+area = "other"
+owner = "bace-session"
+bace_status = "portal_origin_bounds_regression_tested; reported_settime_crash_cause_unverified"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Capture ACE's post-@settime traffic on a retail client and identify the message retail rejects before changing settime output."
+depends_on = []
+
+# Scaled sphere-less body in a closing door: UNVERIFIED; GDLE door authority does not settle the retail probe scale.
+[[triage]]
+id = 28
+area = "collision"
+owner = "bace-physics"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Capture a scaled sphere-less body held in a closing door on the shard and retail to decide whether server door hold should apply the object scale."
+depends_on = []
+
+# Actionable: @age text differs per ACCEPTED retail corpus; pure formatting change in the chat owner.
+[[triage]]
+id = 29
+area = "chat"
+owner = "bace-social"
+bace_status = "retail_dhms_format_evidence_recorded; formatter_and_age_source_absent"
+bucket = "actionable"
+authority = "ace"
+task = "Format @age with retail d/h/m/s units only (no y or w units) to match the corpus form 2d 17h 21m 25s, keeping the seconds unit as retail does."
+depends_on = []
+
+# CLOSED: unsuitable ids retained in domain and wire (gdle salvage policy); confirm rendered message in crafting tests.
+[[triage]]
+id = 30
+area = "objects"
+owner = "bace-interactions"
+bace_status = "unsuitable_ids_retained_in_domain_and_wire; stacked_inputs_untouched"
+bucket = "closed"
+authority = "gdle"
+task = ""
+depends_on = []
+
+# CLOSED: explicit empty salvage result encoded; retail 'Salvaging Failed!' vs ACE silence is a recorded choice.
+[[triage]]
+id = 31
+area = "objects"
+owner = "bace-interactions"
+bace_status = "empty_salvage_result_explicitly_encoded; no_empty_valuable_transaction"
+bucket = "closed"
+authority = "gdle"
+task = ""
+depends_on = []
+
+# CLOSED: zero-or-one salvage result per message enforced (retail never carried more than one).
+[[triage]]
+id = 32
+area = "objects"
+owner = "bace-interactions"
+bace_status = "zero_or_one_salvage_result_per_message_enforced; official_wire_fixture_and_approved_projection_policy"
+bucket = "closed"
+authority = "gdle"
+task = ""
+depends_on = []
+
+# CLOSED on judgement: CLIENT COPES, both framings reach the same dispatcher (no functional difference).
+[[triage]]
+id = 33
+area = "housing"
+owner = "bace-housing"
+bace_status = "requires_pinned_review"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# Recipient rule UNVERIFIED on retail.
+[[triage]]
+id = 34
+area = "housing"
+owner = "bace-housing"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Capture retail's recipient rule for 0x0248 house restriction updates before changing which players receive it."
+depends_on = []
+
+# Remote running 0xF748 cadence needs authoritative remote motion.
+[[triage]]
+id = 35
+area = "movement"
+owner = "bace-replication"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-authority-core"
+authority = "ace"
+task = "Set remote 0xF748 broadcast cadence to the retail distance- and indoor-dependent schedule once authoritative remote movement exists."
+depends_on = [1]
+
+# CLOSED: pinned heritage/augmentation locked-skill transitions rejected with device tests; retail 0x4D9 text never captured (recorded).
+[[triage]]
+id = 36
+area = "character"
+owner = "bace-character"
+bace_status = "heritage_and_augmentation_locked_skill_transitions_rejected; pinned_transition_oracle_and_device_tests"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# Jump-stamina refusal already sends WeenieError 0x3E (bace-replication/src/locomotion.rs); running and combat stamina remain.
+[[triage]]
+id = 37
+area = "movement"
+owner = "bace-motion"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-authority-core"
+authority = "ace"
+task = "Send WeenieError 0x3E for running and combat stamina exhaustion (jump already does) once authoritative locomotion charges run stamina."
+depends_on = [1]
+
+# Needs house purchase implemented (housing scaffolded; purchase/rent remaining).
+[[triage]]
+id = 38
+area = "housing"
+owner = "bace-housing"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-content"
+authority = "ace"
+task = "Implement the house purchase refusal with WeenieError 0x0259 1121 for under-level buyers once house content is loaded."
+depends_on = []
+
+[[triage]]
+id = 39
+area = "housing"
+owner = "bace-housing"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-content"
+authority = "ace"
+task = "Send the 0x0225 house status update to the buyer after a successful purchase once house purchase exists."
+depends_on = [38]
+
+# Actionable: attribute-transfer gem success is retail UseDone 0x4E1 (ACCEPTED, 51 of 51); pinned ACE sends WeenieError 0x028A 0x4E1.
+[[triage]]
+id = 40
+area = "character"
+owner = "bace-character"
+bace_status = "pinned_ace_weenie_error_implemented_retail_usedone_unqualified"
+bucket = "actionable"
+authority = "ace"
+task = "Send the retail UseDone result 0x4E1 for a successful attribute-transfer gem and keep the pinned ACE WeenieError only for refusals."
+depends_on = []
+
+# Actionable on judgement: distance term is not in ACE; oracle is retail census (ACCEPTED). Requires an owner-configured curve.
+[[triage]]
+id = 41
+area = "appraisal"
+owner = "bace-interactions"
+bace_status = "requires_pinned_review"
+bucket = "actionable"
+authority = "ace"
+task = "Add a bounded distance term to the AssessPerson failure chance from an owner-configured retail-derived curve (about 96 pct at 10-20 m, 47 pct at 25-30 m, 11 pct past 50 m), labelled not ACE parity."
+depends_on = []
+
+# Needs retail: revert mechanism not derivable from ACE; judgement, the census gives flips but no rule.
+[[triage]]
+id = 42
+area = "appraisal"
+owner = "bace-interactions"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Derive a revert rule from the 682 retail success-to-failure flips before implementing appraisal re-rolls."
+depends_on = []
+
+# Actionable: unsolicited 0x00C9 cadence 4-6 s per retail corpus while a panel is open.
+[[triage]]
+id = 43
+area = "appraisal"
+owner = "bace-interactions"
+bace_status = "requires_pinned_review"
+bucket = "actionable"
+authority = "ace"
+task = "Push unsolicited 0x00C9 appraisal updates on a bounded 4-6 s cadence while a panel is open, leaving the 0x00C8 poll answer unchanged."
+depends_on = []
+
+# Actionable: Enlightenment presence row; value 0 for unset per the retail presence.
+[[triage]]
+id = 44
+area = "appraisal"
+owner = "bace-interactions"
+bace_status = "requires_pinned_review"
+bucket = "actionable"
+authority = "ace"
+task = "Include Int 390 Enlightenment (value 0 when unset) in player appraisal profiles so the presence-gated row appears."
+depends_on = []
+
+# Housing purchase/rent scaffolded; rent time and maintenance depend on purchase.
+[[triage]]
+id = 45
+area = "housing"
+owner = "bace-housing"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-content"
+authority = "ace"
+task = "Anchor 0x0225 m_rent_time to the current rent period start per the retail corpus once house rent and purchase content exist."
+depends_on = [38, 39]
+
+[[triage]]
+id = 46
+area = "housing"
+owner = "bace-housing"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-content"
+authority = "ace"
+task = "Send m_maintenance_free = 0 in 0x0225 as retail does and test the rent-list row once house rent is implemented."
+depends_on = [45]
+
+[[triage]]
+id = 47
+area = "housing"
+owner = "bace-housing"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-content"
+authority = "ace"
+task = "Emit 0x0228 UpdateRentPayment after maintenance payments and 0x0227 UpdateRentTime on rent-time changes once house rent exists."
+depends_on = [45]
+
+# CLOSED: BACE ignores ICmdCommand 0x400000 as pinned ACE does (verified); retail companion command unsequenced ignore is matched.
+[[triage]]
+id = 48
+area = "net"
+owner = "bace-transport"
+bace_status = "pinned_companion_command_ignore_verified"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# CLOSED: intentional hardening (AUTH-04); clock observations do not grant authority or prove cheating.
+[[triage]]
+id = 49
+area = "net"
+owner = "bace-transport"
+bace_status = "intentional_hardening_clock_observations_do_not_grant_authority_or_prove_cheating"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# Monster sticky attacker positions: GDLE monster authority decides; needs authoritative monster poses.
+[[triage]]
+id = 50
+area = "physics"
+owner = "bace-ai"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-authority-core"
+authority = "gdle"
+task = "Once GDLE monster authority supplies server poses, send a 0xF748 for a sticky attacker with each 0xF74C and keep the ring out of the player body."
+depends_on = [3]
+
+# Remote jump takeoff flattening needs interpreted remote motion (authoritative motion core).
+[[triage]]
+id = 51
+area = "physics"
+owner = "bace-motion"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-authority-core"
+authority = "ace"
+task = "Flatten a running or walking remote's jump velocity at takeoff from the interpreted state once authoritative remote motion exists."
+depends_on = []
+
+# CLOSED: pinned null boot reason verified (ACE GameMessageBootAccount null reason); retail string is cosmetic. Owner may reopen.
+[[triage]]
+id = 52
+area = "net"
+owner = "bace-transport"
+bace_status = "pinned_null_boot_reason_verified"
+bucket = "closed"
+authority = "ace"
+task = ""
+depends_on = []
+
+# Retry cap is client-side retail behavior; the server sending Referral is UNVERIFIED.
+[[triage]]
+id = 53
+area = "net"
+owner = "bace-transport"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Capture retail's world-login Referral and resend cadence before deciding whether the server should send Referral."
+depends_on = []
+
+# ReportAbuse answer has 0 corpus witnesses; the opcode constant exists in bace-wire but the answer is unknown.
+[[triage]]
+id = 54
+area = "ui"
+owner = "bace-session"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Capture a retail 0x0140 ReportAbuse answer (0x4B8 to 0x4BA) before adding a handler for it."
+depends_on = []
+
+# Help-channel response flow has 0 corpus sends; the ACE 'Needs work.' placeholder must not be copied.
+[[triage]]
+id = 55
+area = "chat"
+owner = "bace-social"
+bace_status = "requires_pinned_review"
+bucket = "needs-retail-evidence"
+authority = "retail"
+task = "Capture retail's Help-channel 0x0147 response flow before removing the ACE 'Needs work.' placeholder line."
+depends_on = []
+
+# Actionable: ACE placeholder authorAccount literals; retail shows the author only to PSR.
+[[triage]]
+id = 56
+area = "ui"
+owner = "bace-interactions"
+bace_status = "requires_pinned_review"
+bucket = "actionable"
+authority = "ace"
+task = "Stop sending the literal ACE authorAccount placeholders to non-PSR viewers and expose the authored author account only to PSR-level viewers."
+depends_on = []
+
+# World content: duplicate Town Crier at 0xA260 (retail has one with a creature block).
+[[triage]]
+id = 57
+area = "world"
+owner = "bace-content"
+bace_status = "requires_pinned_review"
+bucket = "blocked-on-content"
+authority = "ace"
+task = "Correct the world content so Holtburg 0xA260 spawns one creature-block Town Crier, not two, and add an import validation regression."
+depends_on = []
+
+# Actionable: ACE dispatch is ByName; retail RESPONSE 5/2 ByID (ACCEPTED) overrides; enables the Failed to send text line.
+[[triage]]
+id = 58
+area = "chat"
+owner = "bace-social"
+bace_status = "pinned_byname_response_dispatch_verified"
+bucket = "actionable"
+authority = "ace"
+task = "Dispatch SendToRoomByID responses as RESPONSE 5/2 ByID (retail) so a failed send can surface the Failed to send text line."
+depends_on = []
+
+[summary]
+closed = 15
+actionable = 14
+needs_retail_evidence = 12
+blocked_on_authority_core = 10
+blocked_on_content = 7
+actionable_by_owner = { "bace-motion" = 1, "bace-combat" = 3, "bace-replication" = 1, "bace-wire" = 1, "bace-social" = 3, "bace-character" = 1, "bace-interactions" = 4 }

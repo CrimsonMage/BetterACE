@@ -2,11 +2,15 @@ use super::*;
 pub(in crate::game_runtime) mod entered;
 pub(in crate::game_runtime) mod fixture;
 #[tokio::test]
-async fn unsupported_input_closes_peer_while_unmatched_owner_outcomes_remain_held() {
+async fn unsupported_input_is_ignored_while_unmatched_owner_outcomes_remain_held() {
     use bace_auth::{
         AccountName, AccountRepository, CreateAccountOutcome, NewAccount, PasswordService,
     };
-    let (_cluster, _directory, mut runtime) = fixture::fixture().await;
+    let (_cluster, directory, mut runtime) = fixture::fixture().await;
+    let diagnostics = Arc::new(
+        bace_observability::LogStore::open(&directory.path().join("game-diagnostics")).unwrap(),
+    );
+    runtime.attach_diagnostic_log(diagnostics.clone());
     let CreateAccountOutcome::Created(account) = runtime
         .bootstrap
         .store
@@ -55,11 +59,55 @@ async fn unsupported_input_closes_peer_while_unmatched_owner_outcomes_remain_hel
         runtime.input.is_empty(),
         "unaccepted unknown packets cannot occupy the shared ingress queue indefinitely"
     );
-    assert!(runtime.sessions[&key].terminated);
+    assert!(!runtime.sessions[&key].terminated);
     assert!(
         runtime.sessions[&key].failure.is_none(),
         "rejection cannot poison the durable logout owner"
     );
+    // ACE's fragment queue is transport metadata: InboundMessageManager routes
+    // by opcode and session state, regardless of the queue number.
+    let unknown_action = bace_wire::GameActionEnvelope {
+        sequence: 1,
+        action: bace_wire::opcode::GameActionType(0xdead),
+        payload: &[],
+    }
+    .encode(1024)
+    .unwrap();
+    for queue in 0..12 {
+        runtime.input.push_back(NetworkEvent::Message {
+            key,
+            message: bace_transport::ReceivedMessage {
+                sequence: u32::from(queue) + 2,
+                id: 1,
+                queue,
+                bytes: unknown_action.clone(),
+            },
+        });
+        runtime.input_bytes = unknown_action.len();
+        runtime.poll_ingress().unwrap();
+        assert!(
+            runtime.input.is_empty(),
+            "queue {queue} retained unknown action"
+        );
+        assert!(
+            !runtime.sessions[&key].terminated,
+            "queue {queue} closed peer"
+        );
+    }
+    tokio::time::timeout(Duration::from_secs(2), async {
+        loop {
+            if diagnostics.recent(0).records.iter().any(|record| {
+                record.event == "game.unsupported_message"
+                    && record.message.contains("queue 11")
+                    && record.message.contains("action 0x0000dead")
+            }) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .expect("unsupported queue and action reached diagnostic log");
     runtime.input.push_back(NetworkEvent::Terminated {
         key,
         reason: crate::network::NetworkStopReason::PeerDisconnected,

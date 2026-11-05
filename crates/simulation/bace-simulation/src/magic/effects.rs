@@ -122,24 +122,40 @@ impl Magic {
                 self.signal(attempt, signal, world, now)?;
                 return Ok(false);
             }
-            let mana_draws = if uses_resources {
-                [unit(&mut random)?, unit(&mut random)?, unit(&mut random)?]
-            } else {
-                [0.; 3]
-            };
             let cost = if !uses_resources {
                 0
             } else if fizzled || school_locked {
                 5
             } else {
-                bace_magic::mana_cost(
-                    spell.power,
-                    spell.base_mana,
-                    self.casters[&actor].mana_conversion,
-                    &mana_draws,
-                )
-                .map_err(|_| CastRejection::InvalidState)?
-                .0
+                // ACE Creature.CalculateManaUsage returns base cost when the
+                // spell carries IgnoresManaConversion (SpellFlags 0x800).
+                // The caster's skill is already zero for an untrained owner.
+                let (base_mana, conversion) =
+                    self.mana_conversion_inputs(actor, spell.id, spell.base_mana, world)?;
+                if conversion == 0 {
+                    base_mana
+                } else {
+                    // The pinned ACE GetManaCost draws roll/luck, then draws a
+                    // second roll only when the first pass left cost above 1.
+                    let first = unit(&mut random)?;
+                    let luck = unit(&mut random)?;
+                    match bace_magic::mana_cost(spell.power, base_mana, conversion, &[first, luck])
+                    {
+                        Ok((cost, _)) => cost,
+                        Err(bace_magic::MagicFormulaError::MissingDraw) => {
+                            let second = unit(&mut random)?;
+                            bace_magic::mana_cost(
+                                spell.power,
+                                base_mana,
+                                conversion,
+                                &[first, luck, second],
+                            )
+                            .map_err(|_| CastRejection::InvalidState)?
+                            .0
+                        }
+                        Err(_) => return Err(CastRejection::InvalidState),
+                    }
+                }
             };
             let mut consumed = Vec::new();
             if matches!(attempt.origin, CastOrigin::Player(_))
@@ -671,5 +687,221 @@ impl Magic {
             entries: eligible,
         });
         Ok(())
+    }
+}
+
+impl Magic {
+    /// ACE Creature.CalculateManaUsage: Held wand's built-in spell cost, then
+    /// trained skill, spell flag and the current weapon/owner enchantment mods.
+    fn mana_conversion_inputs(
+        &self,
+        actor: EntityId,
+        spell: u32,
+        base_mana: u32,
+        world: &World,
+    ) -> Result<(u32, u32), CastRejection> {
+        let profile = self.damage_profiles.get(&actor);
+        let base_mana = profile
+            .and_then(|p| p.wand_spell_cost)
+            .filter(|(id, _)| *id == spell)
+            .map_or(base_mana, |(_, cost)| cost);
+        let conversion = mana_conversion_for_spell(
+            self.casters[&actor].mana_conversion,
+            self.damage_spell_flags.get(&spell).copied().unwrap_or(0),
+        );
+        if conversion == 0 {
+            return Ok((base_mana, 0));
+        }
+        // ACE GetWeaponManaConversionModifier casts the caster to Player;
+        // nonplayer casters receive its default 1.0 modifier.
+        if !self.casters[&actor].player {
+            return Ok((base_mana, conversion));
+        }
+        let Some(weapon) = profile.and_then(|p| p.mana_conversion_weapon) else {
+            return Ok((base_mana, conversion));
+        };
+        let item_enchantment =
+            mana_conv_enchantment(self.registries.get(&EntityId(weapon.entity)))?;
+        let wielder_enchantment = if weapon.enchantable {
+            mana_conv_enchantment(self.registries.get(&actor))?
+        } else {
+            1.
+        };
+        let combat_mode = world.combatant(actor).is_some_and(|c| c.mode() != 1);
+        let effective = bace_magic::weapon_mana_conversion_skill(
+            conversion,
+            weapon.base_modifier,
+            item_enchantment,
+            wielder_enchantment,
+            combat_mode,
+        )
+        .map_err(|_| CastRejection::InvalidState)?;
+        Ok((base_mana, effective))
+    }
+}
+
+fn mana_conv_enchantment(registry: Option<&EnchantmentRegistry>) -> Result<f32, CastRejection> {
+    let Some(registry) = registry else {
+        return Ok(1.);
+    };
+    let mut modifier = 1.0f32;
+    for key in [144, 171] {
+        for entry in bace_magic::enchantment_modifiers(registry, 8 | 0x4000, key) {
+            modifier *= entry.spec.value;
+            if !modifier.is_finite() {
+                return Err(CastRejection::InvalidState);
+            }
+        }
+    }
+    Ok(modifier)
+}
+
+/// ACE Creature.CalculateManaUsage checks SpellFlags.IgnoresManaConversion
+/// before GetManaCost. Skill training is resolved by the character owner.
+fn mana_conversion_for_spell(skill: u32, flags: u32) -> u32 {
+    if flags & 0x800 != 0 { 0 } else { skill }
+}
+
+#[cfg(test)]
+mod mana_conversion_tests {
+    use super::{mana_conv_enchantment, mana_conversion_for_spell};
+    use bace_gameplay_api::SkillAdvancement;
+
+    #[test]
+    fn ace_ignored_flag_preserves_base_cost_and_consumes_no_conversion_draws() {
+        let ignored = mana_conversion_for_spell(250, 0x800);
+        let ordinary = mana_conversion_for_spell(250, 0);
+        assert_eq!(ignored, 0);
+        assert_eq!(ordinary, 250);
+        assert_eq!(
+            bace_magic::mana_cost(150, 30, ignored, &[]).unwrap(),
+            (30, 0)
+        );
+        assert!(bace_magic::mana_cost(150, 30, ordinary, &[]).is_err());
+        assert_eq!(mana_conversion_for_spell(250, 0x804), 0);
+    }
+
+    #[test]
+    fn ace_training_gate_uses_only_trained_and_specialized_skill() {
+        for (advancement, expected) in [
+            (SkillAdvancement::Inactive, 0),
+            (SkillAdvancement::Untrained, 0),
+            (SkillAdvancement::Trained, 250),
+            (SkillAdvancement::Specialized, 250),
+        ] {
+            let value = bace_character::SkillValues {
+                skill: 16,
+                advancement,
+                base: 250,
+                current: 250,
+            };
+            assert_eq!(crate::magic::trained_mana_conversion(value), expected);
+        }
+    }
+
+    #[test]
+    fn ace_mana_conversion_multiplies_item_and_aura_top_layer_properties() {
+        let entry = |spell, key, value| bace_magic::EnchantmentEntry {
+            spell,
+            caster: 1,
+            school: bace_magic::MagicSchool::Creature,
+            spec: bace_magic::EnchantmentSpec {
+                category: key as u16,
+                power: 100,
+                duration: 60.,
+                layer: 1,
+                stat_type: 8 | 0x1000 | 0x4000,
+                stat_key: key,
+                value,
+                beneficial: true,
+                set_id: None,
+            },
+            start_time: 0.,
+            is_set_spell: false,
+            is_level8_aura: false,
+            metadata: Default::default(),
+        };
+        let registry = bace_magic::EnchantmentRegistry::restore(
+            4,
+            0,
+            vec![entry(1, 144, 1.2), entry(2, 171, 1.5)],
+        )
+        .unwrap();
+        assert_eq!(
+            mana_conv_enchantment(Some(&registry)).unwrap(),
+            1.2f32 * 1.5f32
+        );
+        assert_eq!(mana_conv_enchantment(None).unwrap(), 1.);
+    }
+
+    #[test]
+    fn live_wand_cost_and_enchanted_weapon_modifier_feed_cast_release() {
+        use crate::magic::{Magic, MagicCaster};
+        use bace_types::EntityId;
+        use std::collections::BTreeSet;
+        let mut magic = Magic::new(16);
+        let actor = EntityId(1);
+        magic.casters.insert(
+            actor,
+            MagicCaster {
+                player: true,
+                known_spells: BTreeSet::new(),
+                school_skills: [100; 5],
+                magic_defense: 0,
+                mana_conversion: 100,
+                components_required: false,
+                safe_components: true,
+            },
+        );
+        let mut profile = bace_magic::MagicDamageProfile::neutral(true);
+        profile.mana_conversion_weapon = Some(bace_magic::ManaConversionWeapon {
+            entity: 2,
+            base_modifier: 0.1,
+            enchantable: true,
+        });
+        profile.wand_spell_cost = Some((123, 7));
+        magic.damage_profiles.insert(actor, profile);
+        let entry = |spell, key, value| bace_magic::EnchantmentEntry {
+            spell,
+            caster: 1,
+            school: bace_magic::MagicSchool::Creature,
+            spec: bace_magic::EnchantmentSpec {
+                category: key as u16,
+                power: 100,
+                duration: 60.,
+                layer: 1,
+                stat_type: 8 | 0x1000 | 0x4000,
+                stat_key: key,
+                value,
+                beneficial: true,
+                set_id: None,
+            },
+            start_time: 0.,
+            is_set_spell: false,
+            is_level8_aura: false,
+            metadata: Default::default(),
+        };
+        magic.registries.insert(
+            EntityId(2),
+            bace_magic::EnchantmentRegistry::restore(4, 0, vec![entry(1, 144, 1.2)]).unwrap(),
+        );
+        magic.registries.insert(
+            actor,
+            bace_magic::EnchantmentRegistry::restore(4, 0, vec![entry(2, 171, 1.5)]).unwrap(),
+        );
+        let world = crate::magic::specialization_tests::world();
+        assert_eq!(
+            magic.mana_conversion_inputs(actor, 123, 30, &world),
+            Ok((7, 118))
+        );
+        assert_eq!(
+            magic.mana_conversion_inputs(actor, 999, 30, &world),
+            Ok((30, 118))
+        );
+        magic.damage_spell_flags.insert(123, 0x800);
+        assert_eq!(
+            magic.mana_conversion_inputs(actor, 123, 30, &world),
+            Ok((7, 0))
+        );
     }
 }

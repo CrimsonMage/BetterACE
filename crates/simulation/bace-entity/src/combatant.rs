@@ -38,7 +38,10 @@ impl Combatant {
             && profile.melee_range == 0.0
             && profile.attack_duration == 0.0
             && profile.strike_offsets.is_empty();
-        if profile.maximum_health == 0
+        // ACE constructs a Creature with absent vital rows as zero and retains
+        // nonattackable event controllers in the world. Such a body has no
+        // melee program; player and armed zero-health profiles remain invalid.
+        if (profile.maximum_health == 0 && (profile.player || !melee_disabled))
             || (!melee_disabled
                 && (!profile.melee_range.is_finite()
                     || profile.melee_range <= 0.0

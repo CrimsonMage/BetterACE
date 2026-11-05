@@ -149,6 +149,16 @@ impl GameRuntime {
             .next
             .checked_add(1)
             .ok_or("creation correlation exhausted")?;
+        let allocation = format!(
+            "attributes [{}, {}, {}, {}, {}, {}], skill classes {:?}",
+            wire.abilities.strength,
+            wire.abilities.endurance,
+            wire.abilities.coordination,
+            wire.abilities.quickness,
+            wire.abilities.focus,
+            wire.abilities.self_ability,
+            wire.skill_advancement_classes,
+        );
         self.creation.work.insert(
             key,
             Work {
@@ -168,6 +178,14 @@ impl GameRuntime {
             },
         );
         self.login_queue.push_back((key, PlayerIoAction::Allocate));
+        self.diagnostic(
+            "info",
+            "game.character_create_request",
+            &format!(
+                "session {} generation {}: accepted, {allocation}",
+                key.id, key.generation
+            ),
+        );
         Ok(CreationIngress::Accepted)
     }
     fn reject_creation_ingress(
@@ -185,6 +203,14 @@ impl GameRuntime {
                 .encode()
                 .map_err(|e| e.to_string())?,
         });
+        self.diagnostic(
+            "error",
+            "game.character_create_rejected",
+            &format!(
+                "session {} generation {}: response code {code}",
+                key.id, key.generation
+            ),
+        );
         Ok(CreationIngress::Accepted)
     }
     /// Called before generic lifecycle error handling. Uncertain commit retries
@@ -210,6 +236,14 @@ impl GameRuntime {
                     return Err("created identity fence".into());
                 }
                 self.creation.work.remove(&key);
+                self.diagnostic(
+                    "info",
+                    "game.character_created",
+                    &format!(
+                        "session {} generation {}: character {id:#010x}",
+                        key.id, key.generation
+                    ),
+                );
             }
             Ok(PlayerIoResult::CreationRejected(code)) if work.phase == Phase::Commit => {
                 work.phase = Phase::Rejected;
@@ -223,6 +257,11 @@ impl GameRuntime {
                     .checked_add(self.last_elapsed.as_millis() as u64)
                     .and_then(|t| t.checked_add(1000))
                     .ok_or("creation retry clock")?;
+                self.diagnostic(
+                    "error",
+                    "game.character_create_retry",
+                    &format!("session {} generation {}: {error}", key.id, key.generation),
+                );
             }
             _ => return Err("unexpected creation lifecycle outcome".into()),
         }
@@ -392,6 +431,11 @@ impl GameRuntime {
                 }
             }
             Phase::Rejected => {
+                let code = work.response.ok_or("creation failure response missing")?;
+                let reason = work
+                    .failure
+                    .clone()
+                    .unwrap_or_else(|| "creation rejected".into());
                 let disconnected = self
                     .sessions
                     .get(&key)
@@ -402,14 +446,20 @@ impl GameRuntime {
                         self.network_output.push_back(NetworkCommand::Send {
                             key,
                             queue: 9,
-                            bytes: bace_wire::CharacterReply::CreateFailed(
-                                work.response.ok_or("creation failure response missing")?,
-                            )
-                            .encode()
-                            .map_err(|e| e.to_string())?,
+                            bytes: bace_wire::CharacterReply::CreateFailed(code)
+                                .encode()
+                                .map_err(|e| e.to_string())?,
                         });
                     }
                     self.creation.work.remove(&key);
+                    self.diagnostic(
+                        "error",
+                        "game.character_create_rejected",
+                        &format!(
+                            "session {} generation {}: response code {code}, {reason}",
+                            key.id, key.generation
+                        ),
+                    );
                 }
             }
         }

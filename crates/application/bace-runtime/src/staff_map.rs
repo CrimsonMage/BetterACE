@@ -14,17 +14,8 @@ pub struct StaffMapAssets {
 }
 impl StaffMapAssets {
     pub fn open(manifest: &crate::region_activation::RegionAssetManifest) -> Result<Self, String> {
-        for (path, hash) in [
-            (&manifest.portal, &manifest.portal_sha256),
-            (&manifest.cell, &manifest.cell_sha256),
-        ] {
-            if hash.len() != 64 || bace_dat::fingerprint(path).map_err(|e| e.to_string())? != *hash
-            {
-                return Err("unapproved map DAT fingerprint".into());
-            }
-        }
-        let mut portal = DatArchive::open(&manifest.portal).map_err(|e| e.to_string())?;
-        let cell = DatArchive::open(&manifest.cell).map_err(|e| e.to_string())?;
+        let mut portal = manifest.portal_archive()?;
+        let cell = manifest.cell_archive()?;
         if portal.header().dataset != 1 || cell.header().dataset != 2 {
             return Err("incorrect map DAT datasets".into());
         }

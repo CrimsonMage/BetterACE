@@ -281,9 +281,45 @@ impl GameRuntime {
             let Ok(outcome) = self.simulation.ui_outcomes().try_recv() else {
                 break;
             };
+            let shortcut = self
+                .progression
+                .matched(outcome.context, 1)
+                .and_then(|key| match &self.progression.pending.get(&key)?.action {
+                    Action::Ui(UiRequest::AddShortcut(s)) => Some((key, "add", s.index, s.object)),
+                    Action::Ui(UiRequest::RemoveShortcut(index)) => {
+                        Some((key, "remove", *index, 0))
+                    }
+                    _ => None,
+                });
+            let result = outcome.result;
+            let actor = outcome.context.actor;
             if let Err(outcome) = self.progression.accept_ui(outcome) {
                 self.progression.unexpected = Some(Unexpected::Ui(outcome));
                 return Err("uncorrelated UI outcome retained".into());
+            }
+            if let Some((key, kind, index, object)) = shortcut {
+                match result {
+                    Ok(revision) => {
+                        self.online_saves.mark_dirty(actor.0, self.last_elapsed)?;
+                        self.diagnostic(
+                            "info",
+                            "game.shortcut_accepted",
+                            &format!(
+                                "session {} generation {}: {kind} slot {index} object {object:#010x}, revision {revision}",
+                                key.id, key.generation
+                            ),
+                        );
+                    }
+                    Err(bace_gameplay_api::UiError::DurabilityPending) => {}
+                    Err(error) => self.diagnostic(
+                        "warn",
+                        "game.shortcut_rejected",
+                        &format!(
+                            "session {} generation {}: {kind} slot {index} object {object:#010x}: {error:?}",
+                            key.id, key.generation
+                        ),
+                    ),
+                }
             }
         }
         for _ in 0..self.limits.work_per_poll {

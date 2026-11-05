@@ -50,7 +50,8 @@ pub use recall::{DispatchedRecall, decode_recall};
 
 mod locomotion;
 pub use locomotion::{
-    DispatchedLocomotion, LocomotionObservations, decode_locomotion, movement_epochs_match,
+    DispatchedLocomotion, LocomotionObservations, decode_locomotion, movement_epochs_compatible,
+    movement_epochs_match,
 };
 
 mod target_query;

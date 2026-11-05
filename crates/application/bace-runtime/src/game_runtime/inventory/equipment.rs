@@ -18,6 +18,38 @@ pub(super) struct EquipmentRuntime {
     started: bool,
     physical: Option<Job<Result<PreparedEquipmentPhysical, String>>>,
     ready: Option<PreparedEquipmentPhysical>,
+    stale_retries: u8,
+    avatar_key: Option<AvatarKey>,
+}
+impl EquipmentRuntime {
+    pub(super) fn avatar_key(&self) -> Option<&AvatarKey> {
+        self.avatar_key.as_ref()
+    }
+    /// The owner rejected cold equipment inputs before reserving an operation.
+    /// Re-capture the live player and gear graph rather than weakening the
+    /// revision fence or asking the retail client to repeat its action.
+    pub(super) fn restart_stale(&mut self, pending: &mut Pending, correlation: u64) -> Option<u8> {
+        if self.stale_retries >= 2
+            || pending.saving
+            || pending.completion.is_some()
+            || pending.sources_registered
+        {
+            return None;
+        }
+        self.stale_retries += 1;
+        self.capture = None;
+        self.snapshot = None;
+        self.started = false;
+        self.physical = None;
+        self.ready = None;
+        self.avatar_key = None;
+        pending.correlation = correlation;
+        pending.request = None;
+        pending.prepared = None;
+        pending.inspection = None;
+        pending.motions.clear();
+        Some(self.stale_retries)
+    }
 }
 impl GameRuntime {
     pub(super) fn begin_inventory_equipment(
@@ -40,6 +72,8 @@ impl GameRuntime {
             started: false,
             physical: None,
             ready: None,
+            stale_retries: 0,
+            avatar_key: None,
         });
         self.inventory.pending = Some(Pending {
             key,
@@ -75,7 +109,27 @@ impl GameRuntime {
         unix: u64,
     ) -> Result<(), PlayerSnapshotOutcome> {
         if self.inventory.service.owns_capture(&outcome) {
-            return self.inventory.service.accept_capture(outcome, unix);
+            let rejection = outcome
+                .result
+                .as_ref()
+                .err()
+                .map(|error| format!("inventory capture rejected: {error:?}"));
+            let accepted = self.inventory.service.accept_capture(outcome, unix);
+            if accepted.is_ok()
+                && let Some(reason) = rejection
+                && let Some(owner) = self.inventory.pending.as_ref()
+            {
+                self.inventory.failures.insert(owner.key, reason.clone());
+                self.diagnostic(
+                    "warn",
+                    "game.inventory_capture_rejected",
+                    &format!(
+                        "session {} generation {} item {:#010x}: {reason}",
+                        owner.key.id, owner.key.generation, owner.item.0
+                    ),
+                );
+            }
+            return accepted;
         }
         let Some(p) = self
             .inventory
@@ -169,6 +223,21 @@ impl GameRuntime {
             let rows = self.assets.spell_rows.clone();
             let store = self.bootstrap.store.clone();
             let generation = self.bootstrap.pack.generation.clone();
+            let avatar_key = AvatarKey::from_source(
+                &player.player.entity.state,
+                generation.revision(),
+                &manifest.portal_sha256,
+            )?;
+            let cached_dat = self
+                .inventory
+                .avatar_dat
+                .as_ref()
+                .and_then(|(key, dat)| (key == &avatar_key).then(|| dat.clone()));
+            self.inventory
+                .equipment
+                .as_mut()
+                .expect("equipment owner")
+                .avatar_key = Some(avatar_key);
             self.inventory.cold = Some(Box::pin(async move {
                 let fresh_id = if matches!(request, InventoryRequest::SplitToWield { .. }) {
                     let ids = store
@@ -185,7 +254,10 @@ impl GameRuntime {
                 };
                 tokio::task::spawn_blocking(move || {
                     let mut assets = crate::region_activation::VerifiedRegionAssets::open(&manifest)?;
-                    let dat = Arc::new(assets.prepare_avatar_dat(&player.player.entity.state)?);
+                    let dat = match cached_dat {
+                        Some(dat) => dat,
+                        None => Arc::new(assets.prepare_avatar_dat(&player.player.entity.state)?),
+                    };
                     let mut items: Vec<_> = sources.into_iter()
                         .filter(|i| i.entity.object_id == item_id(request).0
                             || matches!(i.placement, Some(ItemPlacementV2::Contained { equipped, .. }) if equipped != 0))
@@ -320,6 +392,11 @@ impl GameRuntime {
                         .as_ref()
                         .expect("equipment owner")
                         .key;
+                    self.diagnostic(
+                        "error",
+                        "game.equipment_preparation_failed",
+                        &format!("session {} generation {}: {error}", key.id, key.generation),
+                    );
                     self.inventory.failures.insert(key, error.clone());
                     self.inventory
                         .equipment

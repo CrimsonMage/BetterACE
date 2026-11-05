@@ -469,7 +469,6 @@ impl GameRuntime {
             .collect::<Vec<_>>();
         // Both lanes were capacity checked before any sequence changed.
         self.retain_observer_messages(vec![(actor, observers)])?;
-        self.mark_last_observer_visibility_reset();
         self.network_output
             .push_back(NetworkCommand::SendOrderedBatch {
                 key,
@@ -528,10 +527,8 @@ impl GameRuntime {
             .and_then(|p| p.appearance.as_ref())
             .ok_or("equipment appearance closure missing")?;
         let chargen = self
-            .sessions
-            .get(&p.key)
-            .and_then(|s| s.loading.as_ref())
-            .and_then(|l| l.character_assets.as_ref())
+            .character_assets
+            .as_ref()
             .ok_or("equipment chargen missing")?;
         let assets = appearance.borrowed(chargen.char_gen());
         let (children, attachments) =

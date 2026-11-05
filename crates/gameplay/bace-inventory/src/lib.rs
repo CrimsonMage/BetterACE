@@ -23,6 +23,14 @@ pub use actions::propose_item_changes;
 mod pet_device;
 pub use pet_device::{propose_pet_charge, propose_pet_release};
 
+mod healing_kit;
+pub use healing_kit::propose_healing_kit_charge;
+mod mana_stone;
+pub use mana_stone::{
+    ManaChange, ManaCharge, ManaStoneDecision, ManaStoneFailure, ManaStoneItem, ManaStoneProfile,
+    propose_mana_stone_inventory, propose_mana_stone_use,
+};
+
 mod split;
 pub use split::{StackSplitPreparation, propose_stack_split};
 mod physical;

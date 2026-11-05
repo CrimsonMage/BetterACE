@@ -72,3 +72,30 @@ fn source_creature_without_melee_assets_uses_an_explicit_disabled_capability() {
         assert!(Combatant::new(partial).is_err());
     }
 }
+
+#[test]
+fn zero_vital_event_controller_is_inert_and_cannot_become_a_player_or_attacker() {
+    let controller = CombatantProfile {
+        maximum_health: 0,
+        melee_damage: 0,
+        melee_range: 0.,
+        attack_duration: 0.,
+        strike_offsets: vec![],
+        player: false,
+    };
+    assert_eq!(Combatant::new(controller.clone()).unwrap().health(), 0);
+    assert!(
+        Combatant::new(CombatantProfile {
+            player: true,
+            ..controller.clone()
+        })
+        .is_err()
+    );
+    assert!(
+        Combatant::new(CombatantProfile {
+            melee_damage: 1,
+            ..controller
+        })
+        .is_err()
+    );
+}

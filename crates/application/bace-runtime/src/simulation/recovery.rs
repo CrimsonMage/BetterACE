@@ -17,6 +17,7 @@ pub struct SimulationExit {
     pub physical_resource: RecoveredPhysicalResource,
     pub magic_resource: RecoveredMagicResource,
     pub player_snapshots: RecoveredPlayerSnapshots,
+    pub item_mana_queries: RecoveredItemManaQueries,
     pub player_admissions: RecoveredPlayerAdmissions,
     pub region_admissions: RecoveredRegionAdmissions,
     pub report: SimulationReport,
@@ -41,6 +42,8 @@ pub struct SimulationExit {
     pub undelivered_skill_device_outcomes: Vec<SkillDeviceOutcome>,
     pub undelivered_skill_device_proposals: Vec<SkillDeviceTicket>,
     pub undelivered_attribute_transfer_outcomes: Vec<AttributeTransferOutcome>,
+    pub undelivered_healing_kit_outcomes: Vec<bace_simulation::HealingKitOutcome>,
+    pub undelivered_mana_stone_outcomes: Vec<bace_simulation::ManaStoneOutcome>,
     pub undelivered_attribute_transfer_proposals: Vec<AttributeTransferDeviceTicket>,
     pub undelivered_crafting_proposals: Vec<CraftingTicket>,
     pub undelivered_crafting_outcomes: Vec<CraftingOutcome>,
@@ -81,6 +84,8 @@ impl SimulationExit {
             || self.kernel.has_player_admission_work()
             || self.player_snapshots.has_state()
             || self.kernel.has_player_snapshot_work()
+            || self.item_mana_queries.has_state()
+            || self.kernel.has_item_mana_query_work()
             || self.pve_services.has_state()
             || self.npc_services.has_state()
             || self.inventory_output.has_state()
@@ -129,6 +134,9 @@ impl SimulationExit {
             || !self.undelivered_skill_device_outcomes.is_empty()
             || !self.undelivered_skill_device_proposals.is_empty()
             || !self.undelivered_attribute_transfer_outcomes.is_empty()
+            || !self.undelivered_healing_kit_outcomes.is_empty()
+            || !self.undelivered_mana_stone_outcomes.is_empty()
+            || self.kernel.has_healing_kit_work()
             || !self.undelivered_attribute_transfer_proposals.is_empty()
             || !self.undelivered_crafting_proposals.is_empty()
             || !self.undelivered_crafting_outcomes.is_empty()
@@ -169,6 +177,7 @@ impl SimulationExit {
                     Command::AdmitPlayer(_)
                         | Command::AdmitResidentRegion(_)
                         | Command::PlayerSnapshot(_)
+                        | Command::ItemManaQuery(_)
                         | Command::PveService(_)
                         | Command::PlayerDeath(_)
                         | Command::PlayerDeathService(_)

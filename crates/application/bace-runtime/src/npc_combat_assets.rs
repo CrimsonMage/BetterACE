@@ -46,16 +46,14 @@ pub fn prepare_npc_combat_assets(
     }
     let mut base_attributes = [0; 6];
     for (index, value) in base_attributes.iter_mut().enumerate() {
-        let row = source
+        *value = source
             .properties
             .attributes
             .iter()
             .find(|p| p.id == index as u32 + 1)
-            .ok_or("NPC base attribute missing")?;
-        *value = row
-            .value
-            .init_level
-            .checked_add(row.value.level_from_cp)
+            .map_or(Some(0), |row| {
+                row.value.init_level.checked_add(row.value.level_from_cp)
+            })
             .ok_or("NPC attribute overflow")?;
     }
     let mut inputs = Vec::new();

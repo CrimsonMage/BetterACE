@@ -465,6 +465,7 @@ fn nearby_academy_shop_records() -> (Vec<bace_storage_codec::PackRecord>, u32) {
         cell: dat.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     };
     let mut portal = bace_dat::DatArchive::open(&manifest.portal).unwrap();
     let chargen =
@@ -597,7 +598,7 @@ fn approved_dat_nearby_academy_shop_placement() {
 
 #[tokio::test]
 #[ignore = "requires PostgreSQL, approved DATs, and accepted full native pack"]
-async fn authenticated_nearby_academy_shop_use_joins_durable_source_and_listing() {
+async fn authenticated_nearby_academy_shop_use_keeps_stock_ephemeral() {
     use bace_wire::opcode::{GameActionType, GameEventType, GameMessageOpcode};
     const VENDOR: u32 = 0x7f00_a001;
     let (records, area) = nearby_academy_shop_records();
@@ -726,51 +727,25 @@ async fn authenticated_nearby_academy_shop_use_joins_durable_source_and_listing(
         !fixture.runtime.sessions[&fixture.key].terminated,
         "confirmed Shop Use retains the authenticated session"
     );
-    let source = fixture
-        .runtime
-        .bootstrap
-        .store
-        .load_vendor_state(VENDOR)
-        .await
-        .unwrap()
-        .expect("Shop root has an exact durable V5 world source");
-    assert!(source.source.aggregate.persisted_version > 0);
-    let root = bace_storage_codec::ItemSaveV5::decode(&source.source.aggregate.bytes).unwrap();
-    assert_eq!(root.entity.object_id, VENDOR);
-    assert_eq!(root.entity.state.weenie_id, 12718);
-    assert_eq!(root.entity.state.weenie_type, 12);
-    assert!(root.construction.is_none());
-    let bace_storage_codec::ItemPlacementV2::World(position) = &root.placement else {
-        panic!("static Shop root has no world placement");
-    };
-    assert_eq!(position.obj_cell_id, source.source.cell);
-    let forest = source
-        .forest
-        .expect("Shop stock marker has an exact durable receipt");
-    assert_eq!(forest.marker.vendor_object_id, VENDOR);
-    assert!(forest.marker.persisted_version > 0);
-    tokio::time::timeout(std::time::Duration::from_secs(30), async {
-        while fixture.runtime.world.is_none() {
-            fixture.client.drain(&fixture.runtime);
-            fixture
-                .runtime
-                .poll(fixture.runtime.clock.monotonic.elapsed())
-                .unwrap();
-            fixture.client.drain(&fixture.runtime);
-            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
-        }
-    })
-    .await
-    .expect("joined Shop world owner returns after the durable publication handoff");
-    let cold_excluded = fixture
-        .runtime
-        .world
-        .as_ref()
-        .expect("joined Shop world owner")
-        .regions
-        .prove_static_shop_cold_restore(EntityId(VENDOR), source.source.cell)
-        .await
-        .expect("cold pinned Shop and SQL stock avoid generic Creature duplication");
-    assert_eq!(cold_excluded, forest.items.len() + 1);
+    assert!(
+        fixture
+            .runtime
+            .bootstrap
+            .store
+            .npc_source_head(VENDOR)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        fixture
+            .runtime
+            .bootstrap
+            .store
+            .load_vendor_state(VENDOR)
+            .await
+            .unwrap()
+            .is_none()
+    );
     fixture.shutdown().await;
 }

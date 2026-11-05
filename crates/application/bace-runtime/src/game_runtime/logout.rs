@@ -89,7 +89,9 @@ impl GameRuntime {
         let keys: Vec<_> = self
             .sessions
             .iter()
-            .filter(|(_, s)| (s.terminated || self.draining) && s.failure.is_none())
+            // A session failure is diagnostic state, not permission to retain
+            // its world actor and Online lease after the peer disconnects.
+            .filter(|(_, s)| s.terminated || self.draining)
             .take(self.limits.work_per_poll)
             .map(|(k, _)| *k)
             .collect();
@@ -113,6 +115,7 @@ impl GameRuntime {
         if (self.social_ingress_blocked(key) || self.staff_ingress_blocked(key))
             || self.progression_ingress_blocked(key)
             || self.inventory_ingress_blocked(key)
+            || self.healing_kit_ingress_blocked(key)
             || self.vendor_ingress_blocked(key)
             || self.crafting_ingress_blocked(key)
             || self.skill_device_ingress_blocked(key)
@@ -183,7 +186,7 @@ impl GameRuntime {
         }
         let work = &self.logout[&key];
         if work.adopted {
-            if (self.draining || session.closing) && !session.disconnected {
+            if (self.draining || session.terminated || session.closing) && !session.disconnected {
                 if !session.closing && self.network_output.len() < self.limits.messages {
                     self.network_output
                         .push_back(NetworkCommand::Terminate { key });
@@ -314,6 +317,14 @@ impl GameRuntime {
         }
         self.online_saves.forget_clean(actor)?;
         self.logout.remove(&key);
+        self.diagnostic(
+            "info",
+            "game.logout_completed",
+            &format!(
+                "session {} generation {}: character {actor:#010x} saved and Offline",
+                key.id, key.generation
+            ),
+        );
         let session = self.sessions.get_mut(&key).expect("retained session");
         session.loading = None;
         if session.disconnected || self.draining {
@@ -341,6 +352,8 @@ impl GameRuntime {
         }
         let progression = self.retry_progression(key);
         let inventory = self.retry_inventory(key);
+        let healing = self.retry_healing_kit(key);
+        let mana_stone = self.retry_mana_stone(key);
         let crafting = self.retry_crafting(key);
         let recall = self.retry_recall(key);
         let staff = self.retry_staff_session(key);
@@ -351,6 +364,8 @@ impl GameRuntime {
         let pet = self.retry_pet_session(key);
         let subsystem = progression
             || inventory
+            || healing
+            || mana_stone
             || crafting
             || portal
             || death

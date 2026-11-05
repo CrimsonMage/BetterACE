@@ -1,0 +1,468 @@
+# P0-G use-type triage (read-only). One row per pinned-ACE WorldObject subclass that overrides
+# ActOnUse, HandleActionUseOnTarget or CheckUseRequirements (36 classes, grep of
+# .reference/ACE-47edade3bd3f6044b676d4eb877c4965c7eda62b/Source/ACE.Server/WorldObjects).
+# Base implementations (WorldObject_Use.cs:66, 143, 191) are not counted as overrides.
+# ace_file paths are relative to .reference/ACE-47edade3bd3f6044b676d4eb877c4965c7eda62b/
+# gdle_file paths are relative to /home/jokerfactor/Documents/GitHub/gdlenhanced/
+# GDLE 'Use' is the per-class CWeenieObject::Use / UseWith / DoUseResponse; "" = no equivalent found.
+# weenie_types come from ACE Factories/WorldObjectFactory.cs case groups.
+# Extra fields: note (qualification), also_overrides (second method on the same class).
+# bace_status 'handled' = a BACE route exists for the main effect (qualifier in note); 'missing' = no route.
+
+[[use]]
+class = "Food"
+kind = "use"
+weenie_types = ["Food"]
+ace_file = "Source/ACE.Server/WorldObjects/Food.cs:42"
+gdle_file = "Source/Food.cpp:22"
+bace_status = "missing"
+bace_file = ""
+effects = "Eat or drink motion, then consume one unit and apply the food's vital booster and any spell"
+deps = ["character vitals", "inventory", "motion", "magic"]
+note = "No consumable route in BACE (no ApplyConsumable equivalent). GDLE DoUseResponse at Food.cpp:39."
+
+[[use]]
+class = "Healer"
+kind = "use_with"
+weenie_types = ["Healer"]
+ace_file = "Source/ACE.Server/WorldObjects/Healer.cs:49"
+gdle_file = "Source/Healer.cpp:20"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/healing_kits.rs; crates/simulation/bace-simulation/src/healing_kits.rs"
+effects = "Heal a target vital, spend one Structure, consume the kit on the last use (Healing skill check)"
+deps = ["character skills", "vitals", "inventory", "motion"]
+note = "Partial: self-target only. Other-player healing, proficiency and mana stones unsupported (register ace-healing-kit-self-use)."
+
+[[use]]
+class = "Container"
+kind = "use"
+weenie_types = ["Container"]
+ace_file = "Source/ACE.Server/WorldObjects/Container.cs:695"
+gdle_file = "Source/Container.cpp:1238"
+bace_status = "missing"
+bace_file = ""
+effects = "Open the container for the player (or close it if this player is the viewer), with range and ownership checks"
+deps = ["inventory", "visibility", "world"]
+note = "Ordinary world-container Open held (gameplay-parity inventory remaining). Corpse and NPC view paths exist in deaths/access.rs and npc/inventory_output.rs only."
+
+[[use]]
+class = "Chest"
+kind = "use"
+weenie_types = ["Chest"]
+ace_file = "Source/ACE.Server/WorldObjects/Chest.cs:175"
+gdle_file = "Source/Chest.cpp:19"
+bace_status = "missing"
+bace_file = ""
+effects = "Lock check (CheckUseRequirements), then open the chest container; unlock attempts go through the lock helper"
+deps = ["container", "key", "lockpick", "character skills"]
+also_overrides = ["check_use_requirements"]
+note = "CheckUseRequirements override at Chest.cs:96 (lock, UseLockTimestamp, LastUnlocker)."
+
+[[use]]
+class = "Book"
+kind = "use"
+weenie_types = ["Book"]
+ace_file = "Source/ACE.Server/WorldObjects/Book.cs:67"
+gdle_file = "Source/Book.cpp:21"
+bace_status = "missing"
+bace_file = ""
+effects = "Send the book data (pages, inscription, author) in a BookDataResponse to the reader"
+deps = ["content (book pages)", "wire output", "character"]
+note = "crates/network/bace-wire has BookDataResponse 0x00B4 as a constant only; book_input.rs readers are for write actions. Authored pages need content."
+
+[[use]]
+class = "Key"
+kind = "use_with"
+weenie_types = ["Key"]
+ace_file = "Source/ACE.Server/WorldObjects/Key.cs:54"
+gdle_file = "Source/Key.cpp:15"
+bace_status = "missing"
+bace_file = ""
+effects = "Verify use requirements, then unlock the target lock with this key (consumes structure on wear)"
+deps = ["doors", "container", "inventory", "lock state"]
+note = "UnlockerHelper absent in BACE."
+
+[[use]]
+class = "Lockpick"
+kind = "use_with"
+weenie_types = ["Lockpick"]
+ace_file = "Source/ACE.Server/WorldObjects/Lockpick.cs:32"
+gdle_file = "Source/Lockpick.cpp:15"
+bace_status = "missing"
+bace_file = ""
+effects = "Skill-checked attempt to unlock the target lock; Olthoi cannot interact"
+deps = ["character skills", "lock state", "inventory"]
+
+[[use]]
+class = "Portal"
+kind = "use"
+weenie_types = ["Portal"]
+ace_file = "Source/ACE.Server/WorldObjects/Portal.cs:269"
+gdle_file = "Source/Portal.cpp:207"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/portals.rs; crates/simulation/bace-simulation/src/portal_commands.rs"
+effects = "Teleport the player to the portal destination, with level, PK-timer and recent-teleport checks"
+deps = ["recalls", "visibility", "physics (teleport)"]
+also_overrides = ["check_use_requirements"]
+note = "CheckUseRequirements at Portal.cs:122. Stock-client qualification pending; actual portal expiry timing unverified."
+
+[[use]]
+class = "Scroll"
+kind = "use"
+weenie_types = ["Scroll"]
+ace_file = "Source/ACE.Server/WorldObjects/Scroll.cs:45"
+gdle_file = "Source/Scroll.cpp:34"
+bace_status = "missing"
+bace_file = ""
+effects = "Read motion, then learn the scroll's spell if the skill allows (consumes the scroll)"
+deps = ["magic", "character skills", "inventory"]
+
+[[use]]
+class = "Gem"
+kind = "use"
+weenie_types = ["Gem"]
+ace_file = "Source/ACE.Server/WorldObjects/Gem.cs:47"
+gdle_file = "Source/Gem.cpp:18"
+bace_status = "missing"
+bace_file = ""
+effects = "Use activates a contract (quest tracking) through ActOnUse(activator, false); tailoring kits instead use the kit on a target"
+deps = ["quests (contracts)", "crafting (tailoring)"]
+also_overrides = ["use_with"]
+note = "HandleActionUseOnTarget at Gem.cs:248 (tailoring kit). GDLE UseWith at Gem.cpp:86."
+
+[[use]]
+class = "Switch"
+kind = "use"
+weenie_types = ["Switch"]
+ace_file = "Source/ACE.Server/WorldObjects/Switch.cs:81"
+gdle_file = "Source/Switch.cpp:101"
+bace_status = "missing"
+bace_file = ""
+effects = "Cast the switch's spell on the activator when the response flag is CastSpell"
+deps = ["magic", "doors (linked targets)"]
+
+[[use]]
+class = "PressurePlate"
+kind = "use"
+weenie_types = ["PressurePlate"]
+ace_file = "Source/ACE.Server/WorldObjects/PressurePlate.cs:96"
+gdle_file = ""
+bace_status = "missing"
+bace_file = ""
+effects = "None on Use (ACE no-op). Real effect is collision activation, which is not a Use path"
+deps = ["authoritative physics (collision)"]
+note = "Blocked on authoritative collision (integration gate authoritative-world)."
+
+[[use]]
+class = "Hook"
+kind = "use"
+weenie_types = ["Hook"]
+ace_file = "Source/ACE.Server/WorldObjects/Hook.cs:100"
+gdle_file = "Source/House.cpp:877"
+bace_status = "missing"
+bace_file = ""
+effects = "Hook gate: when hooks are hidden, redirect Use to the hooked item; otherwise container-like access by house owner"
+deps = ["housing", "container", "house content"]
+also_overrides = ["check_use_requirements"]
+note = "CheckUseRequirements at Hook.cs:54. Housing hooks remaining in gameplay-parity."
+
+[[use]]
+class = "Hooker"
+kind = "use"
+weenie_types = ["Hooker"]
+ace_file = "Source/ACE.Server/WorldObjects/Hooker.cs:34"
+gdle_file = ""
+bace_status = "missing"
+bace_file = ""
+effects = "ActOnUse is emote-driven; CheckUseRequirements requires the hooker to be on a permitted hook, then applies base requirements"
+deps = ["housing", "emotes", "house content"]
+also_overrides = ["check_use_requirements"]
+note = "CheckUseRequirements at Hooker.cs:39."
+
+[[use]]
+class = "Storage"
+kind = "use"
+weenie_types = ["Storage"]
+ace_file = "Source/ACE.Server/WorldObjects/Storage.cs:48"
+gdle_file = "Source/House.cpp:1374"
+bace_status = "missing"
+bace_file = ""
+effects = "House storage chest: Use opens the chest after house-permission checks (inherits Chest ActOnUse)"
+deps = ["housing permissions", "container", "house content"]
+also_overrides = ["check_use_requirements"]
+note = "CheckUseRequirements at Storage.cs:48. Guest/storage permissions remaining in housing."
+
+[[use]]
+class = "HousePortal"
+kind = "use"
+weenie_types = ["HousePortal"]
+ace_file = "Source/ACE.Server/WorldObjects/HousePortal.cs:145"
+gdle_file = "Source/House.cpp:1335"
+bace_status = "missing"
+bace_file = ""
+effects = "Portal to the house owner's slumlord or house; dungeon house portals redirect to the outdoor slumlord before the base portal teleport"
+deps = ["portals", "housing", "house content"]
+also_overrides = ["check_use_requirements"]
+note = "CheckUseRequirements at HousePortal.cs:102. House portals remaining in housing."
+
+[[use]]
+class = "SlumLord"
+kind = "use"
+weenie_types = ["SlumLord"]
+ace_file = "Source/ACE.Server/WorldObjects/SlumLord.cs:57"
+gdle_file = "Source/House.cpp:444"
+bace_status = "missing"
+bace_file = ""
+effects = "Send the house profile to the player (purchase and rent flows are separate)"
+deps = ["housing", "house content", "wire output (0x021D)"]
+note = "Purchase/rent (0x021C/0x0258 flows) are scaffolded in housing; register rows 38-47."
+
+[[use]]
+class = "Door"
+kind = "use"
+weenie_types = ["Door"]
+ace_file = "Source/ACE.Server/WorldObjects/Door.cs:86"
+gdle_file = "Source/Door.cpp:118"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/doors.rs; crates/simulation/bace-simulation/src/doors.rs; crates/network/bace-session/src/door.rs"
+effects = "Open a closed door or close an open one (unless locked from the front); auto-close timer"
+deps = ["physics (collision)", "doors", "motion"]
+note = "Partial: only type-19 doors registered from accepted region roots (register gdle-authored-door-use-runtime). Other door and switch-linked use unsupported."
+
+[[use]]
+class = "LightSource"
+kind = "use"
+weenie_types = ["LightSource"]
+ace_file = "Source/ACE.Server/WorldObjects/LightSource.cs:30"
+gdle_file = ""
+bace_status = "missing"
+bace_file = ""
+effects = "None on Use (ACE no-op)"
+deps = []
+note = "No effect required by ACE; no BACE route. Trivial, low priority."
+
+[[use]]
+class = "Stackable"
+kind = "use"
+weenie_types = ["Stackable"]
+ace_file = "Source/ACE.Server/WorldObjects/Stackable.cs:65"
+gdle_file = ""
+bace_status = "missing"
+bace_file = ""
+effects = "None on Use (ACE no-op). Base type for Food, Gem, CraftTool and Ammunition"
+deps = []
+note = "No effect required by ACE; no BACE route. Trivial, low priority."
+
+[[use]]
+class = "Ammunition"
+kind = "use"
+weenie_types = ["Ammunition"]
+ace_file = "Source/ACE.Server/WorldObjects/Ammunition.cs:40"
+gdle_file = ""
+bace_status = "missing"
+bace_file = ""
+effects = "None on Use (ACE no-op)"
+deps = []
+note = "No effect required by ACE; no BACE route. Trivial, low priority."
+
+[[use]]
+class = "CraftTool"
+kind = "use_with"
+weenie_types = ["CraftTool"]
+ace_file = "Source/ACE.Server/WorldObjects/CraftTool.cs:31"
+gdle_file = "Source/WeenieObject.cpp:5791"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/crafting.rs"
+effects = "Use-with a target: pet-device refill, Aetheria, core plating, else recipe (RecipeManager)"
+deps = ["crafting", "inventory", "pets", "aetheria"]
+also_overrides = ["use"]
+note = "Partial: BACE routes UseWithTarget into crafting recipes. Pet refill, Aetheria and core plating routes not confirmed. ActOnUse at CraftTool.cs:55 is a no-op."
+
+[[use]]
+class = "AttributeTransferDevice"
+kind = "use"
+weenie_types = ["AttributeTransferDevice"]
+ace_file = "Source/ACE.Server/WorldObjects/AttributeTransferDevice.cs:47"
+gdle_file = "Source/AttributeTransferDevice.cpp:15"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/attribute_transfer.rs; crates/simulation/bace-simulation/src/attribute_transfer.rs"
+effects = "Attribute transfer gem: confirm and move attribute points between attributes, consuming the device"
+deps = ["character progression", "inventory"]
+
+[[use]]
+class = "AugmentationDevice"
+kind = "use"
+weenie_types = ["AugmentationDevice"]
+ace_file = "Source/ACE.Server/WorldObjects/AugmentationDevice.cs:54"
+gdle_file = "Source/AugmentationDevice.cpp:17"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/skill_devices.rs"
+effects = "Apply a skill augmentation to a trained skill (consumes the device)"
+deps = ["character skills", "inventory", "cooldowns"]
+
+[[use]]
+class = "SkillAlterationDevice"
+kind = "use"
+weenie_types = ["SkillAlterationDevice"]
+ace_file = "Source/ACE.Server/WorldObjects/SkillAlterationDevice.cs:58"
+gdle_file = "Source/SkillAlterationDevice.cpp:16"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/skill_devices.rs; crates/simulation/bace-simulation/src/skill_devices.rs"
+effects = "Train, specialize, unspecialize or reset a skill, consuming the device"
+deps = ["character skills", "inventory", "cooldowns"]
+
+[[use]]
+class = "PetDevice"
+kind = "use"
+weenie_types = ["PetDevice"]
+ace_file = "Source/ACE.Server/WorldObjects/PetDevice.cs:61"
+gdle_file = "Source/weenie/PetDevice.cpp:23"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/pets/use_action.rs; crates/simulation/bace-simulation/src/pets.rs"
+effects = "Summon a pet from the device (structure and summoning mastery checks), consuming charges"
+deps = ["pets", "combat (pet)", "inventory"]
+also_overrides = ["check_use_requirements"]
+note = "Partial: passive and combat pet summon paths. CheckUseRequirements at PetDevice.cs:103. Retail summon qualification pending."
+
+[[use]]
+class = "ManaStone"
+kind = "use_with"
+weenie_types = ["ManaStone"]
+ace_file = "Source/ACE.Server/WorldObjects/ManaStone.cs:59"
+gdle_file = "Source/ManaStone.cpp:32"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/mana_stones.rs; crates/simulation/bace-simulation/src/mana_stones.rs"
+effects = "Charge a target item's mana from the stone (destruction chance, augmentation decisions)"
+deps = ["inventory", "item mana", "character skills"]
+note = "Partial: owned single-target transfer only. Equipped extraction and self-target distribution unsupported."
+
+[[use]]
+class = "Lifestone"
+kind = "use"
+weenie_types = ["LifeStone"]
+ace_file = "Source/ACE.Server/WorldObjects/Lifestone.cs:44"
+gdle_file = "Source/Lifestone.cpp:41"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/recalls/bindings.rs"
+effects = "Bind the player's sanctuary to this lifestone after authoritative range, with stance and sound/motion"
+deps = ["recalls", "character state (sanctuary)", "motion"]
+
+[[use]]
+class = "Bindstone"
+kind = "use"
+weenie_types = ["AllegianceBindstone"]
+ace_file = "Source/ACE.Server/WorldObjects/Bindstone.cs:46"
+gdle_file = "Source/BindStone.cpp:18"
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/recalls/bindings.rs"
+effects = "Allegiance bindstone: bind allegiance sanctuary after allegiance membership and Seneschal authority checks"
+deps = ["allegiance", "recalls", "motion"]
+note = "Unauthored-region allegiance bindstone transcript pending (register ace-binding-object-use-approach)."
+
+[[use]]
+class = "Vendor"
+kind = "use"
+weenie_types = ["Vendor"]
+ace_file = "Source/ACE.Server/WorldObjects/Vendor.cs:229"
+gdle_file = ""
+bace_status = "handled"
+bace_file = "crates/application/bace-runtime/src/game_runtime/vendors.rs"
+effects = "Open the shop listing for the player when the vendor is open for business and valid"
+deps = ["economy", "inventory", "generators (stock)"]
+note = "Partial: shop Use and listing handled; live Buy and Sell ingress still closed."
+
+[[use]]
+class = "Game"
+kind = "use"
+weenie_types = ["Game"]
+ace_file = "Source/ACE.Server/WorldObjects/Game.cs:50"
+gdle_file = ""
+bace_status = "missing"
+bace_file = ""
+effects = "Move to the game board and join the game (chess) on arrival"
+deps = ["activities", "content (game)", "motion (move to)"]
+
+[[use]]
+class = "AdvocateFane"
+kind = "use"
+weenie_types = ["AdvocateFane"]
+ace_file = "Source/ACE.Server/WorldObjects/AdvocateFane.cs:60"
+gdle_file = ""
+bace_status = "missing"
+bace_file = ""
+effects = "Advocate fane: motion-driven teleport for qualifying advocates; failure animation otherwise"
+deps = ["quests (advocate)", "motion", "content (fane)"]
+also_overrides = ["check_use_requirements"]
+note = "CheckUseRequirements at AdvocateFane.cs:41."
+
+[[use]]
+class = "PKModifier"
+kind = "use"
+weenie_types = ["PKModifier"]
+ace_file = "Source/ACE.Server/WorldObjects/PKModifier.cs:103"
+gdle_file = "Source/PKModifier.cpp:16"
+bace_status = "missing"
+bace_file = ""
+effects = "Switch PK or NPK status (blocked while the PK timer is active; NPK switch timed)"
+deps = ["character PK status", "combat timers"]
+also_overrides = ["check_use_requirements"]
+note = "CheckUseRequirements at PKModifier.cs:50. PK status exists in deaths, but no switch route."
+
+[[use]]
+class = "Creature"
+kind = "use"
+weenie_types = ["Creature"]
+ace_file = "Source/ACE.Server/WorldObjects/Creature.cs:334"
+gdle_file = "Source/WeenieObject.cpp:5783"
+bace_status = "missing"
+bace_file = ""
+effects = "No direct effect; the activation is driven by EmoteManager.OnUse (authored emote script)"
+deps = ["emotes", "npc"]
+note = "NPC Use approach exists (kernel/npc/player_use.rs) and handin Use exists (npc/handin.rs). The emote activation route is missing."
+
+[[use]]
+class = "Cow"
+kind = "use"
+weenie_types = ["Cow"]
+ace_file = "Source/ACE.Server/WorldObjects/Cow.cs:35"
+gdle_file = "Source/WeenieObject.cpp:5783"
+bace_status = "missing"
+bace_file = ""
+effects = "No direct effect; emote-driven as Creature"
+deps = ["emotes", "npc"]
+
+[[use]]
+class = "GenericObject"
+kind = "use"
+weenie_types = ["(default: any type not matched by the factory)"]
+ace_file = "Source/ACE.Server/WorldObjects/GenericObject.cs:42"
+gdle_file = "Source/WeenieObject.cpp:5783"
+bace_status = "missing"
+bace_file = ""
+effects = "Play the object's UseSound to the activator"
+deps = ["sound output"]
+note = "Trivial. No BACE sound route for Use."
+
+
+# Suggested implementation order (cheapest and most used first). Tiers after 4 need magic, content or physics.
+[summary]
+handled = 12
+missing = 24
+total_override_classes = 36
+# Blocked by magic: Scroll (spell learning), Switch (spell cast). Food spell payloads also wait on magic. Blocked by content: Book (authored pages), Hook, Hooker, Storage, HousePortal, SlumLord (house content),
+#   AdvocateFane (fane content), Game (chess content), Creature and Cow (authored emote scripts).
+# Blocked by physics: PressurePlate (collision activation). Blocked by quests/crafting: Gem contracts and tailoring.
+implementation_order = [
+  "1 Container: ordinary world-container Open/Close (inventory and visibility; most used, no magic or content)",
+  "2 Food: consume, vital boosters (character vitals and inventory; spell payloads wait on magic)",
+  "3 Chest: container Use after lock check (depends on 1)",
+  "4 Lockpick and Key: unlock helper and lock state (depends on 3; skill checks)",
+  "5 Book: BookDataResponse encoder and authored page data (content-blocked for authored books)",
+  "6 Scroll: spell learning (blocked by magic)",
+  "7 Switch: spell cast on Use (blocked by magic)",
+  "8 Gem: contracts and tailoring kits (blocked by quests and crafting)",
+  "9 Housing group: Hook, Hooker, Storage, HousePortal, SlumLord (blocked by housing and house content)",
+  "10 Creature and Cow emote activation, GenericObject sound (blocked by emote content)",
+  "11 PressurePlate (blocked by authoritative collision)",
+  "12 PKModifier, AdvocateFane, Game, and no-op classes LightSource, Stackable, Ammunition (low value)",
+]

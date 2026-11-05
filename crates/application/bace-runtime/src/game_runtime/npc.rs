@@ -82,6 +82,7 @@ pub(super) struct NpcRuntime {
     retired: VecDeque<EntityId>,
     handins: BTreeMap<EntityId, handin::HandIn>,
     uses: BTreeMap<EntityId, handin::Use>,
+    use_poll_scratch: Vec<(EntityId, EntityId)>,
     work: BTreeMap<EntityId, effects::Work>,
     idle: BTreeMap<EntityId, terminal::Idle>,
     terminal_cursor: usize,
@@ -95,16 +96,16 @@ pub(super) struct NpcRuntime {
     failure: Option<String>,
 }
 impl NpcRuntime {
+    pub(super) fn appraisal_source(&self, id: EntityId) -> Option<&bace_content::WeenieV1> {
+        self.definitions
+            .get(&id)
+            .filter(|source| source.admitted)
+            .map(|source| source.source.authored.as_ref())
+    }
     pub(super) fn vendor_registration(&self, id: EntityId) -> Option<&PreparedNpcRegistration> {
         self.definitions
             .get(&id)
             .filter(|source| source.admitted && source.source.authored.weenie_type == 12)
-    }
-
-    pub(super) fn vendor_source_pending(&self, id: EntityId) -> bool {
-        self.coordinator.needs_terminal(id)
-            || self.coordinator.busy(id)
-            || self.idle.contains_key(&id)
     }
 
     fn committed_source_receipt(&self, event: &NpcCoordinatorEvent) -> bool {
@@ -170,6 +171,7 @@ impl NpcRuntime {
             retired: VecDeque::new(),
             handins: BTreeMap::new(),
             uses: BTreeMap::new(),
+            use_poll_scratch: Vec::with_capacity(32),
             work: BTreeMap::new(),
             idle: BTreeMap::new(),
             terminal_cursor: 0,
@@ -442,6 +444,7 @@ impl GameRuntime {
             let proposal = self.npc.proposals.pop_front().expect("bounded NPC queue");
             let source = proposal.context.source;
             if self.npc.handins.contains_key(&source)
+                || self.npc.uses.contains_key(&source)
                 || self.npc.work.contains_key(&source)
                 || self.npc.coordinator.busy(source)
             {
@@ -470,6 +473,7 @@ impl GameRuntime {
             self.poll_npc_item_worker(),
             self.poll_npc_motion_worker(),
             self.poll_npc_cast_worker(),
+            self.poll_npc_uses(),
             self.poll_npc_handins(),
             self.poll_npc_effects(),
             self.poll_npc_terminals(),
@@ -484,6 +488,7 @@ impl GameRuntime {
         failure.map_or(Ok(()), Err)
     }
     fn poll_npc_sources(&mut self) -> Result<(), String> {
+        self.retire_unloaded_npc_sources();
         if !self.npc.initialized {
             let Some(world) = &self.world else {
                 return Ok(());
@@ -722,24 +727,73 @@ impl GameRuntime {
                 }
                 self.npc.definitions.remove(&registration.actor);
             }
-            self.npc.head_registration = Some(registration.clone());
-            let store = self.bootstrap.store.clone();
-            self.npc.head_job = Some(Box::pin(async move {
-                let result = async {
-                    let head = store
-                        .npc_source_head(registration.actor.0)
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    let baseline = store
-                        .load(registration.actor.0)
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    Ok((head, baseline))
-                }
-                .await;
-                (registration, result)
-            }));
+            let mut invocation = [0; 16];
+            OsRng.fill_bytes(&mut invocation);
+            self.npc.coordinator.bind(
+                NpcCheckpointBinding {
+                    source_version: 0,
+                    source_template: registration.source.template,
+                    source: registration.actor.0,
+                    invocation,
+                    program_hash: registration.source.program_hash,
+                    content_generation: registration.content_hash,
+                },
+                0,
+            )?;
+            if registration.admitted {
+                self.npc
+                    .coordinator
+                    .activate_admitted_source(&registration)?;
+            } else {
+                self.npc
+                    .coordinator
+                    .enqueue_retained(
+                        registration.actor,
+                        A::Register {
+                            actor: registration.actor,
+                            program: registration.source.program.clone(),
+                            use_radius: registration.use_radius,
+                            properties: Some(registration.source.properties.clone()),
+                        },
+                    )
+                    .map_err(|_| "NPC registration delivery held")?;
+            }
+            self.npc
+                .definitions
+                .insert(registration.actor, registration);
         }
         Ok(())
+    }
+
+    fn retire_unloaded_npc_sources(&mut self) {
+        let Some(world) = &self.world else { return };
+        let stale: Vec<_> = self
+            .npc
+            .definitions
+            .iter()
+            .filter(|(id, registration)| {
+                registration.admitted
+                    && world
+                        .regions
+                        .prepared_region(registration.landblock)
+                        .is_none_or(|region| region.fence.activation_epoch != registration.epoch)
+                    && !self.npc.coordinator.busy(**id)
+                    && !self.npc.idle.contains_key(id)
+                    && !self.npc.handins.contains_key(id)
+                    && !self.npc.work.contains_key(id)
+                    && !self.npc.uses.contains_key(id)
+                    && !self
+                        .npc
+                        .notifications
+                        .iter()
+                        .any(|row| row.context.source == **id)
+            })
+            .map(|(id, _)| *id)
+            .collect();
+        for id in stale {
+            if self.npc.coordinator.release_source(id).is_ok() {
+                self.npc.definitions.remove(&id);
+            }
+        }
     }
 }

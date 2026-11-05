@@ -107,6 +107,9 @@ pub(crate) fn name_eq(a: &str, b: &str) -> bool {
 }
 impl NativeProgram {
     pub fn prepare(sets: Vec<Emote>, limits: NativeLimits) -> Result<Self, NativeError> {
+        // Patches v0.9.295 includes five-day event timers (WCIDs 72374 and
+        // 29695). Keep a finite one-week bound for authored delays.
+        const MAX_AUTHORED_DELAY_SECONDS: f32 = 604_800.0;
         if limits.sets == 0
             || limits.sets > 4096
             || limits.actions == 0
@@ -138,7 +141,7 @@ impl NativeProgram {
                 if !crate::native_actions::known(a.r#type)
                     || !a.delay.is_finite()
                     || a.delay < 0.0
-                    || a.delay > 86400.0
+                    || a.delay > MAX_AUTHORED_DELAY_SECONDS
                     || !a.extent.is_finite()
                     || [&a.message, &a.test_string]
                         .iter()

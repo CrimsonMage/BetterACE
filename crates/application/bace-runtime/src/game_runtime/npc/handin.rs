@@ -9,6 +9,22 @@ use bace_simulation::{
     NpcHandInRequest, NpcHandInTicket, PlayerReadSnapshot, PlayerSnapshotOperation,
     PlayerSnapshotRequest,
 };
+#[cfg(test)]
+mod tests;
+
+fn player_context(
+    binding: CharacterBinding,
+    message: &bace_transport::ReceivedMessage,
+) -> ActionContext {
+    ActionContext {
+        actor: binding.actor,
+        account: binding.account,
+        session: binding.session,
+        // GameAction's payload counter is unrelated to the ordered transport
+        // message sequence shared by movement and other character actions.
+        sequence: message.sequence,
+    }
+}
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Phase {
     Preparing,
@@ -21,6 +37,8 @@ pub(super) struct Use {
     pub binding: CharacterBinding,
     pub key: SessionKey,
     pub result: Option<u32>,
+    pub approaching: bool,
+    pub failure: Option<bace_gameplay_api::NpcFailure>,
 }
 pub(super) struct HandIn {
     request: NpcHandInRequest,
@@ -148,12 +166,25 @@ impl GameRuntime {
             0,
         )
         .map_err(|e| e.to_string())?;
-        let source = match decoded.action {
+        let source = match &decoded.action {
             InventoryAction::Give { target_id, .. } | InventoryAction::Use(target_id) => {
-                EntityId(target_id)
+                EntityId(*target_id)
             }
             _ => return Ok(I::Unsupported),
         };
+        if matches!(&decoded.action, InventoryAction::Use(_)) {
+            self.diagnostic(
+                "info",
+                "game.npc_use_request",
+                &format!(
+                    "session {} generation {}: target {:#010x}, admitted={}",
+                    key.id,
+                    key.generation,
+                    source.0,
+                    self.npc.coordinator.binding(source).is_some()
+                ),
+            );
+        }
         if self.npc.coordinator.binding(source).is_none() {
             return Ok(I::Unsupported);
         }
@@ -170,6 +201,7 @@ impl GameRuntime {
             || session.terminated
             || self.npc_session_pending(key)
             || self.npc.coordinator.busy(source)
+            || self.npc.uses.contains_key(&source)
             || self.npc.work.contains_key(&source)
             || self.npc.handins.len() == 64
         {
@@ -178,12 +210,7 @@ impl GameRuntime {
         if binding.account != session.account.id || binding.session.0 != key.generation {
             return Err("NPC authenticated session binding".into());
         }
-        let context = ActionContext {
-            actor: binding.actor,
-            account: binding.account,
-            session: binding.session,
-            sequence: envelope.sequence,
-        };
+        let context = player_context(binding, message);
         let mut event = [0; 16];
         OsRng.fill_bytes(&mut event);
         let operation = self.token()?;
@@ -256,12 +283,36 @@ impl GameRuntime {
                         binding,
                         key,
                         result: None,
+                        approaching: false,
+                        failure: None,
                     },
                 );
             }
             _ => return Ok(I::Unsupported),
         }
         Ok(I::Accepted)
+    }
+    pub(super) fn poll_npc_uses(&mut self) -> Result<(), String> {
+        self.npc.use_poll_scratch.clear();
+        self.npc.use_poll_scratch.extend(
+            self.npc
+                .uses
+                .iter()
+                .filter(|(source, used)| {
+                    used.approaching
+                        && used.result.is_none()
+                        && !self.npc.coordinator.busy(**source)
+                })
+                .take(self.limits.work_per_poll)
+                .map(|(source, used)| (*source, used.binding.actor)),
+        );
+        for (source, actor) in self.npc.use_poll_scratch.drain(..) {
+            self.npc
+                .coordinator
+                .enqueue(source, A::PollUse { source, actor })
+                .map_err(|_| "NPC approach admission pressure".to_owned())?;
+        }
+        Ok(())
     }
     pub(super) fn poll_npc_handins(&mut self) -> Result<(), String> {
         let ids: Vec<_> = self.npc.handins.keys().copied().collect();
@@ -437,6 +488,18 @@ impl GameRuntime {
                         .map(|m| (m.queue, m.bytes))
                         .collect(),
                 });
+            self.diagnostic(
+                if code == 0 { "info" } else { "warn" },
+                if code == 0 {
+                    "game.npc_use_done"
+                } else {
+                    "game.npc_use_failed"
+                },
+                &format!(
+                    "session {} generation {}: target {:#010x}, code {:#06x}, cause {:?}",
+                    work.key.id, work.key.generation, source.0, code, work.failure
+                ),
+            );
             self.npc.uses.remove(&source);
         }
         Ok(())

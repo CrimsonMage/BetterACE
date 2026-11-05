@@ -27,8 +27,16 @@ impl VisibilityService {
             let Ok(outcome) = worker.visibility_outcomes().try_recv() else {
                 break;
             };
-            let outcome =
-                Arc::try_unwrap(outcome).map_err(|_| VisibilityServiceError::Projection)?;
+            let outcome = Arc::try_unwrap(outcome).map_err(|outcome| {
+                VisibilityServiceError::ProjectionDetail {
+                    object: 0,
+                    reason: format!(
+                        "fenced visibility outcome {} has {} retained owners",
+                        outcome.correlation,
+                        Arc::strong_count(&outcome)
+                    ),
+                }
+            })?;
             self.cancel_visibility_read(outcome)?;
         }
         for _ in 0..256 {
@@ -52,7 +60,10 @@ impl VisibilityService {
             return Ok(());
         };
         if observer.publication.is_some() || observer.knowledge.pending().is_some() {
-            return Err(VisibilityServiceError::Projection);
+            return Err(VisibilityServiceError::ProjectionDetail {
+                object: observer.binding.actor.0,
+                reason: "fenced visibility read overlaps staged knowledge or publication".into(),
+            });
         }
         observer.query = None;
         observer.buffer = match outcome.result {
@@ -76,17 +87,26 @@ impl VisibilityService {
 }
 fn discard_read(observer: &mut Observer) -> Result<(), VisibilityServiceError> {
     if observer.publication.is_some() {
-        return Err(VisibilityServiceError::Projection);
+        return Err(VisibilityServiceError::ProjectionDetail {
+            object: observer.binding.actor.0,
+            reason: "fenced view discard overlaps publication".into(),
+        });
     }
     let ticket = observer
         .knowledge
         .pending()
-        .ok_or(VisibilityServiceError::Projection)?
+        .ok_or(VisibilityServiceError::ProjectionDetail {
+            object: observer.binding.actor.0,
+            reason: "fenced view discard has no staged knowledge".into(),
+        })?
         .ticket;
     if let Some(snapshot) = observer
         .knowledge
         .discard_unpublished(ticket)
-        .map_err(|_| VisibilityServiceError::Projection)?
+        .map_err(|error| VisibilityServiceError::ProjectionDetail {
+            object: observer.binding.actor.0,
+            reason: format!("fenced view knowledge discard: {error:?}"),
+        })?
     {
         observer.buffer = snapshot.candidates;
     }

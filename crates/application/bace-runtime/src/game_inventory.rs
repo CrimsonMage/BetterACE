@@ -216,6 +216,14 @@ fn freeze_inventory_inner(
                 i32::try_from(u64::from(change.after.stack) * u64::from(change.after.unit_burden))
                     .map_err(|_| InventoryFreezeError::Overflow)?,
             );
+        }
+        if !change.after.is_container
+            && (quantity_changed
+                || change
+                    .before
+                    .as_ref()
+                    .is_some_and(|before| before.unit_value != change.after.unit_value))
+        {
             set(
                 &mut entity.state.properties.ints,
                 19,

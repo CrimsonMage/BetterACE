@@ -1,4 +1,373 @@
 use bace_dat::{CombatManeuverTable, DatArchive, Landblock, RegionLand};
+
+#[test]
+#[ignore = "requires approved DATs and accepted full native pack"]
+fn supplied_e74e_placed_npcs_admit_without_unneeded_generator_targets() {
+    use bace_runtime::{
+        generator_preparation::CreatureAdmissionPolicy,
+        region_activation::{RegionActivationRequest, RegionAssetManifest, VerifiedRegionAssets},
+    };
+    use bace_storage_codec::{PackLimits, load_manifest};
+    use std::{path::PathBuf, sync::Arc};
+
+    let directory = PathBuf::from(std::env::var_os("BACE_DAT_DIRECTORY").unwrap());
+    let path = PathBuf::from(std::env::var_os("BACE_WORLD_MANIFEST").unwrap());
+    let manifest = load_manifest(&path, PackLimits::default()).unwrap();
+    let hash = manifest.content_hash(PackLimits::default()).unwrap();
+    let generation = Arc::new(
+        manifest
+            .open(path.parent().unwrap(), PackLimits::default())
+            .unwrap(),
+    );
+    let mut assets = VerifiedRegionAssets::open(&RegionAssetManifest {
+        portal: directory.join("client_portal.dat"),
+        cell: directory.join("client_cell_1.dat"),
+        portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
+        cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
+    })
+    .unwrap();
+    let region = assets
+        .prepare(&RegionActivationRequest {
+            token: 1,
+            activation_epoch: 1,
+            landblock: 0xe74e,
+            generation,
+            creature_policy: Some(CreatureAdmissionPolicy {
+                corpse_template: 1,
+                think_interval: 30,
+                corpse_decay_ticks: 900,
+            }),
+            treasure_assets: None,
+            content_hash: hash,
+            aetheria_drop_rate: 0.,
+        })
+        .unwrap();
+    let invalid: Vec<_> = region
+        .creatures
+        .iter()
+        .filter_map(|(id, result)| result.as_ref().err().map(|error| (*id, error.clone())))
+        .collect();
+    assert_eq!(
+        invalid.iter().map(|(id, _)| *id).collect::<Vec<_>>(),
+        [23623]
+    );
+    let controller = region.creatures.get(&71241).unwrap().as_ref().unwrap();
+    assert_eq!(controller.blueprint.combat.maximum_health, 0);
+    assert_eq!(controller.blueprint.capabilities.speed, 0.0);
+    assert!(controller.combat_assets.is_none());
+    let controller_source = region.content.templates.get(&71241).unwrap();
+    let mut controller_loadout = bace_runtime::generator_equipment::prepare_creature_loadout(
+        bace_types::EntityId(0x8000_0001),
+        controller_source,
+        &[],
+        controller,
+        &Default::default(),
+    )
+    .unwrap();
+    assets
+        .prepare_npc_loadout_motions(
+            controller_source,
+            &mut controller_loadout,
+            &[],
+            &region.generation,
+        )
+        .unwrap();
+    assert!(controller_loadout.physical_motions.is_empty());
+    let sign = region.creatures.get(&25722).unwrap().as_ref().unwrap();
+    assert!(sign.physical.is_some());
+    assert!(sign.combat_assets.is_none());
+    let mut sign_loadout = bace_simulation::PreparedNpcLoadout {
+        combat_assets: None,
+        death_motions: Vec::new(),
+        physical_motions: Vec::new(),
+        locomotion_styles: Vec::new(),
+        items: Vec::new(),
+        containers: Vec::new(),
+        profile: sign.physical.as_ref().unwrap().clone(),
+        death_items: Vec::new(),
+        death_parents: Vec::new(),
+        death_ids: Vec::new(),
+        enchantments: Vec::new(),
+    };
+    assets
+        .prepare_npc_loadout_motions(
+            region.content.templates.get(&25722).unwrap(),
+            &mut sign_loadout,
+            &[],
+            &region.generation,
+        )
+        .unwrap();
+    assert!(sign_loadout.physical_motions.is_empty());
+    assert!(sign_loadout.death_motions.is_empty());
+    assert_eq!(sign_loadout.locomotion_styles.len(), 1);
+    for (id, _) in &invalid {
+        assert!(
+            !region
+                .content
+                .instances
+                .iter()
+                .any(|instance| instance.template.weenie_id == *id)
+        );
+        assert!(
+            !region
+                .content
+                .encounters
+                .iter()
+                .any(|encounter| encounter.template.weenie_id == *id)
+        );
+    }
+    let admission = region
+        .prepare_generator_admission(&std::collections::BTreeMap::new(), Default::default())
+        .unwrap();
+    let invalid_profiles: Vec<_> = admission
+        .admission
+        .creatures
+        .iter()
+        .filter_map(|(id, creature)| {
+            creature.physical.as_ref().and_then(|profile| {
+                bace_combat::physical::validate_physical_profile(profile)
+                    .err()
+                    .map(|error| (*id, error))
+            })
+        })
+        .collect();
+    assert!(
+        invalid_profiles.is_empty(),
+        "invalid profiles: {invalid_profiles:?}"
+    );
+    for root in &admission.admission.roots {
+        if let Some(creature) = &root.creature
+            && creature.physical.is_some()
+            && creature.physical_motions.is_empty()
+        {
+            let profile = root
+                .loadout
+                .as_ref()
+                .map(|loadout| &loadout.profile)
+                .or(creature.physical.as_ref())
+                .unwrap();
+            assert!(!profile.attackable);
+            assert!(profile.maneuvers.is_empty());
+            assert!(creature.combat_assets.is_none());
+        }
+    }
+    let mut header_shops = 0;
+    for instance in region.content.instances.iter().filter(|instance| {
+        instance.template.weenie_type == 12 && instance.source.obj_cell_id & 0xffff == 0
+    }) {
+        let physical = region
+            .physical
+            .get(&instance.template.weenie_id)
+            .unwrap()
+            .as_ref()
+            .unwrap();
+        let center = physical.shape.spheres().first().unwrap().center;
+        let source = bace_geometry::Vec3::new(
+            instance.source.origin_x,
+            instance.source.origin_y,
+            instance.source.origin_z,
+        );
+        let (cell, _) = bace_runtime::region_geometry::normalize_outdoor(
+            instance.source.obj_cell_id | 0xffff,
+            source + center,
+        )
+        .unwrap();
+        assert!(region.geometry.cell(cell).is_some());
+        if let Some(root) = admission
+            .admission
+            .roots
+            .iter()
+            .find(|root| root.entity.0 == instance.source.guid)
+        {
+            assert_eq!(cell, root.location.cell);
+        }
+        header_shops += 1;
+    }
+    assert!(header_shops > 0);
+    let link_cell = admission
+        .admission
+        .definitions
+        .iter()
+        .find(|definition| definition.identity.entity.0 == 0x7e74e04d)
+        .unwrap()
+        .profiles
+        .iter()
+        .find(|profile| profile.id == 0x7e74e04b)
+        .unwrap()
+        .position
+        .cell
+        .unwrap();
+    assert_ne!(link_cell, 0xe74e0000);
+    assert!(region.geometry.cell(link_cell).is_some());
+    let mut world = bace_world::World::default();
+    world.install_geometry(region.geometry.clone()).unwrap();
+    for root in &admission.admission.roots {
+        let q = root.location.rotation;
+        assert!(
+            q[0].abs() <= 0.0002
+                && q[1].abs() <= 0.0002
+                && (0.999..=1.001).contains(&q.iter().map(|v| v * v).sum::<f32>()),
+            "root {:#x} has invalid authored rotation {q:?}",
+            root.entity.0
+        );
+        let spawn = bace_physics::GeometrySpawn {
+            cell: root.location.cell,
+            position: bace_geometry::Vec3::new(
+                root.location.origin[0],
+                root.location.origin[1],
+                root.location.origin[2],
+            ),
+            shape: root.shape.clone(),
+            capabilities: root.creature.as_ref().map_or(
+                bace_motion::Capabilities {
+                    speed: 0.0,
+                    jump_impulse: 0.0,
+                },
+                |c| c.blueprint.capabilities,
+            ),
+            heading: 2.0 * q[2].atan2(q[3]),
+            maximum_turn_rate: root
+                .creature
+                .as_ref()
+                .map_or(0.0, |c| c.geometry.maximum_turn_rate),
+        };
+        let mut body = if root.authored_static {
+            bace_physics::Body::spawn_authored_static_geometry(&region.geometry, spawn)
+        } else if root.creature.is_none() {
+            bace_physics::Body::spawn_authored_stationary_geometry(&region.geometry, spawn)
+        } else {
+            bace_physics::Body::spawn_geometry(&region.geometry, spawn)
+        }
+        .unwrap_or_else(|error| panic!("root {:#x} geometry: {error:?}", root.entity.0));
+        if let Some(creature) = &root.creature {
+            body.adopt_animated_style(creature.geometry.locomotion.clone(), true)
+                .unwrap_or_else(|error| {
+                    panic!("root {:#x} animated style: {error:?}", root.entity.0)
+                });
+            body.refresh_locomotion(
+                &creature.geometry.locomotion.profile,
+                creature.geometry.run_rate,
+            )
+            .unwrap_or_else(|error| panic!("root {:#x} locomotion: {error:?}", root.entity.0));
+        }
+        world
+            .insert(bace_entity::Actor {
+                id: root.entity,
+                cell: bace_types::CellId(root.location.cell),
+                body,
+            })
+            .unwrap_or_else(|error| panic!("root {:#x} world: {error:?}", root.entity.0));
+    }
+    assert!(
+        admission
+            .held
+            .iter()
+            .all(|(_, error)| !error.contains("NPC physical profile"))
+    );
+    let unexpected: Vec<_> = admission
+        .held
+        .iter()
+        .filter(|(_, error)| error != "creature equipment GUIDs/loadout not prepared")
+        .collect();
+    for (id, _) in &unexpected {
+        if let Some(instance) = region
+            .content
+            .instances
+            .iter()
+            .find(|i| i.source.guid == *id)
+        {
+            let p = bace_geometry::Vec3::new(
+                instance.source.origin_x,
+                instance.source.origin_y,
+                instance.source.origin_z,
+            );
+            eprintln!(
+                "held source {id:#x}: {} type {} cell {:#x} origin ({}, {}, {}) ground {:?}",
+                instance.template.class_name,
+                instance.template.weenie_type,
+                instance.source.obj_cell_id,
+                instance.source.origin_x,
+                instance.source.origin_y,
+                instance.source.origin_z,
+                region.geometry.ground_at(instance.source.obj_cell_id, p)
+            );
+        }
+    }
+    assert!(
+        unexpected.is_empty(),
+        "held geometry or capacity roots: {unexpected:?}"
+    );
+    assert!(
+        admission
+            .held
+            .iter()
+            .all(|(id, _)| ![23623, 71241].contains(id))
+    );
+    assert!(
+        !admission
+            .admission
+            .creatures
+            .iter()
+            .any(|(id, _)| *id == 23623)
+    );
+    assert!(
+        admission
+            .admission
+            .creatures
+            .iter()
+            .any(|(id, _)| *id == 25722)
+    );
+    assert!(
+        admission
+            .admission
+            .creatures
+            .iter()
+            .any(|(id, _)| *id == 71241)
+    );
+    let mut kernel = bace_simulation::Kernel::new(bace_world::World::default(), 8192).unwrap();
+    let random = Arc::new(bace_random::RandomRoot::new([7; 32], 1).unwrap());
+    kernel.configure_native_loot(random.clone(), 1).unwrap();
+    kernel.configure_generators(random, 1, true).unwrap();
+    kernel.admit_generator_region(admission.admission).unwrap();
+    let region8602 = assets
+        .prepare(&RegionActivationRequest {
+            token: 2,
+            activation_epoch: 1,
+            landblock: 0x8602,
+            generation: region.generation.clone(),
+            creature_policy: Some(CreatureAdmissionPolicy {
+                corpse_template: 1,
+                think_interval: 30,
+                corpse_decay_ticks: 900,
+            }),
+            treasure_assets: None,
+            content_hash: hash,
+            aetheria_drop_rate: 0.,
+        })
+        .unwrap();
+    let without_equipment_profile: Vec<_> = region8602
+        .content
+        .instances
+        .iter()
+        .filter(|instance| !instance.source.is_link_child)
+        .filter_map(|instance| {
+            let creature = region8602
+                .creatures
+                .get(&instance.template.weenie_id)?
+                .as_ref()
+                .ok()?;
+            (creature.requires_equipment && creature.physical.is_none()).then_some((
+                instance.template.weenie_id,
+                instance.template.class_name.clone(),
+            ))
+        })
+        .collect();
+    assert!(
+        without_equipment_profile.is_empty(),
+        "missing equipment profile: {without_equipment_profile:?}"
+    );
+}
 #[test]
 #[ignore = "requires approved actual DATs; set BACE_DAT_DIRECTORY"]
 fn source_static_primary_spheres_resolve_four_8602_cells() {
@@ -14,6 +383,7 @@ fn source_static_primary_spheres_resolve_four_8602_cells() {
         cell: directory.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     };
     let mut assets = VerifiedRegionAssets::open(&manifest).unwrap();
     let (geometry, visibility) = assets.prepare_geometry_with_visibility(0x8602).unwrap();

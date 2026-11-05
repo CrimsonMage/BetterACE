@@ -13,6 +13,7 @@ pub enum VitalReservationDomain {
     Portal,
     NpcRetirement,
     Equipment,
+    HealingKit,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VitalReservationToken {
@@ -64,6 +65,7 @@ impl World {
                     | VitalReservationDomain::Crafting
                     | VitalReservationDomain::NpcRetirement
                     | VitalReservationDomain::Equipment
+                    | VitalReservationDomain::HealingKit
             ) && resource.1 != EntityVital::Mana
                 && !(resource.1 == EntityVital::Stamina
                     && token.domain == VitalReservationDomain::Portal))

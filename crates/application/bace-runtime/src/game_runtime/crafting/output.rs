@@ -232,8 +232,7 @@ impl GameRuntime {
         else {
             return Err("non-tinker completion on live tinker lane".into());
         };
-        let loading = self
-            .sessions
+        self.sessions
             .get(&key)
             .and_then(|s| s.loading.as_ref())
             .ok_or("crafting output session missing")?;
@@ -242,7 +241,7 @@ impl GameRuntime {
             .as_ref()
             .ok_or("crafting appearance assets missing")?
             .appearance;
-        let character = loading
+        let character = self
             .character_assets
             .as_ref()
             .ok_or("crafting CharGen missing")?;

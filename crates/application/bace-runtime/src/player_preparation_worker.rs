@@ -1,16 +1,92 @@
 //! Bounded cold avatar/entry preparation. The worker owns verified DAT archives;
 //! gameplay and canonical session sequence owners remain outside this thread.
 mod lane;
+#[cfg(test)]
+mod tests;
 use crate::{
     character_assets::PreparedCharacterAssets,
     game_login::LoadedPlayer,
-    player_assets::{PlayerColdAssets, PlayerColdPolicy, prepare_loaded_avatar},
+    player_assets::{PlayerColdAssets, PlayerColdPolicy, PreparedAvatarDat, prepare_loaded_avatar},
     player_entry::PreparedEntryAppearanceAssets,
     region_activation::{RegionAssetManifest, VerifiedRegionAssets},
 };
 use bace_gameplay_api::{ActionContext, CharacterBinding, EnchantmentProjection};
 use bace_session::SessionKey;
-use std::{collections::BTreeMap, sync::Arc, thread};
+use std::{
+    collections::{BTreeMap, VecDeque},
+    sync::Arc,
+    thread,
+};
+
+// A source avatar's DAT closure is immutable for the lifetime of this worker.
+// Reusing the decoded motion, animation, spell and character tables avoids
+// rebuilding the same closure for every login. Keep only a few distinct source
+// variants: one closure may contain up to 64 MiB of admitted DAT bytes.
+const AVATAR_CACHE_ENTRIES: usize = 4;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct AvatarKey {
+    setup: u32,
+    motions: u32,
+    maneuvers: u32,
+    scale_bits: u32,
+}
+
+impl AvatarKey {
+    fn from_source(source: &bace_content::WeenieV1) -> Result<Self, String> {
+        let did = |id| {
+            source
+                .properties
+                .data_ids
+                .iter()
+                .find(|p| p.id == id)
+                .map(|p| p.value)
+                .ok_or("missing avatar DAT reference".to_owned())
+        };
+        let scale = source
+            .properties
+            .floats
+            .iter()
+            .find(|p| p.id == 39)
+            .map_or(1.0, |p| p.value) as f32;
+        Ok(Self {
+            setup: did(1)?,
+            motions: did(2)?,
+            maneuvers: did(4)?,
+            scale_bits: scale.to_bits(),
+        })
+    }
+}
+
+#[derive(Default)]
+struct AvatarCache {
+    entries: BTreeMap<AvatarKey, Arc<PreparedAvatarDat>>,
+    order: VecDeque<AvatarKey>,
+}
+
+impl AvatarCache {
+    fn get_or_prepare(
+        &mut self,
+        assets: &mut VerifiedRegionAssets,
+        source: &bace_content::WeenieV1,
+    ) -> Result<Arc<PreparedAvatarDat>, String> {
+        let key = AvatarKey::from_source(source)?;
+        if let Some(cached) = self.entries.get(&key) {
+            self.order.retain(|old| *old != key);
+            self.order.push_back(key);
+            return Ok(cached.clone());
+        }
+        let prepared = Arc::new(assets.prepare_avatar_dat(source)?);
+        if self.entries.len() == AVATAR_CACHE_ENTRIES
+            && let Some(oldest) = self.order.pop_front()
+        {
+            self.entries.remove(&oldest);
+        }
+        self.entries.insert(key, prepared.clone());
+        self.order.push_back(key);
+        Ok(prepared)
+    }
+}
 
 pub struct PlayerPreparationRequest {
     pub generation: Arc<bace_storage_codec::PackGeneration>,
@@ -75,6 +151,7 @@ impl PlayerPreparationWorker {
     /// immutable shared region/spell inputs are never copied into a second owner.
     pub fn start(manifest: RegionAssetManifest, capacity: usize) -> Result<Self, String> {
         let mut assets = None;
+        let mut avatar_cache = AvatarCache::default();
         let lane = lane::Lane::start(capacity, move |request: PreparationJob| {
             let assets = assets.get_or_insert_with(|| VerifiedRegionAssets::open(&manifest));
             match request {
@@ -85,7 +162,7 @@ impl PlayerPreparationWorker {
                     let result = assets
                         .as_mut()
                         .map_err(|e| e.clone())
-                        .and_then(|assets| prepare(assets, request));
+                        .and_then(|assets| prepare(assets, &mut avatar_cache, request));
                     PlayerPreparationResult::Admission(Box::new(PlayerPreparationCompletion {
                         correlation,
                         key,
@@ -192,6 +269,7 @@ impl PlayerPreparationWorker {
 }
 fn prepare(
     assets: &mut VerifiedRegionAssets,
+    avatar_cache: &mut AvatarCache,
     request: PlayerPreparationRequest,
 ) -> Result<PreparedPlayerCold, String> {
     request
@@ -199,7 +277,7 @@ fn prepare(
         .player
         .validate()
         .map_err(|e| e.to_string())?;
-    let avatar = assets.prepare_avatar_dat(&request.loaded.player.player.entity.state)?;
+    let avatar = avatar_cache.get_or_prepare(assets, &request.loaded.player.player.entity.state)?;
     let mut admission = prepare_loaded_avatar(
         &request.loaded,
         PlayerColdAssets {
@@ -252,8 +330,8 @@ fn prepare(
     Ok(PreparedPlayerCold {
         admission,
         appearance,
-        character_assets: avatar.character,
-        spell_table: avatar.spells,
+        character_assets: avatar.character.clone(),
+        spell_table: avatar.spells.clone(),
         enchantments,
     })
 }

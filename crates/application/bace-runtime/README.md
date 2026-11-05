@@ -1,5 +1,71 @@
 # bace-runtime
 
+The approved DAT set is opened once. Each region worker retains bounded decoded
+Portal collision setups, motion tables, and animations across region loads;
+the cache is limited to 32 MiB of source record bytes and 2,048 records.
+Skill, vital, and quality tables are retained on that worker as immutable
+startup data. A 7f03 approved-DAT fixture prepares 94 physical templates and
+17 creatures with per-stage timings; live entry must still be measured under
+client traffic. DAT version interrogation uses the already prepared distribution
+catalog and does not iterate the archives for each login.
+
+Pinned NPC sources in the current accepted generation reuse that generation's
+mapped pack and the region's prepared catalog, spells, physical templates and
+creature profiles when their effective authored template is identical. A changed
+quality or historical generation still takes the exact pinned preparation path.
+On the local 7f03 preload with two unchanged pinned sources, `NpcSources` fell
+from 0.630s to 0.305s. This is a cold preload measurement, not a retail login
+latency measurement.
+
+The pinned Patches WCID 30997, 12718 and Society Greeter 30991 have Wield
+clothing rows but ItemCapacity=-1. ACE `Creature.GenerateWieldList` admits them through
+`Container.TryAddToInventory`, whose signed capacity comparison discards them.
+For a type-10 Creature or type-12 Shop with Wield rows, no DID32/33 treasure and this exact sentinel,
+BetterACE stages the Wield pass with a temporary bounded capacity and retains
+only equipped items. Original authored capacities remain on the NPC. This is an
+intentional content correction rather than an ACE parity claim; the synthetic
+and approved 7f03 fixture tests cover the choice. Society Greeter is a linked
+generator child, so its clothing is constructed by the generator service when
+that linked spawn is admitted. The visibility handoff also copies the accepted
+equipped location into each temporary appearance item; the source template
+does not carry this live quality. The approved 7f03 fixture compares the bare
+and dressed DAT-backed models.
+
+`IdentifyObject` now routes the exact four-byte GUID request to queue 9 for
+the character and owned items, or for a world object already known to that
+session. Its first live response uses the pinned assessment-property allowlists
+and item primary/proc/known spells. Clothing also carries ACE's eight authored
+base armor modifiers, with source defaults and clamps. An unknown GUID gets
+ACE's empty failure response; GUID zero clears without output. Dynamic
+enchantment, creature assessment chance and wake, shield/weapon/creature
+profiles, and other-player privacy are still unsupported, so live appraisal is a scaffold and
+does not claim complete ACE identification parity.
+The ordered UI event stream starts at stamp 1, matching pinned ACE
+`Session.InitSessionForWorldLogin`; stock-client examination still needs a
+successful observed panel before it can be called working.
+An approved-DAT/PostgreSQL real UDP fixture now receives the self and starter
+item responses on queue 9, with contiguous event stamps 1 through 7. This
+proves server projection and transport delivery to a synthetic peer; it does
+not establish retail panel rendering.
+
+World NPC `Use` now retains an out-of-range invocation while the simulation
+owns a bounded MoveToObject approach. The adapter polls the accepted range and
+emits `UseDone` only after source activation or a definite failure. Pinned ACE
+`Player.HandleActionUseItem` and `Player.CreateMoveToChain` supply the action
+order; the current 450-tick timeout and authoritative swept approach are
+BetterACE bounds. Signed portal-radius sources retain their separate path.
+Synthetic arrival testing passes; retail greeter interaction remains pending.
+
+Human NPC faces now follow pinned ACE `Creature.GenerateNewFace` and
+`SexCG` selection at `47edade3bd3f6044b676d4eb877c4965c7eda62b`:
+heritage and gender may come from numeric or authored string properties, and
+hair, eye, nose, mouth and palette choices use verified Portal DAT records.
+Existing authored face fields remain intact. Choices are stable for an NPC
+identity and region incarnation; ACE uses thread-local random draws, so exact
+individual faces are not expected to match across servers. The default ACE
+retail hairstyle range is used. This is cold visibility preparation, not a
+persisted gameplay mutation.
+
 Sentinel `@boot` now resolves the captured authorized command against online
 session generations. It retains the issuer's source Broadcast response, queues
 the target's final AccountBoot packet before disconnect, and keeps the Audit
@@ -85,6 +151,31 @@ game-readiness checks still apply. A passwordless local PostgreSQL URL can be
 set in `database_url`; `database_url_env` takes precedence when present.
 Direct `serve` reports the retained lifecycle reason while graceful drain is
 in progress, and keeps the world owner until durable shutdown completes.
+The game diagnostic log under `host.log_directory/game` and stderr now record
+character creation and world-entry milestones by session generation and
+character ID. Rejected creation, session failures and retained lifecycle
+failures are recorded as errors without account names or packet payloads.
+An unsupported client message records its queue and opcode, plus its action ID
+for `GameAction`, and is ignored without closing the peer. This follows pinned
+ACE `InboundMessageManager.HandleClientMessage` and `HandleGameAction` for
+unhandled identifiers. A valid `GameAction` received after character selection
+but before the asynchronous entered receipt is held in bounded ingress and
+routed after entry. Queue IDs remain transport metadata; inbound handlers use
+opcode and session state.
+Startup writes each preparation stage and its elapsed time to stderr and the
+game diagnostic log. The ready status includes total startup time and a Linux
+process snapshot of RSS, peak RSS, CPU time and thread count when available.
+It shows the active stage in host status. DAT SHA-256
+verification remains mandatory. The workspace optimizes the `sha2` dependency
+in development builds, and the approved files are hashed only once at startup.
+The accepted world pack opens by mapping its index, without decoding every world
+record. Startup traces the treasure/class index, spell-row scan, portal DAT
+tables, projectile closure, treasure closure and recall lookup separately. Spell
+override rows are decoded once into a shared `Arc` map retained by the runtime;
+region templates remain demand-loaded through bounded pack scans/lookups.
+The two accepted treasure/class records are decoded on blocking capacity while
+the approved DAT store finishes indexing; this moves their cold CPU work off
+the sequential path without expanding the world scan.
 
 `simulation::SimulationWorker` moves the kernel onto one named OS thread; physics and world share that owner. Bounded nonblocking command admission, bounded work per tick, explicit shutdown/join, 30 Hz pacing and fixed-size timing histograms keep adapter work separate. `exercise` uses this worker unpaced. A rejected command is currently counted, not routed to a stock-client correction packet. Worker shutdown does not itself integrate the save coordinator: durable drain composition remains part of the playable milestone.
 
@@ -120,8 +211,10 @@ stock-client login remains unqualified.
 blocking capacity. Rejected jobs retain caller ownership; preparation results are
 fenced against the DDD generation. Explicit shutdown recovers accepted results and
 unrecovered jobs. Dropping the worker counts abandoned results, never DDD success.
-The composed startup rechecks approved Portal, Language and Cell fingerprints,
-opens their version records on blocking asset capacity, then starts game sockets.
+The composed startup opens Portal, Cell and Language once, hashes each retained
+descriptor against its approved fingerprint, and shares their indexed archive
+handles with cold region, player, staff, magic and DDD preparation. DDD opens its
+version records on blocking asset capacity before game sockets start.
 Authenticated roster output carries CharacterList and ServerName on UIQueue in
 one correlated reliable batch, then DDD_Interrogation on DatabaseQueue after
 that prefix is admitted. World entry waits for reliable admission of DDD_EndDDD.
@@ -292,6 +385,24 @@ Region activation carries actual DAT geometry and source roots in a single owner
 command. Missing or mismatched assets produce held diagnostics. Vendor generation
 is off by default; generator rotation offsets are on. Treasure lookup resolves
 ACE death before wielded tables, using the overloaded source WCID namespace.
+Cold preparation resolves a linked child's landblock-header outdoor cell hint
+with that child's primary prepared collision sphere, as it does for placed roots.
+The Patches v0.9.295 `e74e` link from generator `0x7e74e04d` to child
+`0x7e74e04b` is covered by the approved-pack regression. Region refresh uses
+the same resolved destination.
+The same approved-pack regression now admits generated creature WCID 71241 as
+an inert zero-vital event controller and keeps WCID 25722's physical qualities
+for its generated sign inventory. Pinned ACE `Creature.SetEphemeralValues`,
+`CreatureVital` and `CreatureAttribute` supply absent zero-valued qualities;
+nonattackable stationary actors do not require attack motion programs. The
+regression runs the complete prepared e74e batch through simulation admission.
+Generated equipment refresh for those actors retains physical/item registry
+preparation but uses the verified Ready cycle as a stationary locomotion program;
+it does not request absent walk, attack or death links from the sign's DAT table.
+Historical pinned Shop recovery compares its saved cell with the authored
+instance after resolving a landblock-header outdoor hint from the accepted
+generation's primary collision sphere. GUID, template, landblock, saved V5
+state and source inventory remain exact recovery fences.
 Material rows retain imported ID order (the upstream database query has no explicit
 ordering); clothing fallback preserves the original DAT hash-table order.
 
@@ -489,7 +600,9 @@ sequence. The PostgreSQL lifecycle regression joins roster/creation, actual geom
 owner admission, Online fencing, ordered entry, a live UI mutation, owned routine
 save, durable reload and ownership-preserving worker shutdown. The ignored
 `player_assets` integration test separately prepares and admits an avatar using the
-approved user-supplied DATs; neither test is a stock-client qualification claim.
+approved user-supplied DATs and an accepted native pack supplied through
+`BACE_WORLD_MANIFEST`, so authored proc dependencies remain available; neither
+test is a stock-client qualification claim.
 The entry message order derives from pinned ACE
 `WorldObjects/Player_Networking.cs::PlayerEnterWorld` and its `SendSelf` path;
 `bace-replication/tests/session_output.rs` retains the independently specified wire
@@ -742,6 +855,17 @@ Its committed output uses the fresh equipped identity and verifies the source
 and created proposal rows before publication and visibility handoff.
 This is server-side validation, not stock-client qualification; client testing
 remains deferred.
+An approved-DAT, PostgreSQL and real-UDP entry regression now wields the ACE
+starter wand and requires the committed `WieldObject` response. The source avatar
+needs 75 prepared motion chains, so equipment ingress and combat replacement
+admit up to 128. Invalid physical companions surface a retained lifecycle error
+instead of being retried as queue pressure. The runtime retains one immutable
+CharGen owner for later equipment and other appearance changes across sessions.
+The real-UDP regression also sends ACE `QueryHealth` before wielding. A staff ban
+poll used to replace unrelated query phases with `Awaiting`, losing the original
+command and blocking subsequent inventory actions. It now restores the original
+phase unless the pending operation is a ban; the target query receipt and wield
+response complete in that sequence. Retail examination remains unqualified.
 
 The composed `GameRuntime` now routes authenticated tinkering `UseWithTarget` and
 craft confirmations through bounded cold recipe preparation, a fresh accepted
@@ -1091,3 +1215,39 @@ AttributeTransferDevice Int119 Active=0 follows the same authenticated
 accepted-revision inactive Use rule and projects only UseDone. Stale or replayed
 actions return cannot-use without a quote or consumption. Generic activation
 effects for active attribute devices remain held.
+
+Healing-kit `UseWithTarget` (0x35) now has a retained self-target route. The
+accepted owned item and player revision are captured before the immutable
+template and DAT heal motion are prepared on a blocking worker. The simulation
+checks trained Healing, source ownership and charge, selected vital capacity,
+and motion eligibility. It holds the action until `SkillHealSelf` completes;
+cancelled or disrupted motion does not spend a charge. A completed attempt
+spends one Structure even when the skill check fails. The changed kit Value,
+player vital/stamina, and exact item revisions commit in one durable placement
+operation before the simulation adopts the result and the ordered client output
+is queued. A rejected or uncertain save retains the operation for review/retry.
+This follows pinned ACE `WorldObjects/Healer.cs` (`HandleActionUseOnTarget`,
+`DoHealMotion`, `DoHealing`) and `WorldObjects/Player_Use.cs` at the revision in
+`docs/baselines.toml`. Full-vital feedback uses ACE's health error-with-string
+and stamina/mana transient text. A pending motion blocks another healer action.
+ACE assigns `NextUseTime` to the healing animation's end, but does not check it
+to admit another healer use; `Player_Combat.HandleActionChangeCombatMode` reads
+that clock and delays the mode change by `UseTimeEpsilon`. BetterACE does not
+yet model this shared combat-mode delay. ACE does not call generic
+`CheckUseRequirements` or shared cooldown for this 0x35 action. Other-player
+healing and proficiency gain remain unsupported live actions.
+
+ManaStone (WeenieType 37) `UseWithTarget` now has a retained owned-item target
+route. Accepted source Int107/108, Float87/137, Bool63, player Int340,
+TargetType94 and target ItemType1 prepare an exact simulation proposal. The
+simulation checks current live item mana and inventory revisions, reserves both
+item rows, and adopts the mana state only after the same durable placement's
+exact receipt. Rejected and uncertain writes retain the proposal without
+changing live mana. A focused owner regression proves wrong receipt and
+rejection do not refill a wand; the runtime property parser and domain arithmetic
+have source-derived tests. Empty stones extract from unequipped owned items;
+charged stones pour into one owned item. Self-target distribution across equipped
+items, extraction that consumes equipped gear, observer UiEffects publication,
+and a retail/PostgreSQL UseWithTarget transcript remain unverified or unsupported.
+Source: pinned ACE `Player_Use.HandleActionUseWithTarget` and
+`ManaStone.HandleActionUseOnTarget` at the revision in `docs/baselines.toml`.

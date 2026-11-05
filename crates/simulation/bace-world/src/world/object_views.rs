@@ -181,6 +181,11 @@ impl World {
                 )
             } else if let Some(source) = source {
                 (source.style, source.substate, source.speed, 0.0, 0.0)
+            } else if let Some(style) = goal.and_then(|_| body.prepared_locomotion_style()) {
+                // Server-owned MoveTo output encodes its own movement body. A
+                // valid prepared style still has to be present even though
+                // beginning that approach cleared the old manual drive.
+                (style, 0x41000003, 1.0, 0.0, 0.0)
             } else {
                 if body.has_locomotion_intent() || goal.is_some() {
                     return Err(ObjectViewRejection::MissingMotion);

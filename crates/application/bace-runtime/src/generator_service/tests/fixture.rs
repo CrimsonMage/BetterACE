@@ -144,12 +144,12 @@ pub(super) fn service() -> (tempfile::TempDir, GeneratorService<Repository>, Reg
             instances: vec![],
             encounters: vec![],
         },
-        catalog: crate::generator_catalog::PreparedGeneratorCatalog {
+        catalog: Arc::new(crate::generator_catalog::PreparedGeneratorCatalog {
             templates,
             death: BTreeMap::new(),
             wielded: BTreeMap::new(),
             treasure: BTreeMap::new(),
-        },
+        }),
         item_spells: Err("no equipped spells in contained fixture".into()),
         geometry,
         physical: BTreeMap::new(),
@@ -163,6 +163,7 @@ pub(super) fn service() -> (tempfile::TempDir, GeneratorService<Repository>, Reg
             cell: dir.path().join("absent-cell.dat"),
             portal_sha256: String::new(),
             cell_sha256: String::new(),
+            store: None,
         },
         generation,
         treasure_assets: Arc::new(Default::default()),

@@ -39,6 +39,7 @@ fn prepared() -> PreparedResidentRegion {
         source_manifest: [1; 32],
         refresh: None,
         bindings: vec![],
+        doors: vec![],
         visibility: geometry
             .cell_ids()
             .filter(|id| id & 0xffff >= 0x100)

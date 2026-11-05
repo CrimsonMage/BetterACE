@@ -29,6 +29,10 @@ Delays, nested chains, instruction count, pending completion tickets and strings
 are bounded. Owner `Pending` never means completed gameplay: the VM does not
 advance that action until its matching completion. Notification capacity pressure
 retains the next action while physics continues.
+The one-week authored delay bound admits the five-day event timers in Patches
+v0.9.295 WCIDs 72374 and 29695; the previous one-day bound rejected those
+accepted source programs before generated NPC registration. Longer and nonfinite
+delays still reject at preparation.
 
 The simulation adapter currently connects authoritative property/quest queries,
 property mutations, quest updates, XP spends and queued recipient grants, luminance grants/spends,

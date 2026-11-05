@@ -10,7 +10,7 @@ mod registration;
 mod tests;
 use super::*;
 use crate::inventory_service::{InventoryCompletion, InventoryService, InventoryWork};
-use bace_gameplay_api::{ActionContext, CharacterBinding, InventoryRequest};
+use bace_gameplay_api::{ActionContext, CharacterBinding, InventoryRejection, InventoryRequest};
 use bace_simulation::{
     Command, InventoryCommand, InventoryCommandKind, InventoryDecision, InventoryOutcome,
     InventoryPreparedRequest,
@@ -18,6 +18,51 @@ use bace_simulation::{
 use bace_transport::ReceivedMessage;
 use bace_types::EntityId;
 use std::sync::mpsc::TrySendError;
+
+/// Immutable avatar DAT preparation depends only on these authored references,
+/// scale and the accepted content generation. Retaining one decoded closure
+/// bounds the extra heap cost to one avatar, rather than one copy per player.
+/// The generation revision and portal digest prevent reuse after publication.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct AvatarKey {
+    generation: u64,
+    portal_sha256: String,
+    setup: u32,
+    motions: u32,
+    maneuvers: u32,
+    scale_bits: u32,
+}
+impl AvatarKey {
+    fn from_source(
+        source: &bace_content::WeenieV1,
+        generation: u64,
+        portal_sha256: &str,
+    ) -> Result<Self, String> {
+        let did = |id| {
+            source
+                .properties
+                .data_ids
+                .iter()
+                .find(|p| p.id == id)
+                .map(|p| p.value)
+                .ok_or("missing avatar DAT reference".to_owned())
+        };
+        let scale = source
+            .properties
+            .floats
+            .iter()
+            .find(|p| p.id == 39)
+            .map_or(1.0, |p| p.value) as f32;
+        Ok(Self {
+            generation,
+            portal_sha256: portal_sha256.to_owned(),
+            setup: did(1)?,
+            motions: did(2)?,
+            maneuvers: did(4)?,
+            scale_bits: scale.to_bits(),
+        })
+    }
+}
 
 pub(super) enum InventoryIngress {
     Accepted,
@@ -46,6 +91,7 @@ pub(super) struct InventoryRuntime {
     unexpected_completion: Option<InventoryCompletion>,
     failures: BTreeMap<SessionKey, String>,
     equipment: Option<equipment::EquipmentRuntime>,
+    avatar_dat: Option<(AvatarKey, Arc<crate::player_assets::PreparedAvatarDat>)>,
 }
 impl InventoryRuntime {
     pub(super) fn new() -> Self {
@@ -57,6 +103,7 @@ impl InventoryRuntime {
             unexpected_completion: None,
             failures: BTreeMap::new(),
             equipment: None,
+            avatar_dat: None,
         }
     }
     pub(super) fn has_pending(&self) -> bool {
@@ -65,6 +112,12 @@ impl InventoryRuntime {
             || self.service.requires_drain()
             || self.unexpected.is_some()
             || self.unexpected_completion.is_some()
+    }
+    #[cfg(test)]
+    pub(super) fn cached_avatar_dat(
+        &self,
+    ) -> Option<&Arc<crate::player_assets::PreparedAvatarDat>> {
+        self.avatar_dat.as_ref().map(|(_, dat)| dat)
     }
 }
 impl GameRuntime {
@@ -148,6 +201,11 @@ impl GameRuntime {
             }
             Err(error) => return Err(format!("malformed inventory request: {error:?}")),
         };
+        // The GameAction payload counter is distinct from the ordered message
+        // sequence. ACE reads it but does not use it to authorize actions.
+        // Characters has one cursor shared with other gameplay actions, whose
+        // contexts use the ordered message sequence. Mixing the two counters
+        // rejects valid retail inventory requests after unrelated actions.
         if self.inventory.has_pending() {
             return Ok(InventoryIngress::Blocked);
         }
@@ -163,7 +221,23 @@ impl GameRuntime {
             InventoryRequest::Equip { .. } | InventoryRequest::SplitToWield { .. }
         ) || equipped_source && matches!(decoded.request, InventoryRequest::Move { .. })
         {
-            self.begin_inventory_equipment(key, binding, context, decoded.request)?;
+            self.diagnostic(
+                "info",
+                "game.equip_request",
+                &format!(
+                    "session {} generation {}: {:?}",
+                    key.id, key.generation, decoded.request
+                ),
+            );
+            self.begin_inventory_equipment(key, binding, context, decoded.request)
+                .map_err(|error| {
+                    self.diagnostic(
+                        "error",
+                        "game.equip_failure",
+                        &format!("session {} generation {}: {error}", key.id, key.generation),
+                    );
+                    error
+                })?;
             return Ok(InventoryIngress::Accepted);
         }
         let source = cold::owned_source(binding.actor, decoded.request, |id| {
@@ -171,6 +245,25 @@ impl GameRuntime {
                 .inventory_baseline(binding.actor.0, id)
                 .map(|row| (&row.entity.state, &row.placement))
         });
+        if let InventoryRequest::Move {
+            item,
+            container,
+            placement,
+        } = decoded.request
+        {
+            self.diagnostic(
+                "info",
+                "game.inventory_move_request",
+                &format!(
+                    "session {} generation {}: item {:#010x} to container {:#010x} slot {placement}, route {}",
+                    key.id,
+                    key.generation,
+                    item.0,
+                    container.0,
+                    if source.is_ok() { "carried" } else { "inspection" }
+                ),
+            );
+        }
         if matches!(
             decoded.request,
             InventoryRequest::SplitToContainer { .. } | InventoryRequest::SplitToWorld { .. }
@@ -297,6 +390,15 @@ impl GameRuntime {
                 .ok_or("inventory cold completion has no owner")?;
             match done {
                 Ok(mut prepared) => {
+                    if let Some(dat) = prepared.equipment_dat.as_ref()
+                        && let Some(key) = self
+                            .inventory
+                            .equipment
+                            .as_ref()
+                            .and_then(equipment::EquipmentRuntime::avatar_key)
+                    {
+                        self.inventory.avatar_dat = Some((key.clone(), dat.clone()));
+                    }
                     if let Some(fresh) = prepared.fresh.as_ref() {
                         pending.item = fresh.item.id;
                     }
@@ -331,6 +433,11 @@ impl GameRuntime {
             let outcome = match self.inventory.service.accept_outcome(outcome) {
                 Ok(()) => continue,
                 Err(value) => *value,
+            };
+            let retry_token = if matches!(outcome.result, Err(InventoryRejection::StaleSnapshot)) {
+                Some(self.token()?)
+            } else {
+                None
             };
             let Some(pending) = self
                 .inventory
@@ -377,6 +484,18 @@ impl GameRuntime {
                     pending.saving = true;
                 }
                 Err(error) => {
+                    if error == InventoryRejection::StaleSnapshot
+                        && let Some(attempt) = self.inventory.equipment.as_mut().and_then(|gear| {
+                            gear.restart_stale(pending, retry_token.expect("stale token"))
+                        })
+                    {
+                        let detail = format!(
+                            "session {} generation {} item {:#010x}: recapturing accepted player revision (attempt {attempt}/2)",
+                            pending.key.id, pending.key.generation, pending.item.0
+                        );
+                        self.diagnostic("info", "game.equipment_snapshot_stale", &detail);
+                        continue;
+                    }
                     self.inventory
                         .failures
                         .insert(pending.key, format!("inventory rejected: {error:?}"));

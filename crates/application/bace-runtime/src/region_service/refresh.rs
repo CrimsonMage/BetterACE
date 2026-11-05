@@ -567,8 +567,7 @@ fn prepare(
                 source.angles_w,
             ],
         };
-        let links =
-            crate::generator_preparation::region_generator_links(&region.content, source.guid)?;
+        let links = region.normalized_generator_links(source.guid)?;
         batch
             .admission
             .definitions
@@ -665,6 +664,7 @@ fn prepare(
         visibility: region.visibility.clone(),
         region: batch.admission,
         items: bace_simulation::PreparedWorldRegionItems::default(),
+        doors: vec![],
         bindings: vec![],
         dungeon: false,
         keep_alive: u32::try_from(keep_alive).map_err(|_| "region keep-alive count overflow")?,

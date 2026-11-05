@@ -346,6 +346,44 @@ pub fn prepare_animated_locomotion(
     }))
 }
 
+/// A source NPC with Attackable=false and no targeting tactic can have only a
+/// ready cycle. It remains a collidable stationary actor; the ready animation
+/// is used for unreachable walk/run channels and all movement is zeroed.
+pub fn prepare_stationary_locomotion(
+    table: &MotionTable,
+    animations: &BTreeMap<u32, Animation>,
+    scale: f32,
+) -> Result<std::sync::Arc<bace_motion::AnimatedLocomotion>, String> {
+    let style = table.default_style;
+    let key = |motion: u32| style.wrapping_shl(16) | (motion & 0x00ff_ffff);
+    let ready = table
+        .cycles
+        .get(&key(0x4100_0003))
+        .ok_or("stationary NPC missing ready cycle")?
+        .clone();
+    let mut stationary = table.clone();
+    stationary.cycles.insert(key(0x4500_0005), ready.clone());
+    stationary.cycles.insert(key(0x4400_0007), ready);
+    let still = bace_dat::MotionData {
+        bitfield: 0,
+        flags: 0,
+        animations: Vec::new(),
+        velocity: None,
+        omega: None,
+    };
+    stationary.modifiers.insert(key(0x6500_000f), still.clone());
+    stationary.modifiers.insert(key(0x6500_000d), still);
+    let mut result = prepare_animated_locomotion(&stationary, style, animations, scale)?;
+    let profile = &mut std::sync::Arc::make_mut(&mut result).profile;
+    profile.ready.velocity = Vec3::ZERO;
+    profile.ready.omega = Vec3::ZERO;
+    profile.walk.velocity = Vec3::ZERO;
+    profile.walk.omega = Vec3::ZERO;
+    profile.run.velocity = Vec3::ZERO;
+    profile.run.omega = Vec3::ZERO;
+    Ok(result)
+}
+
 pub fn prepare_locomotion(
     table: &MotionTable,
     style: u32,

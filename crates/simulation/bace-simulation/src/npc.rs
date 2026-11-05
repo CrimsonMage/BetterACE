@@ -233,6 +233,20 @@ pub(crate) struct Npcs {
     resumed: Vec<u64>,
 }
 impl Npcs {
+    pub(crate) fn player_use_radius(&self, source: EntityId) -> Option<f32> {
+        self.sources.get(&source).map(|state| state.use_radius)
+    }
+    pub(crate) fn player_use_in_range(
+        &self,
+        source: EntityId,
+        actor: EntityId,
+        world: &World,
+    ) -> Result<bool, NpcFailure> {
+        let radius = self
+            .player_use_radius(source)
+            .ok_or(NpcFailure::MissingActor)?;
+        signals::within_use_radius(world, actor, source, radius)
+    }
     pub(crate) fn generator_event(
         &mut self,
         name: &str,

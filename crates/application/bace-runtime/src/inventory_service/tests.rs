@@ -5,6 +5,66 @@ use crate::saves::{SaveBackend, SaveFailure, SaveWorkerConfig, spawn_save_worker
 use bace_persistence::{OperationOutcome, PlacementOperation, SaveAck};
 use fixture::*;
 use std::{collections::VecDeque, sync::Mutex, time::Duration};
+
+#[tokio::test]
+async fn rejected_capture_releases_exact_inventory_owner_and_critical_baseline() {
+    let (mut kernel, mut online, work) = fixture();
+    let actor = work.binding.actor.0;
+    let backend = Backend::default();
+    let worker = spawn_save_worker(backend.clone(), SaveWorkerConfig::default()).unwrap();
+    let mut service = InventoryService::new();
+    assert!(service.stage(work).is_ok());
+    service
+        .poll_with(&mut online, &worker.handle, 100, |_| panic!())
+        .unwrap();
+    service
+        .poll_with(&mut online, &worker.handle, 101, |command| {
+            assert!(matches!(command, Command::PlayerSnapshot(_)));
+            Ok(())
+        })
+        .unwrap();
+    service
+        .accept_capture(
+            PlayerSnapshotOutcome {
+                correlation: 101,
+                result: Err(bace_simulation::CharacterRegistrationError::DurabilityPending),
+            },
+            10_000,
+        )
+        .unwrap();
+    assert!(service.blocked().is_some());
+    service
+        .poll_with(&mut online, &worker.handle, 102, |command| {
+            kernel
+                .try_enqueue(command)
+                .map_err(|command| Box::new(TrySendError::Full(command)))
+        })
+        .unwrap();
+    assert!(service.blocked().is_none());
+    service
+        .poll_with(&mut online, &worker.handle, 103, |command| {
+            kernel
+                .try_enqueue(command)
+                .map_err(|command| Box::new(TrySendError::Full(command)))
+        })
+        .unwrap();
+    let outcome = (0..4)
+        .find_map(|_| {
+            kernel.step().unwrap();
+            kernel.take_inventory_outcome()
+        })
+        .expect("exact rejection receipt");
+    service.accept_outcome(outcome).unwrap();
+    service
+        .poll_with(&mut online, &worker.handle, 104, |_| panic!())
+        .unwrap();
+    assert!(!service.take_completion().unwrap().committed);
+    assert!(!service.requires_drain());
+    assert!(online.critical_ready(&[actor]).unwrap());
+    assert!(backend.seen.lock().unwrap().is_empty());
+    worker.handle.close();
+    worker.task.await.unwrap();
+}
 #[derive(Clone, Default)]
 struct Backend {
     seen: Arc<Mutex<Vec<PlacementOperation>>>,

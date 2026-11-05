@@ -76,6 +76,37 @@ fn message_order_is_global_and_preserves_routing_metadata() {
 }
 
 #[test]
+fn every_pinned_ace_queue_preserves_global_message_order_and_queue_identity() {
+    // ACE NetworkSession.ProcessFragment orders one fragment sequence across
+    // all groups in GameMessageGroup.cs (0 through 11). Deliberately deliver
+    // the packets in reverse order to exercise both ordering layers.
+    let mut peer = peer();
+    for queue in (1u16..12).rev() {
+        let fragment =
+            fragment_message(u32::from(queue) + 1, queue, &[queue as u8; 4], 1024).unwrap();
+        assert!(
+            peer.receive(
+                &packet(u32::from(queue) + 2, OptionalHeaders::default(), &fragment),
+                u64::from(12 - queue),
+            )
+            .unwrap()
+            .messages
+            .is_empty()
+        );
+    }
+    let first = fragment_message(1, 0, &[0; 4], 1024).unwrap();
+    let ready = peer
+        .receive(&packet(2, OptionalHeaders::default(), &first), 12)
+        .unwrap();
+    assert_eq!(ready.messages.len(), 12);
+    for (queue, message) in ready.messages.iter().enumerate() {
+        assert_eq!(message.sequence, queue as u32 + 1);
+        assert_eq!(message.queue, queue as u16);
+        assert_eq!(message.bytes, [queue as u8; 4]);
+    }
+}
+
+#[test]
 fn incoming_gaps_request_bounded_retransmit_and_recover() {
     let mut peer = peer();
     peer.receive(&packet(5, OptionalHeaders::default(), &[]), 1)
@@ -294,8 +325,10 @@ fn large_outbound_message_uses_its_own_limit_and_waits_for_ack_cache_room() {
 
 #[test]
 fn outbound_limit_is_independent_and_cannot_exceed_fragment_count_or_queue_budget() {
-    let mut config = PeerConfig::default();
-    config.max_outgoing_message_bytes = usize::from(u16::MAX) * FRAGMENT_DATA_LIMIT + 1;
+    let mut config = PeerConfig {
+        max_outgoing_message_bytes: usize::from(u16::MAX) * FRAGMENT_DATA_LIMIT + 1,
+        ..Default::default()
+    };
     assert!(matches!(
         Peer::new(
             config,

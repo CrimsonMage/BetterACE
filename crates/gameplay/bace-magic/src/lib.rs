@@ -19,7 +19,10 @@ pub use enchantments::{
     EnchantmentApplication, EnchantmentEntry, EnchantmentMetadata, EnchantmentRegistry,
     EnchantmentStack, PreparedEnchantment, RegistryError, VitaeMutation,
 };
-pub use formulas::{MagicFormulaError, cast_chance, component_burn_rate, mana_cost, resisted};
+pub use formulas::{
+    MagicFormulaError, cast_chance, component_burn_rate, mana_cost, resisted,
+    weapon_mana_conversion_skill,
+};
 pub use projectiles::{
     ProjectileLayoutError, life_projectile_drain, projectile_origins, projectile_pre_offset,
     spread_angle_step,
@@ -54,8 +57,8 @@ mod strike;
 pub use strike::{ace_strike_projectiles, ace_strike_velocity};
 mod damage_profile;
 pub use damage_profile::{
-    MagicDamageProfile, MagicDamageRolls, MagicProcItem, MagicWand, magic_cloak_projectile_skill,
-    magic_item_skill,
+    MagicDamageProfile, MagicDamageRolls, MagicProcItem, MagicWand, ManaConversionWeapon,
+    magic_cloak_projectile_skill, magic_item_skill,
 };
 
 mod damage_preparation;

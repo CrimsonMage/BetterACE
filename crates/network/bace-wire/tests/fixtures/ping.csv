@@ -1,0 +1,10 @@
+# ACE47edade3bd3f6044b676d4eb877c4965c7eda62b
+# GameEvent PingResponse 0x01EA; guid from the attached player (0 when none), session GameEventSequence
+# GameEventPingResponse 1e72d3642331663758a4ae508dc3b1a14d4621fae50fb59ada4b8b0f2527ec62
+# GameEventMessage b84bdff068a5c39ea2e5f33bd1de299be8d0b212267d5c00c22ff1da5654d16b
+# GameMessage bd2df2350d3069e277870741019a7ee879b2cc1af5111f80e07fbfd582a2688c
+# Extensions.WriteGuid 5b7922116d954732ad760953d934bdebcac3e1315044256ea00ce23c68a8bb3f
+# GameEventType d8a52b3b65eef65545b4b954a60ac22f64085a7678727bb0afbf02b53f028c4f
+# columns: name,object_id_hex,sequence,packet_hex
+entered,50000001,42,B0F70000010000502A000000EA010000
+no_player,00000000,7,B0F700000000000007000000EA010000

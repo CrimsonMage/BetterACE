@@ -43,6 +43,7 @@ enum Phase {
     Barrier,
     CaptureReady,
     Capturing(u64),
+    CaptureRejected,
     Captured(Arc<PlayerReadSnapshot>, u64),
     PreparingEquipment {
         snapshot: Arc<PlayerReadSnapshot>,
@@ -170,7 +171,10 @@ impl InventoryService {
         match outcome.result {
             Ok(snapshot) => p.phase = Phase::Captured(snapshot, unix_millis),
             Err(error) => {
-                p.phase = Phase::CaptureReady;
+                // A rejected read has made no durable change. Resolve the
+                // exact held proposal as rejected so its simulation and save
+                // reservations can drain; retaining it blocks logout forever.
+                p.phase = Phase::CaptureRejected;
                 self.blocked = Some(format!("inventory capture rejected: {error:?}"));
             }
         }
@@ -194,7 +198,12 @@ impl InventoryService {
         correlation: u64,
         mut send: impl FnMut(Command) -> Result<(), Box<TrySendError<Command>>>,
     ) -> Result<(), String> {
-        if let Some(error) = &self.blocked {
+        if let Some(error) = &self.blocked
+            && !matches!(
+                self.pending.as_ref().map(|p| &p.phase),
+                Some(Phase::CaptureRejected)
+            )
+        {
             return Err(error.clone());
         }
         let Some(p) = &mut self.pending else {
@@ -235,15 +244,38 @@ impl InventoryService {
                     }
                 }
                 Phase::Capturing(_) => {}
+                Phase::CaptureRejected => {
+                    if correlation <= self.last_correlation {
+                        return Err("stale inventory rejection correlation".into());
+                    }
+                    self.last_correlation = correlation;
+                    p.phase = Phase::Delivering {
+                        correlation,
+                        command: Some(Box::new(resolve(
+                            &p.work.operation.ticket,
+                            correlation,
+                            false,
+                        ))),
+                        committed: None,
+                    };
+                    self.blocked = None;
+                }
                 Phase::PreparingEquipment { command, .. } => {
-                    if let Some(value) = command.take()
-                        && let Err(error) = send(*value)
-                    {
-                        match *error {
-                            TrySendError::Full(value) => *command = Some(Box::new(value)),
-                            TrySendError::Disconnected(value) => {
-                                *command = Some(Box::new(value));
-                                return Err("equipment preparation ingress closed".into());
+                    if let Some(value) = command.take() {
+                        if !matches!(value.as_ref(), Command::Inventory(inner) if inner.valid_bounds())
+                        {
+                            *command = Some(value);
+                            return Err(
+                                "equipment physical command exceeds bounded ingress limits".into(),
+                            );
+                        }
+                        if let Err(error) = send(*value) {
+                            match *error {
+                                TrySendError::Full(value) => *command = Some(Box::new(value)),
+                                TrySendError::Disconnected(value) => {
+                                    *command = Some(Box::new(value));
+                                    return Err("equipment preparation ingress closed".into());
+                                }
                             }
                         }
                     }

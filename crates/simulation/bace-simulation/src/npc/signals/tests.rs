@@ -46,3 +46,48 @@ fn use_gate_keeps_signed_threshold_and_rejects_nonfinite_input() {
         );
     }
 }
+
+#[test]
+fn use_radius_uses_ace_cylinder_distance_without_combat_line_of_sight() {
+    use bace_geometry::{Aabb, Vec3};
+    use bace_types::CellId;
+    let mut world = World::default();
+    let cell = CellId(1);
+    world
+        .register_scene(
+            cell,
+            bace_physics::SyntheticScene::new(
+                0.,
+                Aabb::new(Vec3::new(-10., -10., -1.), Vec3::new(10., 10., 10.)).unwrap(),
+                vec![Aabb::new(Vec3::new(0.9, -0.5, 0.), Vec3::new(1.1, 0.5, 3.)).unwrap()],
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    for (id, x) in [(1, 0.), (2, 2.)] {
+        let body = bace_physics::Body::spawn(
+            world.scene(cell).unwrap(),
+            Vec3::new(x, 0., 0.5),
+            0.5,
+            bace_motion::Capabilities {
+                speed: 1.,
+                jump_impulse: 1.,
+            },
+        )
+        .unwrap();
+        world
+            .insert(bace_entity::Actor {
+                id: EntityId(id),
+                cell,
+                body,
+            })
+            .unwrap();
+    }
+    assert!(
+        !world
+            .attack_geometry(EntityId(1), EntityId(2), 3.)
+            .unwrap()
+            .1
+    );
+    assert!(within_use_radius(&world, EntityId(1), EntityId(2), 1.1).unwrap());
+}

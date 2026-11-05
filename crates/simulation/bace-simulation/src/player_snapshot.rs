@@ -139,5 +139,6 @@ pub enum PlayerSnapshotOperation {
     StaffSpell(u64),
     Skill(u64),
     AttributeTransfer(u64),
+    HealingKit(u64),
     Crafting(u64),
 }

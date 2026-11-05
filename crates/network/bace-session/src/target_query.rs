@@ -19,6 +19,10 @@ pub fn decode_target_query(
         {
             bace_wire::TargetQueryInput::Health(id) => (TargetQueryKind::Health, id),
             bace_wire::TargetQueryInput::ItemMana(id) => (TargetQueryKind::ItemMana, id),
+            // Age/birth replies have no owner yet; decoding grants nothing.
+            bace_wire::TargetQueryInput::Age(_) | bace_wire::TargetQueryInput::Birth(_) => {
+                return Err(DispatchError::UnsupportedAction(envelope.action.0));
+            }
         };
     context.sequence = envelope.sequence;
     Ok((context, kind, EntityId(target)))

@@ -23,6 +23,7 @@ pub fn validate_physical_profile(p: &PhysicalCombatProfile) -> Result<(), Physic
         || p.player && p.maneuvers.is_empty()
         || p.maneuvers.len() > 4096
         || p.armor.is_empty()
+            && (p.attackable || !p.maneuvers.is_empty() || !p.body_attacks.is_empty())
         || p.armor.len() > 256
         || p.body_attacks.len() > 256
         || !p.range.is_finite()

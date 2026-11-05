@@ -7,6 +7,7 @@ fn missing_verified_assets_return_exact_work_and_shutdown_keeps_pending_owner() 
         cell: directory.path().join("absent-cell.dat"),
         portal_sha256: "00".repeat(32),
         cell_sha256: "00".repeat(32),
+        store: None,
     };
     let mut owner = StaffMapWorker::start(manifest).unwrap();
     let work = StaffMapWork {

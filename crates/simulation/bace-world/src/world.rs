@@ -232,11 +232,33 @@ impl World {
         id: EntityId,
         collider: DoorCollider,
     ) -> Result<(), WorldError> {
-        if id.0 == 0 || self.contains_identity(id) || self.doors.len() >= 4096 {
+        if id.0 == 0 || self.doors.contains_key(&id) || self.doors.len() >= 4096 {
             return Err(WorldError::DuplicateActor);
         }
         if !collider.position.is_finite() {
             return Err(WorldError::Physics(PhysicsError::InvalidState));
+        }
+        // Authored doors enter with the region's stationary world roots. Their
+        // existing collision body is the door obstacle; registering the door
+        // attaches GDLE open/close state to that same identity. Synthetic door
+        // fixtures below still admit a separate dynamic obstacle.
+        if let Some(actor) = self.actors.get(&id) {
+            if actor.cell != collider.cell
+                || actor.body.accepted().position() != collider.position
+                || !actor.body.is_authored_stationary()
+                || actor.body.collision_shape().is_none()
+            {
+                return Err(WorldError::Physics(PhysicsError::InvalidState));
+            }
+            self.doors.insert(id, collider);
+            if let Err(error) = self.refresh_geometry_dynamic() {
+                self.doors.remove(&id);
+                return Err(error);
+            }
+            return Ok(());
+        }
+        if self.contains_identity(id) {
+            return Err(WorldError::DuplicateActor);
         }
         if collider.solid
             && self.actors.values().any(|actor| {
@@ -270,6 +292,9 @@ impl World {
     pub fn door(&self, id: EntityId) -> Option<DoorCollider> {
         self.doors.get(&id).copied()
     }
+    pub fn can_register_doors(&self, additional: usize) -> bool {
+        additional <= 4096usize.saturating_sub(self.doors.len())
+    }
     pub fn door_occupied(&self, id: EntityId) -> Result<bool, WorldError> {
         let door = self.doors.get(&id).ok_or(WorldError::MissingActor)?;
         if self
@@ -290,6 +315,15 @@ impl World {
     }
     pub fn set_door_solid(&mut self, id: EntityId, solid: bool) -> Result<(), WorldError> {
         let door = self.doors.get_mut(&id).ok_or(WorldError::MissingActor)?;
+        if self.actors.contains_key(&id) {
+            let old = door.solid;
+            door.solid = solid;
+            if let Err(error) = self.refresh_geometry_dynamic() {
+                self.doors.get_mut(&id).expect("attached door").solid = old;
+                return Err(error);
+            }
+            return Ok(());
+        }
         if let Some(region) = self
             .geometry
             .as_mut()
@@ -319,8 +353,25 @@ impl World {
             return Ok((false, false));
         }
         let position = actor.body.accepted().position();
+        // GDLE WeenieObject::DistanceTo(use_spheres=true) subtracts both
+        // collision radii before UseManager::InUseRange compares Float54.
+        let actor_radius = actor
+            .body
+            .collision_shape()
+            .and_then(|shape| shape.nominal_radius())
+            .unwrap_or_else(|| actor.body.collision_radius());
+        let door_radius = self
+            .actors
+            .get(&id)
+            .and_then(|actor| actor.body.collision_shape())
+            .map_or(0.0, |shape| {
+                shape
+                    .nominal_radius()
+                    .unwrap_or_else(|| shape.horizontal_radius())
+            });
+        let center_distance = (door.position - position).length_squared().sqrt();
         Ok((
-            (door.position - position).length_squared() <= range * range,
+            center_distance - actor_radius - door_radius <= range + f32::EPSILON,
             self.segment_clear(door.cell, position, door.position, Some(id.0))?,
         ))
     }
@@ -520,6 +571,7 @@ impl World {
                     .get(&actor.id)
                     .is_none_or(|m| m.playback.token.domain != bace_motion::MotionDomain::Death))
                 || self.anchors.contains(&actor.id)
+                || actor.body.is_authored_stationary()
                 || self.portal_transit.contains_key(&actor.id)
                 || self.retirement_holds.contains_key(&actor.id)
             {

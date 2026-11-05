@@ -1,6 +1,6 @@
 //! GDLE SpellProjectile/WeenieObject property preparation over accepted native
 //! content. Runtime owns DAT/equipment identity resolution, never these defaults.
-use crate::{EffectError as E, MagicDamageProfile, MagicWand};
+use crate::{EffectError as E, MagicDamageProfile, MagicWand, ManaConversionWeapon};
 use bace_content::WeenieV1;
 use bace_gameplay_api::weapon_combat::{PhysicalRatings, PhysicalSkill};
 pub struct MagicDamageEquipment<'a> {
@@ -267,6 +267,33 @@ pub fn prepare_magic_damage_profile(
             ));
         }
     }
+    // ACE GetWeapon prefers the active melee weapon, then missile weapon, then
+    // Held wand. The source's dual-wield alternation is an attack-state input;
+    // ordinary casting uses the primary selection prepared here.
+    let weapon = [0x00100000, 0x02000000, 0x00400000, 0x01000000]
+        .into_iter()
+        .find_map(|slot| input.equipment.iter().find(|e| e.location == slot));
+    if let Some(weapon) = weapon {
+        p.mana_conversion_weapon = Some(ManaConversionWeapon {
+            entity: weapon.entity,
+            base_modifier: float(weapon.weenie, 144, 0.) as f32,
+            enchantable: int(weapon.weenie, 36) < 9999,
+        });
+    }
+    p.wand_spell_cost = input
+        .equipment
+        .iter()
+        .find(|e| e.location == 0x01000000)
+        .and_then(|e| {
+            e.weenie
+                .properties
+                .data_ids
+                .iter()
+                .find(|p| p.id == 28)
+                .map(|spell| (spell.value, int(e.weenie, 117)))
+        })
+        .map(|(spell, cost)| Ok((spell, nonnegative(cost)?)))
+        .transpose()?;
     crate::validate_magic_damage_profile(&p)?;
     Ok(p)
 }

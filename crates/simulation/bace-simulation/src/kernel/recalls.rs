@@ -244,6 +244,12 @@ impl Kernel {
                         context: pending.context,
                     });
                 }
+                if let Some(approach) = self.recalls.binding_approaches.remove(&actor) {
+                    approach.movement.stop(&mut self.world, actor);
+                    self.recalls.events.push_back(RecallEvent::Cancelled {
+                        context: approach.context,
+                    });
+                }
                 Ok(())
             }
             RecallCommand::Start {
@@ -480,6 +486,7 @@ impl Kernel {
     }
     pub(in crate::kernel) fn step_recalls(&mut self) {
         self.step_recall_motions();
+        self.step_binding_approaches();
         self.step_bindings();
         self.recalls.scratch.clear();
         self.recalls.scratch.extend(

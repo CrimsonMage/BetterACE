@@ -13,13 +13,21 @@ impl Kernel {
         if template.loot.is_some() == template.ace_loot.is_some() {
             return Err(GeneratorServiceError::Missing);
         }
-        if template.physical.is_some() {
+        if let Some(profile) = &template.physical {
             self.world
                 .validate_locomotion_styles(entity, &template.locomotion_styles)
                 .map_err(|_| GeneratorServiceError::Capacity)?;
-            self.combat
-                .validate_physical_motions(entity, &template.physical_motions)
-                .map_err(|_| GeneratorServiceError::Invalid)?;
+            if template.physical_motions.is_empty() {
+                // Inert ACE Creatures keep a physical/equipment projection but
+                // have no attack program in their Ready-only DAT table.
+                if profile.attackable || !profile.maneuvers.is_empty() {
+                    return Err(GeneratorServiceError::Invalid);
+                }
+            } else {
+                self.combat
+                    .validate_physical_motions(entity, &template.physical_motions)
+                    .map_err(|_| GeneratorServiceError::Invalid)?;
+            }
         }
         if !template.death_motions.is_empty() {
             self.world

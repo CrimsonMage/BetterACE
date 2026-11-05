@@ -9,6 +9,7 @@ pub(super) struct SimulationOutputs {
     pub(super) region_admissions: super::region_admissions::RegionAdmissionSenders,
     pub(super) player_admissions: super::player_admissions::PlayerAdmissionSenders,
     pub(super) player_snapshots: super::player_snapshots::PlayerSnapshotSenders,
+    pub(super) item_mana_queries: super::item_mana_queries::ItemManaQuerySenders,
     pub(super) pve_services: super::pve_service_outputs::PveServiceSenders,
     pub(super) npc_services: super::npc_service_outputs::NpcServiceSenders,
     pub(super) inventory_output: super::inventory_outputs::InventorySenders,
@@ -36,6 +37,8 @@ pub(super) struct SimulationOutputs {
     pub(super) skill_device_outcomes: mpsc::SyncSender<SkillDeviceOutcome>,
     pub(super) skill_device_proposals: mpsc::SyncSender<SkillDeviceTicket>,
     pub(super) attribute_transfer_outcomes: mpsc::SyncSender<AttributeTransferOutcome>,
+    pub(super) healing_kit_outcomes: mpsc::SyncSender<bace_simulation::HealingKitOutcome>,
+    pub(super) mana_stone_outcomes: mpsc::SyncSender<bace_simulation::ManaStoneOutcome>,
     pub(super) attribute_transfer_proposals: mpsc::SyncSender<AttributeTransferDeviceTicket>,
     pub(super) crafting_proposals: mpsc::SyncSender<CraftingTicket>,
     pub(super) crafting_outcomes: mpsc::SyncSender<CraftingOutcome>,
@@ -87,6 +90,8 @@ pub(super) fn drive_owned(
     let mut pending_skill_device_outcomes = None;
     let mut pending_skill_device_proposals = None;
     let mut pending_attribute_transfer_outcomes = None;
+    let mut pending_healing_kit_outcomes = None;
+    let mut pending_mana_stone_outcomes = None;
     let mut pending_attribute_transfer_proposals = None;
     let mut pending_crafting_proposals = None;
     let mut pending_crafting_outcomes = None;
@@ -128,6 +133,9 @@ pub(super) fn drive_owned(
         outputs.player_admissions.flush(&mut kernel, 1);
         outputs.region_admissions.flush(&mut kernel, 1);
         outputs.player_snapshots.flush(&mut kernel, 1);
+        outputs
+            .item_mana_queries
+            .flush(&mut kernel, config.command_capacity);
         outputs
             .pve_services
             .flush(&mut kernel, config.command_capacity);
@@ -259,6 +267,18 @@ pub(super) fn drive_owned(
             config.command_capacity,
         );
         flush_outputs(
+            || kernel.take_healing_kit_outcome(),
+            &outputs.healing_kit_outcomes,
+            &mut pending_healing_kit_outcomes,
+            config.command_capacity,
+        );
+        flush_outputs(
+            || kernel.take_mana_stone_outcome(),
+            &outputs.mana_stone_outcomes,
+            &mut pending_mana_stone_outcomes,
+            config.command_capacity,
+        );
+        flush_outputs(
             || kernel.take_attribute_transfer_proposal(),
             &outputs.attribute_transfer_proposals,
             &mut pending_attribute_transfer_proposals,
@@ -374,6 +394,9 @@ pub(super) fn drive_owned(
         outputs.player_admissions.flush(&mut kernel, 1);
         outputs.region_admissions.flush(&mut kernel, 1);
         outputs.player_snapshots.flush(&mut kernel, 1);
+        outputs
+            .item_mana_queries
+            .flush(&mut kernel, config.command_capacity);
         outputs
             .pve_services
             .flush(&mut kernel, config.command_capacity);
@@ -500,6 +523,18 @@ pub(super) fn drive_owned(
             || kernel.take_attribute_transfer_outcome(),
             &outputs.attribute_transfer_outcomes,
             &mut pending_attribute_transfer_outcomes,
+            config.command_capacity,
+        );
+        flush_outputs(
+            || kernel.take_healing_kit_outcome(),
+            &outputs.healing_kit_outcomes,
+            &mut pending_healing_kit_outcomes,
+            config.command_capacity,
+        );
+        flush_outputs(
+            || kernel.take_mana_stone_outcome(),
+            &outputs.mana_stone_outcomes,
+            &mut pending_mana_stone_outcomes,
             config.command_capacity,
         );
         flush_outputs(
@@ -634,6 +669,9 @@ pub(super) fn drive_owned(
     outputs.region_admissions.flush(&mut kernel, 1);
     outputs.player_snapshots.flush(&mut kernel, 1);
     outputs
+        .item_mana_queries
+        .flush(&mut kernel, config.command_capacity);
+    outputs
         .pve_services
         .flush(&mut kernel, config.command_capacity);
     outputs
@@ -661,6 +699,7 @@ pub(super) fn drive_owned(
         physical_resource: RecoveredPhysicalResource::default(),
         magic_resource: RecoveredMagicResource::default(),
         player_snapshots: RecoveredPlayerSnapshots::default(),
+        item_mana_queries: RecoveredItemManaQueries::default(),
         player_admissions: RecoveredPlayerAdmissions::default(),
         region_admissions: RecoveredRegionAdmissions::default(),
         report,
@@ -687,6 +726,8 @@ pub(super) fn drive_owned(
         undelivered_attribute_transfer_outcomes: pending_attribute_transfer_outcomes
             .into_iter()
             .collect(),
+        undelivered_healing_kit_outcomes: pending_healing_kit_outcomes.into_iter().collect(),
+        undelivered_mana_stone_outcomes: pending_mana_stone_outcomes.into_iter().collect(),
         undelivered_attribute_transfer_proposals: pending_attribute_transfer_proposals
             .into_iter()
             .collect(),

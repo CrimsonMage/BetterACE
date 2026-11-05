@@ -1,0 +1,1956 @@
+# P0-F client inbound gap ledger (read-only pass over the retail client decompile).
+#
+# Scope: every server->client GameEvent (0xF7B0 sub-op) and top-level GameMessage that the
+# retail client HANDLES, with whether BACE and pinned ACE can emit it.
+#
+# Client sources: /home/jokerfactor/Documents/acclient-source-split/ (client_file is relative to it).
+#   Dispatchers: UIQueueManager.cpp ProcessNetBlobData (sub-op switch and top-level 0xF630/0xF7xx),
+#   ACSmartBox.cpp (top-level 0xF619/0xF745-0xF7DB), CLCache.cpp (DDD inbound), Client.cpp (TurbineChat).
+#   Entries marked "inline case" are handled inside a dispatcher rather than a named CM_* function.
+#
+# ACE (pin 47edade3bd3f6044b676d4eb877c4965c7eda62b):
+#   ace_emits = true only when the value is defined in GameEventType.cs or GameMessageOpcode.cs AND a
+#   non-enum Source file references the name (an emitter). Enum-only definitions are false.
+#
+# BACE: bace_emits = true only when a non-input encoder/projector in crates/network/bace-wire/src or
+#   crates/network/bace-replication/src constructs the opcode (match-arm output mapping or message_writer).
+#   An opcode constant without such an encoder is false. The path:line is the first emitting line found.
+#
+# Corrections to the task-card example:
+#   - DispatchUI_TextboxString is NOT 0x02EB. The client dispatches it from the top-level 0xF7E0
+#     (ServerMessage) case; 0x02EB is CM_Communication::DispatchUI_TransientString.
+#   - ProcessNetBlobData handles both GameEvent-wrapped sub-ops and some top-level GameMessage ids
+#     (0x0024, 0x0197, 0x019E, 0x02BB, ...). Kind is taken from the ACE enum that defines the value.
+#
+# Known client non-handlers (not listed): opcode 0x00B5 BookModifyPageResponse has no case;
+#   0xF7E8 DDD_BeginPullDDD and 0xF7E9 DDD_IterationData have no inbound case in CLCache.cpp.
+#
+# Out of scope for this ledger (client->server only, not CM_* Event_* senders):
+#   0xF6EA ForceObjectDescSend, 0xF7C8 CharacterEnterWorldRequest, 0xF7CC GetServerVersion,
+#   0xF7CD FriendsOld, 0xF7D9 CharacterRestore (Proto_UI.cpp); 0xF7E3 DDD_RequestDataMessage and
+#   0xF7E6 DDD_InterrogationResponse (CLCache.cpp); 0xF7B1 GameAction wrapper (OrderHdr.cpp);
+#   0xF7DE TurbineChat outbound (CChatEvent.cpp).
+#
+# Client->server action check: all 157 CM_*::Event_* senders write opcodes that exist in ACE's
+#   GameActionType.cs at the pin (movement senders 0xF61B/0xF61C/0xF61E/0xF649/0xF661/0xF752/0xF753/0xF7C9
+#   are present there too). Therefore no [[client_actions_not_in_ace]] entries exist.
+
+[[client_handlers]]
+client_function = "CM_Allegiance::DispatchUI_AllegianceUpdateAborted"
+client_file = "CM_Allegiance.cpp"
+opcode = "0x0003"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameEventType.AllegianceUpdateAborted. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_PopUpString"
+client_file = "CM_Communication.cpp"
+opcode = "0x0004"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/popup_output.rs:25"
+ace_emits = true
+notes = "ACE GameEventType.PopupString."
+
+[[client_handlers]]
+client_function = "CPlayerSystem::Handle_PlayerDescription"
+client_file = "CPlayerSystem.cpp"
+opcode = "0x0013"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/player_description.rs:91"
+ace_emits = true
+notes = "ACE GameEventType.PlayerDescription."
+
+[[client_handlers]]
+client_function = "ClientAllegianceSystem::Handle_Allegiance__AllegianceUpdate"
+client_file = "ClientAllegianceSystem.cpp"
+opcode = "0x0020"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/group_output.rs:103"
+ace_emits = true
+notes = "ACE GameEventType.AllegianceUpdate."
+
+[[client_handlers]]
+client_function = "CM_Social::DispatchUI_FriendsUpdate"
+client_file = "CM_Social.cpp"
+opcode = "0x0021"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:52"
+ace_emits = true
+notes = "ACE GameEventType.FriendsListUpdate."
+
+[[client_handlers]]
+client_function = "UIQueueManager::ProcessNetBlobData"
+client_file = "UIQueueManager.cpp"
+opcode = "0x0022"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:73"
+ace_emits = true
+notes = "ACE GameEventType.InventoryPutObjInContainer. inline case: ACCWeenieObject/GenItemHolder move-item path."
+
+[[client_handlers]]
+client_function = "UIQueueManager::ProcessNetBlobData"
+client_file = "UIQueueManager.cpp"
+opcode = "0x0023"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:74"
+ace_emits = true
+notes = "ACE GameEventType.WieldObject. inline case: wield path."
+
+[[client_handlers]]
+client_function = "UIQueueManager::ProcessNetBlobData"
+client_file = "UIQueueManager.cpp"
+opcode = "0x0024"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object_control.rs:53"
+ace_emits = true
+notes = "ACE GameMessageOpcode.InventoryRemoveObject. inline case: remove object path."
+
+[[client_handlers]]
+client_function = "CM_Social::DispatchUI_CharacterTitleTable"
+client_file = "CM_Social.cpp"
+opcode = "0x0029"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/character_title.rs:34"
+ace_emits = true
+notes = "ACE GameEventType.CharacterTitle."
+
+[[client_handlers]]
+client_function = "CM_Social::DispatchUI_AddOrSetCharacterTitle"
+client_file = "CM_Social.cpp"
+opcode = "0x002B"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.UpdateTitle. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "UIQueueManager::ProcessNetBlobData"
+client_file = "UIQueueManager.cpp"
+opcode = "0x0052"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:76"
+ace_emits = true
+notes = "ACE GameEventType.CloseGroundContainer. inline case: close ground container."
+
+[[client_handlers]]
+client_function = "ClientUISystem::Handle_VendorInfo"
+client_file = "ClientUISystem.cpp"
+opcode = "0x0062"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/vendor_output.rs:54"
+ace_emits = true
+notes = "ACE GameEventType.VendorInfoEvent/GameEventType.ApproachVendor. ACE GameEventType.VendorInfoEvent and ApproachVendor share 0x0062."
+
+[[client_handlers]]
+client_function = "CM_Character::DispatchUI_StartBarber"
+client_file = "CM_Character.cpp"
+opcode = "0x0075"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.StartBarber. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "ClientCommunicationSystem::HandleFailureEvent"
+client_file = "ClientCommunicationSystem.cpp"
+opcode = "0x00A0"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:77"
+ace_emits = true
+notes = "ACE GameEventType.InventoryServerSaveFailed. called inline from the 0xA0 case of ProcessNetBlobData."
+
+[[client_handlers]]
+client_function = "CM_Fellowship::DispatchUI_Quit"
+client_file = "CM_Fellowship.cpp"
+opcode = "0x00A3"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/group_output.rs:99"
+ace_emits = true
+notes = "ACE GameEventType.FellowshipQuit."
+
+[[client_handlers]]
+client_function = "CM_Fellowship::DispatchUI_Dismiss"
+client_file = "CM_Fellowship.cpp"
+opcode = "0x00A4"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/group_output.rs:100"
+ace_emits = true
+notes = "ACE GameEventType.FellowshipDismiss."
+
+[[client_handlers]]
+client_function = "CM_Writing::SendNotice_OpenBook"
+client_file = "CM_Writing.cpp"
+opcode = "0x00B4"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.BookDataResponse. BACE opcode const exists but no encoder found. unpacks book page list in ProcessNetBlobData before the notice call. client unpacks PageDataList before calling CM_Writing::SendNotice_OpenBook."
+
+[[client_handlers]]
+client_function = "CM_Writing::SendNotice_BookAddPageResponse"
+client_file = "CM_Writing.cpp"
+opcode = "0x00B6"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.BookAddPageResponse. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Writing::SendNotice_BookDeletePageResponse"
+client_file = "CM_Writing.cpp"
+opcode = "0x00B7"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.BookDeletePageResponse. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Writing::SendNotice_BookPageDataResponse"
+client_file = "CM_Writing.cpp"
+opcode = "0x00B8"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.BookPageDataResponse. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "UIQueueManager::ProcessNetBlobData"
+client_file = "UIQueueManager.cpp"
+opcode = "0x00C3"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.GetInscriptionResponse. BACE opcode const exists but no encoder found. inline case: GetInscriptionResponse unpacks inscription/name/account and discards them (returns 0). client unpacks inscription, name and account, then discards them."
+
+[[client_handlers]]
+client_function = "CM_Examine::SendNotice_SetAppraiseInfo"
+client_file = "CM_Examine.cpp"
+opcode = "0x00C9"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/appraisal.rs:87"
+ace_emits = true
+notes = "ACE GameEventType.IdentifyObjectResponse. AppraisalProfile unpacked in ProcessNetBlobData first."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_ChannelBroadcast"
+client_file = "CM_Communication.cpp"
+opcode = "0x0147"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:49"
+ace_emits = true
+notes = "ACE GameEventType.ChannelBroadcast."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_ChannelList"
+client_file = "CM_Communication.cpp"
+opcode = "0x0148"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:54"
+ace_emits = true
+notes = "ACE GameEventType.ChannelList."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_ChannelIndex"
+client_file = "CM_Communication.cpp"
+opcode = "0x0149"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:55"
+ace_emits = true
+notes = "ACE GameEventType.ChannelIndex."
+
+[[client_handlers]]
+client_function = "ClientUISystem::OnViewContents"
+client_file = "ClientUISystem.cpp"
+opcode = "0x0196"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:75"
+ace_emits = true
+notes = "ACE GameEventType.ViewContents."
+
+[[client_handlers]]
+client_function = "ClientObjMaintSystem::UpdateStackSize"
+client_file = "ClientObjMaintSystem.cpp"
+opcode = "0x0197"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object_control.rs:54"
+ace_emits = true
+notes = "ACE GameMessageOpcode.SetStackSize."
+
+[[client_handlers]]
+client_function = "UIQueueManager::ProcessNetBlobData"
+client_file = "UIQueueManager.cpp"
+opcode = "0x019A"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:72"
+ace_emits = true
+notes = "ACE GameEventType.InventoryPutObjectIn3D. inline case: InventoryPutObjectIn3D -> ACCWeenieObject::ServerSaysMoveItem / GenItemHolder."
+
+[[client_handlers]]
+client_function = "ClientCombatSystem::HandlePlayerDeathEvent"
+client_file = "ClientCombatSystem.cpp"
+opcode = "0x019E"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:123"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PlayerKilled."
+
+[[client_handlers]]
+client_function = "ClientCombatSystem::HandleAttackDoneEvent"
+client_file = "ClientCombatSystem.cpp"
+opcode = "0x01A7"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:43"
+ace_emits = true
+notes = "ACE GameEventType.AttackDone."
+
+[[client_handlers]]
+client_function = "CM_Magic::DispatchUI_RemoveSpell"
+client_file = "CM_Magic.cpp"
+opcode = "0x01A8"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.MagicRemoveSpell. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "ClientCombatSystem::HandleVictimNotificationEvent"
+client_file = "ClientCombatSystem.cpp"
+opcode = "0x01AC"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:51"
+ace_emits = true
+notes = "ACE GameEventType.VictimNotification."
+
+[[client_handlers]]
+client_function = "ClientCombatSystem::HandleVictimNotificationEvent"
+client_file = "ClientCombatSystem.cpp"
+opcode = "0x01AD"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:50"
+ace_emits = true
+notes = "ACE GameEventType.KillerNotification. shares the 0x1AC case label. client shares the 0x01AC case label in ProcessNetBlobData."
+
+[[client_handlers]]
+client_function = "ClientCombatSystem::HandleAttackerNotificationEvent"
+client_file = "ClientCombatSystem.cpp"
+opcode = "0x01B1"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:45"
+ace_emits = true
+notes = "ACE GameEventType.AttackerNotification."
+
+[[client_handlers]]
+client_function = "ClientCombatSystem::HandleDefenderNotificationEvent"
+client_file = "ClientCombatSystem.cpp"
+opcode = "0x01B2"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:46"
+ace_emits = true
+notes = "ACE GameEventType.DefenderNotification."
+
+[[client_handlers]]
+client_function = "ClientCombatSystem::HandleEvasionAttackerNotificationEvent"
+client_file = "ClientCombatSystem.cpp"
+opcode = "0x01B3"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:47"
+ace_emits = true
+notes = "ACE GameEventType.EvasionAttackerNotification."
+
+[[client_handlers]]
+client_function = "ClientCombatSystem::HandleEvasionDefenderNotificationEvent"
+client_file = "ClientCombatSystem.cpp"
+opcode = "0x01B4"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:48"
+ace_emits = true
+notes = "ACE GameEventType.EvasionDefenderNotification."
+
+[[client_handlers]]
+client_function = "ClientCombatSystem::HandleCommenceAttackEvent"
+client_file = "ClientCombatSystem.cpp"
+opcode = "0x01B8"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:44"
+ace_emits = true
+notes = "ACE GameEventType.CombatCommenceAttack."
+
+[[client_handlers]]
+client_function = "CM_Combat::DispatchUI_QueryHealthResponse"
+client_file = "CM_Combat.cpp"
+opcode = "0x01C0"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:49"
+ace_emits = true
+notes = "ACE GameEventType.UpdateHealth."
+
+[[client_handlers]]
+client_function = "CM_Character::DispatchUI_QueryAgeResponse"
+client_file = "CM_Character.cpp"
+opcode = "0x01C3"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.QueryAgeResponse. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Item::DispatchUI_UseDone"
+client_file = "CM_Item.cpp"
+opcode = "0x01C7"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/events.rs:15"
+ace_emits = true
+notes = "ACE GameEventType.UseDone."
+
+[[client_handlers]]
+client_function = "CM_Fellowship::DispatchUI_FellowUpdateDone"
+client_file = "CM_Fellowship.cpp"
+opcode = "0x01C9"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/events.rs:17"
+ace_emits = true
+notes = "ACE GameEventType.FellowshipFellowUpdateDone."
+
+[[client_handlers]]
+client_function = "CM_Fellowship::DispatchUI_FellowStatsDone"
+client_file = "CM_Fellowship.cpp"
+opcode = "0x01CA"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameEventType.FellowshipFellowStatsDone. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Item::DispatchUI_AppraiseDone"
+client_file = "CM_Item.cpp"
+opcode = "0x01CB"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameEventType.ItemAppraiseDone. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateRemoveIntEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01D1"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_RemoveIntEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01D2"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateRemoveBoolEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01D3"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_RemoveBoolEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01D4"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateRemoveFloatEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01D5"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_RemoveFloatEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01D6"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateRemoveStringEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01D7"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_RemoveStringEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01D8"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateRemoveDataIDEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01D9"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_RemoveDataIDEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01DA"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateRemoveInstanceIDEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01DB"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_RemoveInstanceIDEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01DC"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateRemovePositionEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01DD"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_RemovePositionEvent"
+client_file = "CM_Qualities.cpp"
+opcode = "0x01DE"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_HearEmote"
+client_file = "CM_Communication.cpp"
+opcode = "0x01E0"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/chat.rs:42"
+ace_emits = true
+notes = "ACE GameMessageOpcode.EmoteText."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_HearSoulEmote"
+client_file = "CM_Communication.cpp"
+opcode = "0x01E2"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/chat.rs:43"
+ace_emits = true
+notes = "ACE GameEventType.Emote/GameMessageOpcode.SoulEmote. ACE GameEventType.Emote and GameMessageOpcode.SoulEmote share 0x01E2; client handler is HearSoulEmote, recorded as game_message."
+
+[[client_handlers]]
+client_function = "CM_Character::DispatchUI_ReturnPing"
+client_file = "CM_Character.cpp"
+opcode = "0x01EA"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/events.rs:16"
+ace_emits = true
+notes = "ACE GameEventType.PingResponse."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_SetSquelchDB"
+client_file = "CM_Communication.cpp"
+opcode = "0x01F4"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:53"
+ace_emits = true
+notes = "ACE GameEventType.SetSquelchDB."
+
+[[client_handlers]]
+client_function = "CM_Trade::DispatchUI_Recv_RegisterTrade"
+client_file = "CM_Trade.cpp"
+opcode = "0x01FD"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:78"
+ace_emits = true
+notes = "ACE GameEventType.RegisterTrade."
+
+[[client_handlers]]
+client_function = "CM_Trade::DispatchUI_Recv_OpenTrade"
+client_file = "CM_Trade.cpp"
+opcode = "0x01FE"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameEventType.OpenTrade. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Trade::DispatchUI_Recv_CloseTrade"
+client_file = "CM_Trade.cpp"
+opcode = "0x01FF"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:83"
+ace_emits = true
+notes = "ACE GameEventType.CloseTrade."
+
+[[client_handlers]]
+client_function = "CM_Trade::DispatchUI_Recv_AddToTrade"
+client_file = "CM_Trade.cpp"
+opcode = "0x0200"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:79"
+ace_emits = true
+notes = "ACE GameEventType.AddToTrade."
+
+[[client_handlers]]
+client_function = "CM_Trade::DispatchUI_Recv_RemoveFromTrade"
+client_file = "CM_Trade.cpp"
+opcode = "0x0201"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameEventType.RemoveFromTrade. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Trade::DispatchUI_Recv_AcceptTrade"
+client_file = "CM_Trade.cpp"
+opcode = "0x0202"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:80"
+ace_emits = true
+notes = "ACE GameEventType.AcceptTrade."
+
+[[client_handlers]]
+client_function = "CM_Trade::DispatchUI_Recv_DeclineTrade"
+client_file = "CM_Trade.cpp"
+opcode = "0x0203"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:81"
+ace_emits = true
+notes = "ACE GameEventType.DeclineTrade."
+
+[[client_handlers]]
+client_function = "CM_Trade::DispatchUI_Recv_ResetTrade"
+client_file = "CM_Trade.cpp"
+opcode = "0x0205"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:82"
+ace_emits = true
+notes = "ACE GameEventType.ResetTrade."
+
+[[client_handlers]]
+client_function = "CM_Trade::DispatchUI_Recv_TradeFailure"
+client_file = "CM_Trade.cpp"
+opcode = "0x0207"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:85"
+ace_emits = true
+notes = "ACE GameEventType.TradeFailure."
+
+[[client_handlers]]
+client_function = "CM_Trade::DispatchUI_Recv_ClearTradeAcceptance"
+client_file = "CM_Trade.cpp"
+opcode = "0x0208"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/inventory_output.rs:84"
+ace_emits = true
+notes = "ACE GameEventType.ClearTradeAcceptance."
+
+[[client_handlers]]
+client_function = "CM_House::DispatchUI_Recv_HouseProfile"
+client_file = "CM_House.cpp"
+opcode = "0x021D"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.HouseProfile. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_House::DispatchUI_Recv_HouseData"
+client_file = "CM_House.cpp"
+opcode = "0x0225"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.HouseData. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_House::DispatchUI_Recv_HouseStatus"
+client_file = "CM_House.cpp"
+opcode = "0x0226"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.HouseStatus. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_House::DispatchUI_Recv_UpdateRentTime"
+client_file = "CM_House.cpp"
+opcode = "0x0227"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.UpdateRentTime. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_House::DispatchUI_Recv_UpdateRentPayment"
+client_file = "CM_House.cpp"
+opcode = "0x0228"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.UpdateRentPayment. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_House::DispatchUI_Recv_UpdateRestrictions"
+client_file = "CM_House.cpp"
+opcode = "0x0248"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.HouseUpdateRestrictions. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_House::DispatchUI_Recv_UpdateHAR"
+client_file = "CM_House.cpp"
+opcode = "0x0257"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.UpdateHAR. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_House::DispatchUI_Recv_HouseTransaction"
+client_file = "CM_House.cpp"
+opcode = "0x0259"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.HouseTransaction. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_House::DispatchUI_Recv_AvailableHouses"
+client_file = "CM_House.cpp"
+opcode = "0x0271"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.AvailableHouses. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Item::DispatchUI_QueryItemManaResponse"
+client_file = "CM_Item.cpp"
+opcode = "0x0264"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/target_query.rs:58"
+ace_emits = true
+notes = "ACE GameEventType.QueryItemManaResponse."
+
+[[client_handlers]]
+client_function = "CM_Character::DispatchUI_ConfirmationRequest"
+client_file = "CM_Character.cpp"
+opcode = "0x0274"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/crafting.rs:126"
+ace_emits = true
+notes = "ACE GameEventType.CharacterConfirmationRequest."
+
+[[client_handlers]]
+client_function = "CM_Character::DispatchUI_ConfirmationDone"
+client_file = "CM_Character.cpp"
+opcode = "0x0276"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/crafting.rs:134"
+ace_emits = true
+notes = "ACE GameEventType.CharacterConfirmationDone."
+
+[[client_handlers]]
+client_function = "CM_Allegiance::DispatchUI_AllegianceLoginNotificationEvent"
+client_file = "CM_Allegiance.cpp"
+opcode = "0x027A"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.AllegianceLoginNotification. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Allegiance::DispatchUI_AllegianceInfoResponseEvent"
+client_file = "CM_Allegiance.cpp"
+opcode = "0x027C"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/group_output.rs:104"
+ace_emits = true
+notes = "ACE GameEventType.AllegianceInfoResponse."
+
+[[client_handlers]]
+client_function = "CM_Game::DispatchUI_Recv_JoinGameResponse"
+client_file = "CM_Game.cpp"
+opcode = "0x0281"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.JoinGameResponse. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Game::DispatchUI_Recv_StartGame"
+client_file = "CM_Game.cpp"
+opcode = "0x0282"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.StartGame. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Game::DispatchUI_Recv_MoveResponse"
+client_file = "CM_Game.cpp"
+opcode = "0x0283"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.MoveResponse. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Game::DispatchUI_Recv_OpponentTurn"
+client_file = "CM_Game.cpp"
+opcode = "0x0284"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.OpponentTurn. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Game::DispatchUI_Recv_OppenentStalemateState"
+client_file = "CM_Game.cpp"
+opcode = "0x0285"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.OpponentStalemate. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_WeenieError"
+client_file = "CM_Communication.cpp"
+opcode = "0x028A"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/events.rs:14"
+ace_emits = true
+notes = "ACE GameEventType.WeenieError."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_WeenieErrorWithString"
+client_file = "CM_Communication.cpp"
+opcode = "0x028B"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/group_output.rs:96"
+ace_emits = true
+notes = "ACE GameEventType.WeenieErrorWithString."
+
+[[client_handlers]]
+client_function = "CM_Game::DispatchUI_Recv_GameOver"
+client_file = "CM_Game.cpp"
+opcode = "0x028C"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.GameOver. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_Recv_ChatRoomTracker"
+client_file = "CM_Communication.cpp"
+opcode = "0x0295"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:51"
+ace_emits = true
+notes = "ACE GameEventType.SetTurbineChatChannels."
+
+[[client_handlers]]
+client_function = "CM_Admin::DispatchUI_Recv_QueryPluginList"
+client_file = "CM_Admin.cpp"
+opcode = "0x02AE"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameEventType.AdminQueryPluginList. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Admin::DispatchUI_Recv_QueryPlugin"
+client_file = "CM_Admin.cpp"
+opcode = "0x02B1"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameEventType.AdminQueryPlugin. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Admin::DispatchUI_Recv_QueryPluginResponse"
+client_file = "CM_Admin.cpp"
+opcode = "0x02B3"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameEventType.AdminQueryPluginResponse. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Inventory::DispatchUI_Recv_SalvageOperationsResultData"
+client_file = "CM_Inventory.cpp"
+opcode = "0x02B4"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/crafting.rs:167"
+ace_emits = true
+notes = "ACE GameEventType.SalvageOperationsResult."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateRemoveInt64Event"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02B8"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_RemoveInt64Event"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02B9"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_HearSpeech"
+client_file = "CM_Communication.cpp"
+opcode = "0x02BB"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/chat.rs:40"
+ace_emits = true
+notes = "ACE GameMessageOpcode.HearSpeech."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_HearRangedSpeech"
+client_file = "CM_Communication.cpp"
+opcode = "0x02BC"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/chat.rs:41"
+ace_emits = true
+notes = "ACE GameMessageOpcode.HearRangedSpeech."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_HearDirectSpeech"
+client_file = "CM_Communication.cpp"
+opcode = "0x02BD"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:48"
+ace_emits = true
+notes = "ACE GameEventType.Tell."
+
+[[client_handlers]]
+client_function = "CM_Fellowship::DispatchUI_FullUpdate"
+client_file = "CM_Fellowship.cpp"
+opcode = "0x02BE"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/group_output.rs:97"
+ace_emits = true
+notes = "ACE GameEventType.FellowshipFullUpdate."
+
+[[client_handlers]]
+client_function = "CM_Fellowship::DispatchUI_Disband"
+client_file = "CM_Fellowship.cpp"
+opcode = "0x02BF"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/group_output.rs:101"
+ace_emits = true
+notes = "ACE GameEventType.FellowshipDisband."
+
+[[client_handlers]]
+client_function = "CM_Fellowship::DispatchUI_UpdateFellow"
+client_file = "CM_Fellowship.cpp"
+opcode = "0x02C0"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/group_output.rs:98"
+ace_emits = true
+notes = "ACE GameEventType.FellowshipUpdateFellow."
+
+[[client_handlers]]
+client_function = "CM_Magic::DispatchUI_UpdateSpell"
+client_file = "CM_Magic.cpp"
+opcode = "0x02C1"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/magic_output.rs:25"
+ace_emits = true
+notes = "ACE GameEventType.MagicUpdateSpell."
+
+[[client_handlers]]
+client_function = "CM_Magic::DispatchUI_UpdateEnchantment"
+client_file = "CM_Magic.cpp"
+opcode = "0x02C2"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/magic_output.rs:26"
+ace_emits = true
+notes = "ACE GameEventType.MagicUpdateEnchantment."
+
+[[client_handlers]]
+client_function = "CM_Magic::DispatchUI_RemoveEnchantment"
+client_file = "CM_Magic.cpp"
+opcode = "0x02C3"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/magic_output.rs:28"
+ace_emits = true
+notes = "ACE GameEventType.MagicRemoveEnchantment."
+
+[[client_handlers]]
+client_function = "CM_Magic::DispatchUI_UpdateMultipleEnchantments"
+client_file = "CM_Magic.cpp"
+opcode = "0x02C4"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/magic_output.rs:27"
+ace_emits = true
+notes = "ACE GameEventType.MagicUpdateMultipleEnchantments."
+
+[[client_handlers]]
+client_function = "CM_Magic::DispatchUI_RemoveMultipleEnchantments"
+client_file = "CM_Magic.cpp"
+opcode = "0x02C5"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/magic_output.rs:29"
+ace_emits = true
+notes = "ACE GameEventType.MagicRemoveMultipleEnchantments."
+
+[[client_handlers]]
+client_function = "CM_Magic::DispatchUI_PurgeEnchantments"
+client_file = "CM_Magic.cpp"
+opcode = "0x02C6"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/magic_output.rs:32"
+ace_emits = true
+notes = "ACE GameEventType.MagicPurgeEnchantments."
+
+[[client_handlers]]
+client_function = "CM_Magic::DispatchUI_DispelEnchantment"
+client_file = "CM_Magic.cpp"
+opcode = "0x02C7"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/magic_output.rs:30"
+ace_emits = true
+notes = "ACE GameEventType.MagicDispelEnchantment."
+
+[[client_handlers]]
+client_function = "CM_Magic::DispatchUI_DispelMultipleEnchantments"
+client_file = "CM_Magic.cpp"
+opcode = "0x02C8"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/magic_output.rs:31"
+ace_emits = true
+notes = "ACE GameEventType.MagicDispelMultipleEnchantments."
+
+[[client_handlers]]
+client_function = "CM_Misc::DispatchUI_PortalStormBrewing"
+client_file = "CM_Misc.cpp"
+opcode = "0x02C9"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.MiscPortalStormBrewing. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Misc::DispatchUI_PortalStormImminent"
+client_file = "CM_Misc.cpp"
+opcode = "0x02CA"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.MiscPortalStormImminent. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Misc::DispatchUI_PortalStorm"
+client_file = "CM_Misc.cpp"
+opcode = "0x02CB"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.MiscPortalStorm. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Misc::DispatchUI_PortalStormSubsided"
+client_file = "CM_Misc.cpp"
+opcode = "0x02CC"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.MiscPortalstormSubsided. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateInt"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02CD"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:28"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdatePropertyInt."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateInt"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02CE"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:29"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PublicUpdatePropertyInt."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateInt64"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02CF"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:30"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdatePropertyInt64."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateInt64"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02D0"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:31"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PublicUpdatePropertyInt64."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateBool"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02D1"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:32"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdatePropertyBool."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateBool"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02D2"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:33"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PublicUpdatePropertyBool."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateFloat"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02D3"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:34"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdatePropertyFloat."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateFloat"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02D4"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:35"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PublicUpdatePropertyFloat."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateDataID"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02D7"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:38"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdatePropertyDataID."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateDataID"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02D8"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:39"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PublicUpdatePropertyDataID."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateInstanceID"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02D9"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:40"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdatePropertyInstanceID."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateInstanceID"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02DA"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:41"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PublicUpdateInstanceId."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdatePosition"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02DB"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/position.rs:39"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdatePosition."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdatePosition"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02DC"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameMessageOpcode.PublicUpdatePosition. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateSkill"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02DD"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/progression.rs:75"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdateSkill."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateSkill"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02DE"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameMessageOpcode.PublicUpdateSkill. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateSkillLevel"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02DF"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameMessageOpcode.PrivateUpdateSkillLevel. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateSkillLevel"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02E0"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameMessageOpcode.PublicUpdateSkillLevel. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateSkillAC"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02E1"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateSkillAC"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02E2"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateAttribute"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02E3"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/progression.rs:15"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdateAttribute."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateAttribute"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02E4"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameMessageOpcode.PublicUpdateAttribute. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateAttributeLevel"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02E5"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateAttributeLevel"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02E6"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateAttribute2nd"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02E7"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/progression.rs:43"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdateVital."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateAttribute2nd"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02E8"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/progression.rs:41"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PublicUpdateVital."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_PrivateUpdateAttribute2ndLevel"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02E9"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/progression.rs:100"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdateAttribute2ndLevel."
+
+[[client_handlers]]
+client_function = "CM_Qualities::DispatchUI_UpdateAttribute2ndLevel"
+client_file = "CM_Qualities.cpp"
+opcode = "0x02EA"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. Kind inferred from the ProcessNetBlobData sub-op path."
+
+[[client_handlers]]
+client_function = "UIQueueManager::HandleStringUpdateEvents"
+client_file = "UIQueueManager.cpp"
+opcode = "0x02D5"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:36"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PrivateUpdatePropertyString. shared with 0x2D6."
+
+[[client_handlers]]
+client_function = "UIQueueManager::HandleStringUpdateEvents"
+client_file = "UIQueueManager.cpp"
+opcode = "0x02D6"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/property.rs:37"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PublicUpdatePropertyString. shared with 0x2D5."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_TransientString"
+client_file = "CM_Communication.cpp"
+opcode = "0x02EB"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:50"
+ace_emits = true
+notes = "ACE GameEventType.CommunicationTransientString."
+
+[[client_handlers]]
+client_function = "CM_Magic::DispatchUI_PurgeBadEnchantments"
+client_file = "CM_Magic.cpp"
+opcode = "0x0312"
+kind = "game_event"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/magic_output.rs:33"
+ace_emits = true
+notes = "ACE GameEventType.MagicPurgeBadEnchantments."
+
+[[client_handlers]]
+client_function = "CM_Social::DispatchUI_SendClientContractTrackerTable"
+client_file = "CM_Social.cpp"
+opcode = "0x0314"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.SendClientContractTrackerTable. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Social::DispatchUI_SendClientContractTracker"
+client_file = "CM_Social.cpp"
+opcode = "0x0315"
+kind = "game_event"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameEventType.SendClientContractTracker. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Admin::DispatchUI_Environs"
+client_file = "CM_Admin.cpp"
+opcode = "0xEA60"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = true
+notes = "ACE GameMessageOpcode.AdminEnvirons. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "gmNoticeHandler::RecvNotice_UpdateRentPayment"
+client_file = "??"
+opcode = "0xF630"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. gmNoticeHandler::RecvNotice_UpdateRentPayment; value not in ACE enums at pin."
+
+[[client_handlers]]
+client_function = "CPlayerSystem::Handle_CharGenVerificationResponse"
+client_file = "CPlayerSystem.cpp"
+opcode = "0xF643"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/character.rs:106"
+ace_emits = true
+notes = "ACE GameMessageOpcode.CharacterCreateResponse/GameMessageOpcode.CharacterRestoreResponse."
+
+[[client_handlers]]
+client_function = "CPlayerSystem::Handle_AwaitingSubscriptionExpiration"
+client_file = "CPlayerSystem.cpp"
+opcode = "0xF651"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const."
+
+[[client_handlers]]
+client_function = "CPlayerSystem::ExecuteLogOff"
+client_file = "CPlayerSystem.cpp"
+opcode = "0xF653"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/character.rs:109"
+ace_emits = true
+notes = "ACE GameMessageOpcode.CharacterLogOff."
+
+[[client_handlers]]
+client_function = "CPlayerSystem::Handle_CharacterDelete"
+client_file = "CPlayerSystem.cpp"
+opcode = "0xF655"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/character.rs:108"
+ace_emits = true
+notes = "ACE GameMessageOpcode.CharacterDelete."
+
+[[client_handlers]]
+client_function = "CPlayerSystem::Handle_Login__CharacterSet"
+client_file = "CPlayerSystem.cpp"
+opcode = "0xF658"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/character.rs:28"
+ace_emits = true
+notes = "ACE GameMessageOpcode.CharacterList."
+
+[[client_handlers]]
+client_function = "CPlayerSystem::Handle_CharacterError"
+client_file = "CPlayerSystem.cpp"
+opcode = "0xF659"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/character.rs:104"
+ace_emits = true
+notes = "ACE GameMessageOpcode.CharacterError."
+
+[[client_handlers]]
+client_function = "CPlayerSystem::Handle_AccountBanned"
+client_file = "CPlayerSystem.cpp"
+opcode = "0xF7C1"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/control.rs:19"
+ace_emits = true
+notes = "ACE GameMessageOpcode.AccountBanned."
+
+[[client_handlers]]
+client_function = "CM_Admin::DispatchUI_ReceiveAccountData"
+client_file = "CM_Admin.cpp"
+opcode = "0xF7CA"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const."
+
+[[client_handlers]]
+client_function = "CM_Admin::DispatchUI_ReceivePlayerData"
+client_file = "CM_Admin.cpp"
+opcode = "0xF7CB"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const."
+
+[[client_handlers]]
+client_function = "CPlayerSystem::Handle_AccountBooted"
+client_file = "CPlayerSystem.cpp"
+opcode = "0xF7DC"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/control.rs:18"
+ace_emits = true
+notes = "ACE GameMessageOpcode.AccountBoot."
+
+[[client_handlers]]
+client_function = "CM_Character::DispatchUI_EnterGame_ServerReady"
+client_file = "CM_Character.cpp"
+opcode = "0xF7DF"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/character.rs:110"
+ace_emits = true
+notes = "ACE GameMessageOpcode.CharacterEnterWorldServerReady."
+
+[[client_handlers]]
+client_function = "CM_Communication::DispatchUI_TextboxString"
+client_file = "CM_Communication.cpp"
+opcode = "0xF7E0"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/chat.rs:39"
+ace_emits = true
+notes = "ACE GameMessageOpcode.ServerMessage."
+
+[[client_handlers]]
+client_function = "CM_Login::DispatchUI_WorldInfo"
+client_file = "CM_Login.cpp"
+opcode = "0xF7E1"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/chat.rs:99"
+ace_emits = true
+notes = "ACE GameMessageOpcode.ServerName."
+
+[[client_handlers]]
+client_function = "SmartBox::UnpackPositionEvent"
+client_file = "SmartBox.cpp"
+opcode = "0xF619"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameMessageOpcode.PositionAndMovement. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found. PositionAndMovement via ACSmartBox. PositionAndMovement dispatched via ACSmartBox to SmartBox::UnpackPositionEvent."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_ObjDescEvent"
+client_file = "CM_Physics.cpp"
+opcode = "0xF625"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object.rs:60"
+ace_emits = true
+notes = "ACE GameMessageOpcode.ObjDescEvent."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_CreateObject"
+client_file = "CM_Physics.cpp"
+opcode = "0xF745"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object.rs:25"
+ace_emits = true
+notes = "ACE GameMessageOpcode.ObjectCreate."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_CreatePlayer"
+client_file = "CM_Physics.cpp"
+opcode = "0xF746"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object_control.rs:49"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PlayerCreate."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_DeleteObject"
+client_file = "CM_Physics.cpp"
+opcode = "0xF747"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object_control.rs:48"
+ace_emits = true
+notes = "ACE GameMessageOpcode.ObjectDelete."
+
+[[client_handlers]]
+client_function = "SmartBox::UnpackPositionEvent"
+client_file = "SmartBox.cpp"
+opcode = "0xF748"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/position.rs:185"
+ace_emits = true
+notes = "ACE GameMessageOpcode.UpdatePosition. UpdatePosition via ACSmartBox."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_ParentEvent"
+client_file = "CM_Physics.cpp"
+opcode = "0xF749"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object_control.rs:51"
+ace_emits = true
+notes = "ACE GameMessageOpcode.ParentEvent."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_PickupEvent"
+client_file = "CM_Physics.cpp"
+opcode = "0xF74A"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object_control.rs:52"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PickupEvent."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_SetState"
+client_file = "CM_Physics.cpp"
+opcode = "0xF74B"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object_control.rs:50"
+ace_emits = true
+notes = "ACE GameMessageOpcode.SetState."
+
+[[client_handlers]]
+client_function = "ACSmartBox::DispatchSmartBoxEvent"
+client_file = "ACSmartBox.cpp"
+opcode = "0xF74C"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/motion_output.rs:161"
+ace_emits = true
+notes = "ACE GameMessageOpcode.MovementEvent/GameMessageOpcode.Motion. MovementEvent inline in ACSmartBox dispatch (inline case at ACSmartBox.cpp:131)."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_VectorUpdate"
+client_file = "CM_Physics.cpp"
+opcode = "0xF74E"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/position.rs:211"
+ace_emits = true
+notes = "ACE GameMessageOpcode.VectorUpdate."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_SoundEvent"
+client_file = "CM_Physics.cpp"
+opcode = "0xF750"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:121"
+ace_emits = true
+notes = "ACE GameMessageOpcode.Sound."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_PlayerTeleport"
+client_file = "CM_Physics.cpp"
+opcode = "0xF751"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object_control.rs:55"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PlayerTeleport."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_PlayScriptID"
+client_file = "CM_Physics.cpp"
+opcode = "0xF754"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "ACE GameMessageOpcode.PlayScriptId. ACE enum defines it but no pinned Source emitter references it. BACE opcode const exists but no encoder found."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_PlayScriptType"
+client_file = "CM_Physics.cpp"
+opcode = "0xF755"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/combat_output.rs:122"
+ace_emits = true
+notes = "ACE GameMessageOpcode.PlayEffect."
+
+[[client_handlers]]
+client_function = "CM_Physics::DispatchSB_UpdateObject"
+client_file = "CM_Physics.cpp"
+opcode = "0xF7DB"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/object.rs:28"
+ace_emits = true
+notes = "ACE GameMessageOpcode.UpdateObject."
+
+[[client_handlers]]
+client_function = "Client::ProcessLogonEventQueue"
+client_file = "Client.cpp"
+opcode = "0xF7DE"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/turbine_chat.rs:136"
+ace_emits = true
+notes = "ACE GameMessageOpcode.TurbineChat. TurbineChat: Client.cpp forwards to IChatClient::OnNetworkData (inline case at Client.cpp:548). TurbineChat inbound is forwarded to IChatClient::OnNetworkData; the outbound writer is in CChatEvent.cpp."
+
+[[client_handlers]]
+client_function = "CLCache::UseTime"
+client_file = "CLCache.cpp"
+opcode = "0xF7E2"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/ddd.rs:105"
+ace_emits = true
+notes = "ACE GameMessageOpcode.DDD_DataMessage. DDD_DataMessage inbound (inline case at CLCache.cpp:3363)."
+
+[[client_handlers]]
+client_function = "CLCache::UseTime"
+client_file = "CLCache.cpp"
+opcode = "0xF7E4"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/ddd.rs:162"
+ace_emits = true
+notes = "ACE GameMessageOpcode.DDD_ErrorMessage. DDD_ErrorMessage inbound (inline case at CLCache.cpp:3385)."
+
+[[client_handlers]]
+client_function = "CLCache::OnServerInterrogation"
+client_file = "CLCache.cpp"
+opcode = "0xF7E5"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/ddd.rs:161"
+ace_emits = true
+notes = "ACE GameMessageOpcode.DDD_Interrogation. DDD_Interrogation inbound."
+
+[[client_handlers]]
+client_function = "CLCache::OnBeginDDD"
+client_file = "CLCache.cpp"
+opcode = "0xF7E7"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/ddd.rs:50"
+ace_emits = true
+notes = "ACE GameMessageOpcode.DDD_BeginDDD. DDD_BeginDDD inbound."
+
+[[client_handlers]]
+client_function = "CLCache::OnEndDDD"
+client_file = "CLCache.cpp"
+opcode = "0xF7EA"
+kind = "game_message"
+bace_emits = true
+bace_encoder = "crates/network/bace-wire/src/ddd.rs:163"
+ace_emits = true
+notes = "ACE GameMessageOpcode.DDD_EndDDD. DDD_EndDDD inbound."
+
+[[client_handlers]]
+client_function = "CLCache::UseTime"
+client_file = "CLCache.cpp"
+opcode = "0xF7EB"
+kind = "game_message"
+bace_emits = false
+bace_encoder = ""
+ace_emits = false
+notes = "Value absent from ACE GameEventType and GameMessageOpcode at pin. No BACE opcode const. DDD_EndDDDMessage/PatchtimePending inbound (value not in ACE enum at pin) (inline case at CLCache.cpp:3425). DDD inbound end/patch-pending message handled in CLCache; value not in ACE enums at pin."
+
+[summary]
+client_handlers = 191
+client_handlers_game_event = 121
+client_handlers_game_message = 70
+bace_emits_true = 118
+bace_emits_false = 73
+ace_emits_true = 151
+ace_emits_false = 40
+client_actions_not_in_ace = 0

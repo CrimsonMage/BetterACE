@@ -4,9 +4,11 @@ use crate::{
     game_random::BoundGameplayRandom,
     pack_io::{PackIoWorker, PackJob, PreparedPack},
     region_activation::RegionAssetManifest,
+    startup_trace::StartupTrace,
     world_settings::PreparedWorldSettings,
 };
 use bace_config::ServerConfig;
+use bace_dat::{DatArchive, DatStore};
 use bace_db_postgres::{PgStore, WorldOwner};
 use bace_persistence::StoredAllegiance;
 use bace_storage_codec::{PackLimits, PackManifest};
@@ -61,6 +63,7 @@ pub struct GameBootstrap {
     pub world_settings: PreparedWorldSettings,
     pub assets: RegionAssetManifest,
     pub pack: PreparedPack,
+    pub(crate) world_index: Option<crate::region_activation::startup::StartupWorldIndex>,
     /// Temporarily transferred to the retained publication future while it runs.
     pub pack_io: Option<PackIoWorker>,
     pub save_pressure: Arc<AtomicBool>,
@@ -70,24 +73,34 @@ pub struct GameBootstrap {
 impl GameBootstrap {
     /// Complete validation before opening game sockets. This reopens the accepted
     /// immutable pack generation; it never recompiles/decodes the whole world.
-    pub async fn prepare(config: ServerConfig) -> Result<Self, String> {
+    pub(crate) async fn prepare(
+        config: ServerConfig,
+        trace: &StartupTrace,
+    ) -> Result<Self, String> {
         config.validate().map_err(|e| e.to_string())?;
         let world_settings = crate::world_settings::prepare_world_settings(&config.world)?;
         let directory = config
             .dat_directory
             .clone()
             .ok_or("dat_directory is required for gameplay")?;
-        let assets = approved_manifest(&directory);
+        let mut assets = approved_manifest(&directory);
         let manifest = assets.clone();
-        tokio::task::spawn_blocking(move || verify_assets(&manifest, &directory))
-            .await
-            .map_err(|e| format!("asset validation worker: {e}"))??;
+        let asset_trace = trace.clone();
+        let dat_store = tokio::task::spawn_blocking(move || {
+            open_dat_store(&manifest, &directory, &asset_trace)
+        });
         let url = config.resolve_database_url().map_err(|e| e.to_string())?;
-        let store =
+        let store = {
+            let _step = trace.step("connect to PostgreSQL");
             PgStore::connect_bounded(&url, config.database_connections, Duration::from_secs(30))
                 .await
-                .map_err(|e| e.to_string())?;
-        store.migrate().await.map_err(|e| e.to_string())?;
+                .map_err(|e| e.to_string())?
+        };
+        {
+            let _step = trace.step("apply PostgreSQL migrations");
+            store.migrate().await.map_err(|e| e.to_string())?;
+        }
+        let _step = trace.step("load gameplay random key");
         let random = crate::game_random::load_and_bind(
             &store,
             config
@@ -96,6 +109,8 @@ impl GameBootstrap {
                 .ok_or("random_key_file is required for gameplay")?,
         )
         .await?;
+        drop(_step);
+        let _step = trace.step("read accepted world manifest");
         let active = store
             .active_generation()
             .await
@@ -111,7 +126,9 @@ impl GameBootstrap {
         {
             return Err("accepted world manifest metadata mismatch".into());
         }
+        drop(_step);
         let save_pressure = Arc::new(AtomicBool::new(false));
+        let _step = trace.step("open accepted world pack");
         let pack_io = PackIoWorker::start(
             config
                 .pack_directory
@@ -143,6 +160,26 @@ impl GameBootstrap {
         })
         .await
         .map_err(|_| "accepted pack open deadline exceeded")??;
+        drop(_step);
+        let index_generation = pack.generation.clone();
+        let index_id = config.treasure_table_set_id;
+        let index_trace = trace.clone();
+        let world_index = tokio::task::spawn_blocking(move || {
+            let _step = index_trace.step("load accepted treasure and class indexes");
+            crate::region_activation::startup::load_startup_world_index(&index_generation, index_id)
+        });
+        // DAT hashing/indexing and accepted-pack/database reads have no shared
+        // mutable owner. Join before claiming the world so a failed fingerprint
+        // cannot leave a game owner behind.
+        assets.store = Some(Arc::new(
+            dat_store
+                .await
+                .map_err(|e| format!("asset validation worker: {e}"))??,
+        ));
+        let world_index = world_index
+            .await
+            .map_err(|e| format!("accepted world index worker: {e}"))??;
+        let _step = trace.step("acquire world ownership and recover characters");
         let mut world_owner = store
             .acquire_world_owner()
             .await
@@ -151,6 +188,8 @@ impl GameBootstrap {
             .recover_characters()
             .await
             .map_err(|e| e.to_string())?;
+        drop(_step);
+        let _step = trace.step("load allegiance forest");
         let (allegiance_nodes, allegiance_metadata) = store
             .load_allegiance_forest(65536, 64 * 1024 * 1024)
             .await
@@ -159,6 +198,7 @@ impl GameBootstrap {
         // frozen rows/version fences for subsequent atomic social operations.
         crate::social_saves::restore_allegiances(&allegiance_nodes, &allegiance_metadata, 65536)
             .map_err(|e| e.to_string())?;
+        drop(_step);
         Ok(Self {
             config,
             store,
@@ -167,6 +207,7 @@ impl GameBootstrap {
             world_settings,
             assets,
             pack,
+            world_index: Some(world_index),
             pack_io: Some(pack_io),
             save_pressure,
             allegiance_nodes,
@@ -225,23 +266,40 @@ fn approved_manifest(directory: &std::path::Path) -> RegionAssetManifest {
         cell: directory.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     }
 }
-pub(crate) fn verify_assets(
+fn open_dat_store(
     manifest: &RegionAssetManifest,
     directory: &std::path::Path,
-) -> Result<(), String> {
-    for (path, expected) in [
-        (&manifest.portal, manifest.portal_sha256.as_str()),
-        (&manifest.cell, manifest.cell_sha256.as_str()),
-        (
-            &directory.join("client_local_English.dat"),
-            "e85c820280c88fac7df6c8043f5e24596e9c8774193af4123d756546f78fb2bb",
-        ),
-    ] {
-        if bace_dat::fingerprint(path).map_err(|e| e.to_string())? != expected {
-            return Err(format!("unapproved DAT fingerprint: {}", path.display()));
-        }
-    }
-    Ok(())
+    trace: &StartupTrace,
+) -> Result<DatStore, String> {
+    let language_path = directory.join("client_local_English.dat");
+    let (portal, cell, language) = std::thread::scope(|scope| {
+        let portal = scope.spawn(|| {
+            let _step = trace.step("validate and index portal DAT");
+            DatArchive::open_verified(&manifest.portal, &manifest.portal_sha256)
+                .map_err(|e| format!("{}: {e}", manifest.portal.display()))
+        });
+        let cell = scope.spawn(|| {
+            let _step = trace.step("validate and index cell DAT");
+            DatArchive::open_verified(&manifest.cell, &manifest.cell_sha256)
+                .map_err(|e| format!("{}: {e}", manifest.cell.display()))
+        });
+        let language = scope.spawn(|| {
+            let _step = trace.step("validate and index language DAT");
+            DatArchive::open_verified(
+                &language_path,
+                "e85c820280c88fac7df6c8043f5e24596e9c8774193af4123d756546f78fb2bb",
+            )
+            .map_err(|e| format!("{}: {e}", language_path.display()))
+        });
+        let portal = portal.join().map_err(|_| "portal DAT worker panicked")?;
+        let cell = cell.join().map_err(|_| "cell DAT worker panicked")?;
+        let language = language
+            .join()
+            .map_err(|_| "language DAT worker panicked")?;
+        Ok::<_, String>((portal?, cell?, language?))
+    })?;
+    DatStore::new(portal, cell, language).map_err(|e| e.to_string())
 }

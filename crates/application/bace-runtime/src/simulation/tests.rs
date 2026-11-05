@@ -175,6 +175,46 @@ fn attribute_transfer_outcome_survives_worker_output_disconnect() {
 }
 
 #[test]
+fn item_mana_query_outcome_survives_worker_output_disconnect() {
+    let (input, inbox) = channel(1);
+    input
+        .try_submit(Command::ItemManaQuery(
+            bace_simulation::ItemManaQueryRequest {
+                correlation: 77,
+                binding: bace_gameplay_api::CharacterBinding {
+                    actor: EntityId(1),
+                    account: bace_types::AccountId(1),
+                    session: bace_gameplay_api::SessionId(1),
+                },
+                target: EntityId(2),
+            },
+        ))
+        .unwrap();
+    let (progression, _) = mpsc::sync_channel(1);
+    let (combat, _) = mpsc::sync_channel(1);
+    let (events, _) = mpsc::sync_channel(1);
+    let exit = drive_owned(
+        bace_simulation::synthetic_scenario(1, 0).unwrap(),
+        inbox,
+        Arc::new(AtomicBool::new(false)),
+        SimulationConfig {
+            command_capacity: 1,
+            tick_limit: Some(1),
+            real_time: false,
+        },
+        test_outputs(progression, combat, events),
+    );
+    assert_eq!(
+        exit.kernel
+            .peek_item_mana_query_outcome()
+            .unwrap()
+            .correlation,
+        77
+    );
+    assert!(exit.requires_recovery());
+}
+
+#[test]
 fn preloaded_combat_requires_recovery_before_first_tick_without_an_actor() {
     use bace_gameplay_api::{ActionContext, CombatRequest, SessionId};
     let mut kernel = Kernel::new(bace_world::World::default(), 1).unwrap();
@@ -222,6 +262,7 @@ fn test_outputs(
         player_admissions: player_admissions::channels(1).0,
         region_admissions: region_admissions::channels(1).0,
         player_snapshots: player_snapshots::channels(1).0,
+        item_mana_queries: item_mana_queries::channels(1).0,
         pve_services: pve_service_outputs::channels(1).0,
         npc_services: npc_service_outputs::channels(1).0,
         inventory_output: inventory_outputs::channels(1).0,
@@ -252,6 +293,8 @@ fn test_outputs(
         skill_device_outcomes: mpsc::sync_channel(1).0,
         skill_device_proposals: mpsc::sync_channel(1).0,
         attribute_transfer_outcomes: mpsc::sync_channel(1).0,
+        healing_kit_outcomes: mpsc::sync_channel(1).0,
+        mana_stone_outcomes: mpsc::sync_channel(1).0,
         attribute_transfer_proposals: mpsc::sync_channel(1).0,
         crafting_proposals: mpsc::sync_channel(1).0,
         crafting_outcomes: mpsc::sync_channel(1).0,

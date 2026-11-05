@@ -39,13 +39,7 @@ pub struct ServerMagicAssets {
 }
 impl ServerMagicAssets {
     pub fn open(manifest: &RegionAssetManifest) -> Result<Self, String> {
-        if manifest.portal_sha256.len() != 64
-            || bace_dat::fingerprint(&manifest.portal).map_err(|e| e.to_string())?
-                != manifest.portal_sha256
-        {
-            return Err("unapproved server magic DAT fingerprint".into());
-        }
-        let mut portal = DatArchive::open(&manifest.portal).map_err(|e| e.to_string())?;
+        let mut portal = manifest.portal_archive()?;
         if portal.header().dataset != 1 {
             return Err("server magic DAT dataset".into());
         }

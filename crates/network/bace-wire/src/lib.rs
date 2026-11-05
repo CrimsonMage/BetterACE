@@ -148,3 +148,23 @@ mod appraisal;
 pub use appraisal::{
     AppraisalCreature, AppraisalLimits, AppraisalProfile, AppraisalWeapon, IdentifyObjectRequest,
 };
+mod weenie_error;
+pub use weenie_error::WeenieError;
+mod weenie_error_string;
+pub use weenie_error_string::WeenieErrorWithString;
+mod chat_message_type;
+pub use chat_message_type::ChatMessageType;
+mod popup_output;
+pub use popup_output::PopupString;
+mod housing_input;
+pub use housing_input::{HousingAction, HousingRequest};
+mod channel_input;
+pub use channel_input::{ChannelAction, ChannelRequest};
+mod book_input;
+pub use book_input::{BookAction, BookRequest};
+mod housing_output;
+pub use housing_output::{
+    HAR_ALLEGIANCE_GUESTS, HAR_ALLEGIANCE_STORAGE, HAR_OPEN_HOUSE, HOUSE_BITFIELD_ACTIVE,
+    HOUSE_RECORD_VERSION, HouseAccess, HouseData, HouseGuest, HousePayment, HouseProfile,
+    HouseType, HousingEvent, HousingLimits, RestrictionDb,
+};

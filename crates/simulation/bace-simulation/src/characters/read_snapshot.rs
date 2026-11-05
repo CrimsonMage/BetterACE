@@ -80,6 +80,9 @@ impl Characters {
             crate::PlayerSnapshotOperation::AttributeTransfer(id) => {
                 id != 0 && self.pending_attribute_transfer_operation(binding.actor) == Some(id)
             }
+            crate::PlayerSnapshotOperation::HealingKit(id) => {
+                id != 0 && self.healing_kit_operation(binding.actor) == Some(id)
+            }
             crate::PlayerSnapshotOperation::Allegiance(id) => {
                 id != 0 && self.social_reward_operation(binding.actor) == Some(id)
             }

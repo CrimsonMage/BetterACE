@@ -552,7 +552,7 @@ fn freeze_supplements(
 /// Check after World vitals/pose and portal links override their stale mirrors.
 /// Re-capturing an unchanged recovery history is semantically read-only; its
 /// countdown/age bounds were validated separately against the capture clocks.
-fn validate_final_revision(
+pub(crate) fn validate_final_revision(
     saved: &PlayerSaveV6,
     next: &mut PlayerSaveV6,
 ) -> Result<(), PlayerSaveError> {

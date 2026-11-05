@@ -9,6 +9,13 @@ pub(super) fn prepare(
     snapshot: Option<&bace_simulation::NpcSourceInventorySnapshot>,
     epoch: u64,
 ) -> Result<Option<Arc<Frozen>>, String> {
+    // Source gear is ephemeral with its landblock. Retaining a frozen durable
+    // beforeimage here would turn an NPC checkpoint into a PostgreSQL item
+    // write and make the next activation recover stale equipment.
+    if snapshot.is_some() {
+        let _ = (saved, regions, definitions, epoch);
+        return Ok(None);
+    }
     let Some(snapshot) = snapshot else {
         return Ok(None);
     };

@@ -16,6 +16,7 @@ pub use bace_economy::{VendorBuyLine, VendorBuyQuote, VendorBuyRequest};
 pub use characters::CharacterRegistrationError;
 pub use combat::{CombatEvent, DeathBlow};
 pub use kernel::{Command, Kernel, SimulationError};
+pub use kernel::{ItemManaQueryOutcome, ItemManaQueryRequest, ItemManaValues};
 pub use kernel::{VendorBuyError, VendorBuyReceipt, VendorBuyReservation, VendorBuySource};
 pub use player_death::{
     CorpseAccessCommand, CorpseAccessInspection, CorpseAccessOutcome, CorpseConsentCommand,
@@ -90,7 +91,16 @@ pub use attribute_transfer::{
     PreparedAttributeTransfer,
 };
 pub use crafting::{CraftingDecision, CraftingProficiency, CraftingTicket, SalvageAdmission};
+mod healing_kits;
+mod mana_stones;
+pub use mana_stones::{
+    ManaStoneCommand, ManaStoneError, ManaStoneOutcome, ManaStoneResult, ManaStoneTicket,
+};
 mod skill_devices;
+pub use healing_kits::{
+    HealingKitCommand, HealingKitDecision, HealingKitError, HealingKitOutcome, HealingKitTicket,
+    PreparedHealingKit,
+};
 
 pub use skill_devices::{
     PreparedSkillDevice, SkillDeviceConfirmation, SkillDeviceCooldown, SkillDeviceError,

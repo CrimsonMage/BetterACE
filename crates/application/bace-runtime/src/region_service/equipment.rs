@@ -150,6 +150,18 @@ pub(super) fn materialize(
             items,
         });
     }
+    eprintln!(
+        "region {:04x} equipment: {} roots, {} items, {} visible wield candidates",
+        prepared.fence.landblock,
+        result.roots.len(),
+        result.count,
+        result
+            .roots
+            .iter()
+            .flat_map(|root| &root.items)
+            .filter(|item| item.wielded_location != 0)
+            .count(),
+    );
     Ok(result)
 }
 pub(super) fn bind(

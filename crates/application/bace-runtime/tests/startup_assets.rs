@@ -18,6 +18,7 @@ fn complete_accepted_world_and_dat_prepare_real_startup_dependencies() {
         cell: directory.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     };
     let mut assets = VerifiedRegionAssets::open(&approved).unwrap();
     let prepared = assets

@@ -68,11 +68,13 @@ pub(in crate::game_runtime) async fn fixture() -> (
             cell: directory.path().join("missing-cell.dat"),
             portal_sha256: String::new(),
             cell_sha256: String::new(),
+            store: None,
         },
         pack: crate::pack_io::PreparedPack {
             manifest,
             generation,
         },
+        world_index: None,
         pack_io: Some(
             crate::pack_io::PackIoWorker::start(
                 directory.path().to_owned(),

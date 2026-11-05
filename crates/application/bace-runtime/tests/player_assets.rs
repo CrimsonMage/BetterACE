@@ -1,6 +1,7 @@
 //! Authored avatar content with actual approved DAT assets. This tests server-side
 //! preparation/admission, not a stock-client qualification claim.
 mod equipment_transaction;
+mod treasure_table_support;
 use bace_content::{Attribute, BodyPart, Property, SecondaryAttribute, Skill, WeenieV1};
 use bace_runtime::{
     player_assets::*,
@@ -8,8 +9,9 @@ use bace_runtime::{
 };
 use bace_types::{AccountId, EntityId};
 #[test]
-#[ignore = "requires approved real DATs; set BACE_DAT_DIRECTORY"]
+#[ignore = "requires approved real DATs and native pack; set BACE_DAT_DIRECTORY and BACE_WORLD_MANIFEST"]
 fn real_avatar_dat_and_saved_state_admit_without_synthetic_scene() {
+    treasure_table_support::install_tables();
     let directory =
         std::path::PathBuf::from(std::env::var_os("BACE_DAT_DIRECTORY").expect("DAT directory"));
     let manifest = RegionAssetManifest {
@@ -17,6 +19,7 @@ fn real_avatar_dat_and_saved_state_admit_without_synthetic_scene() {
         cell: directory.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     };
     let mut archive = bace_dat::DatArchive::open(&manifest.portal).unwrap();
     let chargen =
@@ -353,6 +356,59 @@ fn real_avatar_dat_and_saved_state_admit_without_synthetic_scene() {
     assert_eq!(equipped.source.profile.equipment.len(), 1);
     assert_eq!(equipped.source.profile.equipment[0].entity, gear_id.0);
     assert_eq!(equipped.vital_inputs.equipped_health, vec![(gear_id, 40)]);
+    let world_path = std::path::PathBuf::from(
+        std::env::var_os("BACE_WORLD_MANIFEST").expect("accepted native pack manifest"),
+    );
+    let world_manifest =
+        bace_storage_codec::load_manifest(&world_path, Default::default()).unwrap();
+    let world = world_manifest
+        .open(world_path.parent().unwrap(), Default::default())
+        .unwrap();
+    let bace_storage_codec::PackLookup::Record(spadone_record) = world
+        .lookup(bace_storage_codec::PackKey {
+            namespace: 1,
+            id: 41512,
+        })
+        .unwrap()
+    else {
+        panic!("accepted Training Spadone template missing");
+    };
+    let spadone = bace_content_tools::decode(spadone_record.bytes()).unwrap();
+    let spadone_id = EntityId(0x80000078);
+    let spadone = bace_storage_codec::ItemSaveV4::migrate_v2(bace_storage_codec::ItemSaveV2 {
+        entity: bace_storage_codec::EntitySaveV1 {
+            object_id: spadone_id.0,
+            template_revision: 1,
+            mutation_revision: 1,
+            state: spadone,
+        },
+        placement: bace_storage_codec::ItemPlacementV2::Contained {
+            container: binding.actor.0,
+            slot: 0x0200_0000,
+            pack_slot: false,
+            equipped: 0x0200_0000,
+        },
+    })
+    .unwrap();
+    prepared.state.item_enchantments.push((
+        spadone_id,
+        bace_magic::EnchantmentRegistry::new(4096).unwrap(),
+    ));
+    let spadone_profile = prepare_equipment_physical(EquipmentPhysicalInput {
+        actor: binding.actor,
+        before_revision: prepared.state.character.progression.revision(),
+        source: &loaded.player.player.entity.state,
+        state: &prepared.state,
+        items: std::slice::from_ref(&spadone),
+        dat: &dat,
+        projectile_shapes: &Default::default(),
+    })
+    .unwrap();
+    assert_eq!(
+        spadone_profile.source.profile.equipment[0].entity,
+        spadone_id.0
+    );
+    prepared.state.item_enchantments.pop();
     assert!(
         prepare_equipment_physical(EquipmentPhysicalInput {
             actor: binding.actor,
@@ -376,16 +432,16 @@ fn real_avatar_dat_and_saved_state_admit_without_synthetic_scene() {
         loaded.player.player.entity.state.properties.skills.len()
     );
     let loaded = std::sync::Arc::new(loaded);
-    let directory = tempfile::tempdir().unwrap();
-    let built = bace_content_tools::build_world_pack(
-        std::slice::from_ref(&loaded.player.player.entity.state),
-        &[],
-        directory.path(),
-        &std::sync::atomic::AtomicBool::new(false),
-    )
-    .unwrap();
-    let pack = bace_storage_codec::load_manifest(&built.manifest, Default::default()).unwrap();
-    let generation = std::sync::Arc::new(pack.open(directory.path(), Default::default()).unwrap());
+    // The accepted spell row and projectile closure must be present for the
+    // avatar's authored proc. A one-weenie synthetic pack cannot validate it.
+    let world_manifest = std::path::PathBuf::from(
+        std::env::var_os("BACE_WORLD_MANIFEST").expect("accepted native pack manifest"),
+    );
+    let pack = bace_storage_codec::load_manifest(&world_manifest, Default::default()).unwrap();
+    let generation = std::sync::Arc::new(
+        pack.open(world_manifest.parent().unwrap(), Default::default())
+            .unwrap(),
+    );
     let mut worker =
         bace_runtime::player_preparation_worker::PlayerPreparationWorker::start(manifest, 1)
             .unwrap();
@@ -393,7 +449,7 @@ fn real_avatar_dat_and_saved_state_admit_without_synthetic_scene() {
         worker
             .try_submit(
                 bace_runtime::player_preparation_worker::PlayerPreparationRequest {
-                    generation,
+                    generation: generation.clone(),
                     correlation: 901,
                     loaded: loaded.clone(),
                     geometry: geometry.clone(),
@@ -496,6 +552,16 @@ fn real_avatar_dat_and_saved_state_admit_without_synthetic_scene() {
         entry.is_some(),
         "real DAT avatar never reached accepted entry state: {last}"
     );
+    kernel.character_entered(binding).unwrap();
+    // Entry can be ready while its authored initial motion still owns the
+    // actor. Let that motion complete before proposing equipment.
+    for _ in 0..450 {
+        if !kernel.world().motion_busy(binding.actor) {
+            break;
+        }
+        kernel.step().unwrap();
+    }
+    assert!(!kernel.world().motion_busy(binding.actor));
 
     equipment_transaction::exercise(
         &mut kernel,
@@ -503,5 +569,26 @@ fn real_avatar_dat_and_saved_state_admit_without_synthetic_scene() {
         &loaded.player.player.entity.state,
         &dat,
         gear,
+        equipment_transaction::ExerciseOptions {
+            assets: &mut assets,
+            generation: &generation,
+            equip_location: 0x200,
+            first_sequence: 1,
+            first_correlation: 100,
+        },
+    );
+    equipment_transaction::exercise(
+        &mut kernel,
+        binding,
+        &loaded.player.player.entity.state,
+        &dat,
+        spadone,
+        equipment_transaction::ExerciseOptions {
+            assets: &mut assets,
+            generation: &generation,
+            equip_location: 0x0200_0000,
+            first_sequence: 3,
+            first_correlation: 200,
+        },
     );
 }

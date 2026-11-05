@@ -21,6 +21,14 @@ pub struct MagicWand {
     pub resistance_cleaving: Option<u32>,
     pub ignore_magic_resistance: bool,
 }
+/// ACE WorldObject_Weapon.GetWeapon and Creature.CalculateManaUsage source
+/// qualities. The selected item's enchantments remain live owner state.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ManaConversionWeapon {
+    pub entity: u32,
+    pub base_modifier: f32,
+    pub enchantable: bool,
+}
 #[derive(Clone, Debug, PartialEq)]
 pub struct MagicDamageProfile {
     pub player: bool,
@@ -43,6 +51,9 @@ pub struct MagicDamageProfile {
     pub critical_defense: bool,
     pub ignore_magic_resistance: bool,
     pub wand: Option<MagicWand>,
+    pub mana_conversion_weapon: Option<ManaConversionWeapon>,
+    /// Equipped Held item's SpellDID and ItemManaCost, if SpellDID exists.
+    pub wand_spell_cost: Option<(u32, u32)>,
     pub cloak: Option<crate::MagicCloak>,
     pub sigils: Vec<crate::MagicSigil>,
     pub proc_items: Vec<MagicProcItem>,
@@ -91,6 +102,8 @@ impl MagicDamageProfile {
             critical_defense: false,
             ignore_magic_resistance: false,
             wand: None,
+            mana_conversion_weapon: None,
+            wand_spell_cost: None,
             cloak: None,
             sigils: Vec::new(),
             proc_items: Vec::new(),

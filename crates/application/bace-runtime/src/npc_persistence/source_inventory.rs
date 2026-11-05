@@ -10,6 +10,7 @@ use bace_storage_codec::{
     NpcWorkflowSaveV3, PackKey, PackLookup, SaveCodecError, npc_workflow_v3::NpcSourceInventoryV3,
 };
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(test)]
 pub(super) fn joined(operation: &NpcStageOperation) -> bool {
     let Ok(checkpoint) = NpcWorkflowSaveV3::decode_or_migrate(&operation.workflow.checkpoint)
     else {

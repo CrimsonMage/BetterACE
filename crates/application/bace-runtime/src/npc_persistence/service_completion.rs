@@ -1,5 +1,5 @@
-//! Terminal motion/cast receipts already come from their real domain owner.
-//! This stage journals the continuation before releasing that retained receipt.
+//! Terminal cast/motion callbacks, or ACE-conditional motion skips after bounded
+//! start retries, journal the exact source continuation before owner release.
 use super::{NpcCheckpointBinding, PendingNpcStage, freeze_checkpoint, stage::stage_id};
 use bace_gameplay_api::{NpcCompletion, NpcOperation};
 use bace_persistence::{CharacterLease, NpcStageOperation, NpcWorkflowUpdate, PlacementOperation};

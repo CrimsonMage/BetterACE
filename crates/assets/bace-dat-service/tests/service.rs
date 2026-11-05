@@ -97,6 +97,7 @@ fn disabled_and_newer_clients_never_receive_fabricated_patch_success() {
         session.begin(&response(portal(2, vec![-2, 1]))),
         Ok(DddStart::UpToDate(_))
     ));
+    assert!(session.acknowledge_end().unwrap().is_none());
 }
 
 #[test]

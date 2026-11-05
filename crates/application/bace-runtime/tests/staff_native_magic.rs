@@ -26,6 +26,7 @@ fn native_worker_rejects_missing_assets_and_retains_exact_request_through_shutdo
         cell: directory.path().join("missing-cell.dat"),
         portal_sha256: "00".repeat(32),
         cell_sha256: "00".repeat(32),
+        store: None,
     };
     let mut owner = StaffNativeMagicWorker::start(manifest, generation(directory.path())).unwrap();
     let work = Arc::new(work(1));
@@ -59,6 +60,7 @@ fn actual_dat_native_program_retains_actor_formula_and_verified_motion() {
         cell: dat.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: String::new(),
+        store: None,
     };
     let mut portal = bace_dat::DatArchive::open(&manifest.portal).unwrap();
     let spells =

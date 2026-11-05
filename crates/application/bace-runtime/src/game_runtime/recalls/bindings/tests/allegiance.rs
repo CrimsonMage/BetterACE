@@ -15,6 +15,7 @@ fn relocated_bindstone_records() -> (Vec<bace_storage_codec::PackRecord>, u32, u
         cell: dat.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     };
     let mut portal = bace_dat::DatArchive::open(&manifest.portal).unwrap();
     let chargen =

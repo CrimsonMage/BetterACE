@@ -147,7 +147,13 @@ fn group(input: G) -> Result<SocialDispatch, DispatchError> {
             token,
             accepted,
         } => SocialDispatch::Allegiance(A::Confirm { token, accepted }),
-        G::Confirm { kind, .. } => return Err(DispatchError::InvalidTarget(kind)),
+        // ACE ConfirmationType: 2/3/5/6/7 belong to skill, attribute, craft and
+        // yes-no owners; the cascade must continue to them, not fail the session.
+        G::Confirm { .. } => {
+            return Err(DispatchError::UnsupportedAction(
+                bace_wire::opcode::GameActionType::ConfirmationResponse.0,
+            ));
+        }
         value => SocialDispatch::Allegiance(match value {
             G::Swear(v) => A::Swear(EntityId(v)),
             G::Break(v) => A::Break(EntityId(v)),

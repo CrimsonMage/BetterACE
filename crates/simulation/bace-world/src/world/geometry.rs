@@ -46,17 +46,28 @@ impl World {
         }
         if let Some(shape) = actor.body.collision_shape() {
             let region = region.ok_or(WorldError::MissingGeometry)?;
-            region
-                .validate_placement(
-                    actor.cell.0,
-                    actor.body.accepted().position(),
-                    shape,
-                    &[],
-                    actor.id.0,
-                )
-                .map_err(PhysicsError::from)?;
+            if actor.body.is_authored_static() {
+                region
+                    .validate_authored_static_placement(
+                        actor.cell.0,
+                        actor.body.accepted().position(),
+                        shape,
+                    )
+                    .map_err(PhysicsError::from)?;
+            } else {
+                region
+                    .validate_placement(
+                        actor.cell.0,
+                        actor.body.accepted().position(),
+                        shape,
+                        &[],
+                        actor.id.0,
+                    )
+                    .map_err(PhysicsError::from)?;
+            }
             for other in self.actors.values().chain(staged).filter(|o| {
                 check_dynamic_overlap
+                    && !(actor.body.is_authored_stationary() && o.body.is_authored_stationary())
                     && o.cell == actor.cell
                     && !self.anchors.contains(&o.id)
                     && !self.is_in_portal_transit(o.id)
@@ -111,7 +122,7 @@ impl World {
             return Err(PhysicsError::InvalidState.into());
         }
         for (id, door) in &self.doors {
-            if region.cell(door.cell.0).is_some() {
+            if !self.actors.contains_key(id) && region.cell(door.cell.0).is_some() {
                 std::sync::Arc::make_mut(&mut region)
                     .set_object_solid(id.0, door.solid)
                     .map_err(PhysicsError::from)?;
@@ -192,7 +203,7 @@ impl World {
         // Preserve the owner-authorized state of doors across immutable asset
         // generation replacement. Never reopen/close them from cached defaults.
         for (id, door) in &self.doors {
-            if region.cell(door.cell.0).is_some() {
+            if !self.actors.contains_key(id) && region.cell(door.cell.0).is_some() {
                 std::sync::Arc::make_mut(&mut region)
                     .set_object_solid(id.0, door.solid)
                     .map_err(PhysicsError::from)?;
@@ -200,15 +211,25 @@ impl World {
         }
         for actor in self.actors.values() {
             if let Some(shape) = actor.body.collision_shape() {
-                region
-                    .validate_placement(
-                        actor.cell.0,
-                        actor.body.accepted().position(),
-                        shape,
-                        &[],
-                        actor.id.0,
-                    )
-                    .map_err(PhysicsError::from)?;
+                if actor.body.is_authored_static() {
+                    region
+                        .validate_authored_static_placement(
+                            actor.cell.0,
+                            actor.body.accepted().position(),
+                            shape,
+                        )
+                        .map_err(PhysicsError::from)?;
+                } else {
+                    region
+                        .validate_placement(
+                            actor.cell.0,
+                            actor.body.accepted().position(),
+                            shape,
+                            &[],
+                            actor.id.0,
+                        )
+                        .map_err(PhysicsError::from)?;
+                }
             }
         }
         self.geometry = Some(region);
@@ -241,6 +262,7 @@ impl World {
                 !self.anchors.contains(&a.id)
                     && !self.is_in_portal_transit(a.id)
                     && !self.entry_pending.contains(&a.id)
+                    && self.doors.get(&a.id).is_none_or(|door| door.solid)
             })
             .filter_map(|a| a.body.collision_shape())
             .map(|s| s.obstacles().count())
@@ -256,6 +278,7 @@ impl World {
             if self.anchors.contains(&actor.id)
                 || self.is_in_portal_transit(actor.id)
                 || self.entry_pending.contains(&actor.id)
+                || self.doors.get(&actor.id).is_some_and(|door| !door.solid)
             {
                 continue;
             }
@@ -275,5 +298,23 @@ impl World {
             }
         }
         Ok(())
+    }
+    /// Bound region admission before adding actors that an attached door may
+    /// cause to be reindexed. The conservative additional count includes all
+    /// prepared shapes, including roots that may later be held or anchored.
+    pub fn can_refresh_with_additional_obstacles(&self, additional: usize) -> bool {
+        let existing = self
+            .actors
+            .values()
+            .filter(|a| {
+                !self.anchors.contains(&a.id)
+                    && !self.is_in_portal_transit(a.id)
+                    && !self.entry_pending.contains(&a.id)
+                    && self.doors.get(&a.id).is_none_or(|door| door.solid)
+            })
+            .filter_map(|a| a.body.collision_shape())
+            .map(|shape| shape.obstacles().count())
+            .sum::<usize>();
+        additional <= 65536usize.saturating_sub(existing)
     }
 }

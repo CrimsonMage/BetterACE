@@ -139,3 +139,81 @@ fn stale_or_mismatched_attachments_do_not_replace_any_blueprint() {
     duplicate.after_revision += 1;
     assert!(service.replace_equipment_blueprint(&duplicate).is_err());
 }
+
+#[test]
+fn equipment_change_updates_only_actor_and_child_without_recreating_nearby_objects() {
+    // ACE Creature_Equipment.TryEquipObjectWithBroadcasting sends parent and
+    // ObjDesc changes plus TrackEquippedObject to existing viewers. It does
+    // not reset their known world. Keep unrelated Create/Delete traffic out.
+    let mut service = VisibilityService::new(limits()).unwrap();
+    let observer = key(1);
+    service.bind(observer, binding(1)).unwrap();
+    for id in [3, 5, 6] {
+        service
+            .register_object(1, 1, 0, description(id), vec![])
+            .unwrap();
+    }
+    stage(&mut service, observer, 1, &[3, 5, 6], 2.);
+    assert_eq!(acknowledge(&mut service, observer).len(), 3);
+    for id in [3, 5, 6] {
+        assert!(service.knows(observer, EntityId(id)));
+    }
+
+    service
+        .replace_equipment_blueprint(&update(&service))
+        .unwrap();
+    assert!(service.observers[&observer].reset_requested.is_none());
+    stage(&mut service, observer, 2, &[3, 5, 6], 2.);
+    let output = acknowledge(&mut service, observer);
+    assert!(!output.is_empty());
+    for bytes in &output {
+        let opcode = u32::from_le_bytes(bytes[..4].try_into().unwrap());
+        assert_ne!(opcode, 0xf747, "equipment must not delete a known object");
+        let object = u32::from_le_bytes(bytes[4..8].try_into().unwrap());
+        assert!(
+            object == 3 || object == 4,
+            "unrelated object {object} changed"
+        );
+    }
+    for id in [3, 5, 6] {
+        assert!(service.knows(observer, EntityId(id)));
+        assert_eq!(
+            service.observers[&observer].sent[&EntityId(id)]
+                .blueprint
+                .incarnation,
+            1
+        );
+    }
+
+    // A reset has different semantics: it deletes the whole known view and
+    // forces the next visibility read to recreate every nearby entity. This
+    // is the behavior an equipment action must not request.
+    service.reset_observer_event(observer, 3, 10).unwrap();
+    let deleted = acknowledge(&mut service, observer);
+    assert_eq!(deleted.len(), 4); // actor, child, and two unrelated objects
+    assert!(deleted.iter().all(|bytes| {
+        u32::from_le_bytes(bytes[..4].try_into().unwrap())
+            == u32::from_le_bytes(
+                ObjectControl::Delete {
+                    object_id: 3,
+                    instance_sequence: 0,
+                }
+                .encode()[..4]
+                    .try_into()
+                    .unwrap(),
+            )
+    }));
+    stage(&mut service, observer, 4, &[3, 5, 6], 2.);
+    let recreated = acknowledge(&mut service, observer);
+    assert_eq!(recreated.len(), 4);
+    assert!(
+        recreated
+            .iter()
+            .any(|bytes| { u32::from_le_bytes(bytes[4..8].try_into().unwrap()) == 5 })
+    );
+    assert!(
+        recreated
+            .iter()
+            .any(|bytes| { u32::from_le_bytes(bytes[4..8].try_into().unwrap()) == 6 })
+    );
+}

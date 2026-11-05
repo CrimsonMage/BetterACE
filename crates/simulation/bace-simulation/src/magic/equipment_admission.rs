@@ -6,6 +6,7 @@ impl Magic {
         actor: EntityId,
         profile: &bace_magic::MagicDamageProfile,
         values: &[bace_character::SkillValues],
+        has_shield: bool,
     ) -> Result<(), CastRejection> {
         if !self.registry_reserved(actor)
             || self.busy(actor)
@@ -23,11 +24,15 @@ impl Magic {
             self.damage_wands
                 .get(&w.entity)
                 .is_some_and(|(old, _)| old.revision > w.revision)
-        }) || [31, 32, 33, 34, 43, 15, 16, 48].iter().any(|id| {
-            !values
-                .iter()
-                .any(|s| s.skill == *id && s.current <= i32::MAX as u32)
-        }) {
+        }) || [31, 32, 33, 34, 43, 15, 16]
+            .into_iter()
+            .chain(has_shield.then_some(48))
+            .any(|id| {
+                !values
+                    .iter()
+                    .any(|s| s.skill == id && s.current <= i32::MAX as u32)
+            })
+        {
             return Err(CastRejection::InvalidState);
         }
         Ok(())
@@ -51,7 +56,7 @@ impl Magic {
             actor,
             [34, 33, 31, 32, 43].map(|id| skill(id).current),
             skill(15).current,
-            skill(16).current,
+            super::trained_mana_conversion(*skill(16)),
         )
         .expect("preflighted caster values");
         let combat_skill = |id| {

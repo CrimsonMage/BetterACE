@@ -308,6 +308,22 @@ fn prepared_weapon_hooks_change_world_health_and_report_damage_type() {
     assert_eq!(second.damage_type, 1);
     assert!(first.damage > 0);
     assert_eq!(
+        k.world()
+            .vital(EntityId(1), bace_entity::EntityVital::Stamina)
+            .unwrap()
+            .current,
+        99,
+        "ACE Player_Melee spends once for the two-hook swing"
+    );
+    assert_eq!(
+        k.world()
+            .vital(EntityId(2), bace_entity::EntityVital::Stamina)
+            .unwrap()
+            .current,
+        100,
+        "ACE creature defense does not spend player stamina"
+    );
+    assert_eq!(
         k.world().combatant(EntityId(2)).unwrap().health(),
         100 - first.damage - second.damage
     );
@@ -480,6 +496,14 @@ fn missile_ammunition_receipt_gates_world_projectile_and_actual_impact() {
     k.confirm_physical_launch(receipt).unwrap();
     assert!(k.confirm_physical_launch(receipt).is_err());
     assert_eq!(
+        k.world()
+            .vital(EntityId(1), bace_entity::EntityVital::Stamina)
+            .unwrap()
+            .current,
+        99,
+        "ACE Player_Missile spends once when the accepted launch occurs"
+    );
+    assert_eq!(
         k.physical_combat_profile(EntityId(1))
             .unwrap()
             .equipment
@@ -495,6 +519,14 @@ fn missile_ammunition_receipt_gates_world_projectile_and_actual_impact() {
     }
     assert!(k.world().projectile(EntityId(1000)).is_none());
     assert!(k.world().combatant(EntityId(2)).unwrap().health() < 100);
+    assert_eq!(
+        k.world()
+            .vital(EntityId(2), bace_entity::EntityVital::Stamina)
+            .unwrap()
+            .current,
+        100,
+        "a creature defender has no Player_Combat stamina debit"
+    );
     assert!(k.physical_recovery_pending(EntityId(1)));
     k.supply_physical_projectile_id(EntityId(1001)).unwrap();
     for sequence in 9..=18 {

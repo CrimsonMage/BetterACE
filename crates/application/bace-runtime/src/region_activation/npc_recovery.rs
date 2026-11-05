@@ -32,11 +32,17 @@ impl VerifiedRegionAssets {
         if frozen_location.player || frozen_location.cell >> 16 != u32::from(base.fence.landblock) {
             return Err("NPC regional source location mismatch".into());
         }
-        let generation = Arc::new(
-            pin.manifest
-                .open(directory, Default::default())
-                .map_err(|e| e.to_string())?,
-        );
+        let current = pin.manifest_hash == request.content_hash
+            && pin.manifest.generation == request.generation.revision();
+        let generation = if current {
+            request.generation.clone()
+        } else {
+            Arc::new(
+                pin.manifest
+                    .open(directory, Default::default())
+                    .map_err(|e| e.to_string())?,
+            )
+        };
         let mut source =
             crate::npc_recovery::prepare_npc_source(&generation, frozen.source_template)?;
         if source.program_hash != frozen.program_hash {
@@ -83,12 +89,54 @@ impl VerifiedRegionAssets {
                     .into(),
             );
         }
+        let reuse = current
+            && base
+                .content
+                .templates
+                .get(&source.template)
+                .is_some_and(|template| template.as_ref() == authored.as_ref())
+            && base.catalog.templates.contains_key(&source.template);
+        let (catalog, item_spells, physical, mut creatures) = if reuse {
+            (
+                base.catalog.clone(),
+                base.item_spells.clone(),
+                base.physical.clone(),
+                base.creatures.clone(),
+            )
+        } else {
+            let roots = BTreeMap::from([(source.template, authored.clone())]);
+            let catalog = Arc::new(crate::generator_catalog::prepare_generator_catalog(
+                &generation,
+                &roots,
+                request
+                    .treasure_assets
+                    .clone()
+                    .ok_or("NPC treasure assets missing")?,
+                request.aetheria_drop_rate,
+            )?);
+            let item_spells = crate::generator_spell_assets::prepare_generator_spell_assets(
+                &generation,
+                &mut self.portal,
+                &catalog.templates,
+            );
+            let mut physical = BTreeMap::new();
+            for (&id, template) in &catalog.templates {
+                physical.insert(id, self.prepare_template(template));
+            }
+            (catalog, item_spells, physical, BTreeMap::new())
+        };
         if authored.weenie_type == 12 {
+            let shape = physical
+                .get(&source.template)
+                .ok_or("historical static Shop physical template absent")?
+                .as_ref()
+                .map_err(Clone::clone)?;
             verify_static_shop_source(
                 work.baseline.as_ref(),
                 &frozen_location,
                 &generation,
                 &authored,
+                &shape.shape,
                 pin.head.source,
                 base.fence.landblock,
             )?;
@@ -96,27 +144,7 @@ impl VerifiedRegionAssets {
                 return Err("historical static Shop inventory proof missing".into());
             }
         }
-        let roots = BTreeMap::from([(source.template, authored.clone())]);
-        let catalog = crate::generator_catalog::prepare_generator_catalog(
-            &generation,
-            &roots,
-            request
-                .treasure_assets
-                .clone()
-                .ok_or("NPC treasure assets missing")?,
-            request.aetheria_drop_rate,
-        )?;
-        let item_spells = crate::generator_spell_assets::prepare_generator_spell_assets(
-            &generation,
-            &mut self.portal,
-            &catalog.templates,
-        );
-        let mut physical = BTreeMap::new();
-        for (&id, template) in &catalog.templates {
-            physical.insert(id, self.prepare_template(template));
-        }
-        let mut creatures = BTreeMap::new();
-        if location.facts.creature {
+        if location.facts.creature && !reuse {
             let shape = physical
                 .get(&source.template)
                 .ok_or("NPC physical source missing")?
@@ -210,6 +238,7 @@ fn verify_static_shop_source(
     location: &bace_storage_codec::npc_workflow_v3::NpcSourceLocationV3,
     generation: &PackGeneration,
     source: &bace_content::WeenieV1,
+    shape: &bace_physics::CollisionShape,
     actor: u32,
     landblock: u16,
 ) -> Result<(), String> {
@@ -251,14 +280,36 @@ fn verify_static_shop_source(
         PackLookup::Record(record) => match bace_content_tools::decode_world_record(record.bytes())
             .map_err(|e| e.to_string())?
         {
-            bace_content::WorldRecordV1::LandblockInstance(instance)
+            bace_content::WorldRecordV1::LandblockInstance(instance) => {
+                let source_cell = if instance.obj_cell_id & 0xffff == 0 {
+                    let center = shape
+                        .spheres()
+                        .first()
+                        .ok_or("historical static Shop primary sphere absent")?
+                        .center;
+                    let position = bace_geometry::Vec3::new(
+                        instance.origin_x,
+                        instance.origin_y,
+                        instance.origin_z,
+                    ) + center;
+                    crate::region_geometry::normalize_outdoor(
+                        instance.obj_cell_id | 0xffff,
+                        position,
+                    )?
+                    .0
+                } else {
+                    instance.obj_cell_id
+                };
                 if instance.guid == actor
                     && !instance.is_link_child
                     && instance.landblock == i32::from(landblock)
-                    && instance.obj_cell_id == location.cell
-                    && instance.weenie_class_id == source.weenie_id =>
-            {
-                Ok(())
+                    && source_cell == location.cell
+                    && instance.weenie_class_id == source.weenie_id
+                {
+                    Ok(())
+                } else {
+                    Err("historical static Shop authored instance mismatch".into())
+                }
             }
             _ => Err("historical static Shop authored instance mismatch".into()),
         },

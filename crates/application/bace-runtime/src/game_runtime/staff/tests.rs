@@ -294,3 +294,86 @@ async fn staff_output_retains_unknown_receipt_and_observer_batch_until_exact_han
     runtime.shutdown_staff_workers().unwrap();
     runtime.quiesce(Duration::ZERO).unwrap();
 }
+
+#[tokio::test]
+async fn stale_target_query_releases_staff_owner_without_blocking_lifecycle() {
+    let (_cluster, _directory, mut runtime) =
+        Box::pin(crate::game_runtime::tests::fixture::fixture()).await;
+    let context = ActionContext {
+        actor: bace_types::EntityId(1),
+        account: bace_types::AccountId(1),
+        session: bace_gameplay_api::SessionId(7),
+        sequence: 41,
+    };
+    runtime.staff.pending = Some(Pending {
+        key: SessionKey {
+            id: 1,
+            generation: 7,
+        },
+        context,
+        token: 91,
+        phase: Phase::Awaiting,
+    });
+    runtime.staff.event = Some(StaffEvent::Outcome {
+        token: 91,
+        actor: Some(context.actor),
+        result: Err(bace_gameplay_api::staff::StaffError::Stale),
+    });
+    runtime.poll_staff_output().unwrap();
+    assert!(runtime.staff.pending.is_none());
+    assert!(runtime.staff.failure.is_none());
+    runtime.poll_staff().unwrap();
+    runtime.shutdown_staff_workers().unwrap();
+    runtime.quiesce(Duration::ZERO).unwrap();
+}
+
+#[tokio::test]
+async fn health_query_waits_for_valuable_operation_snapshot_fence() {
+    let (_cluster, _directory, mut runtime) =
+        Box::pin(crate::game_runtime::tests::fixture::fixture()).await;
+    let key = SessionKey {
+        id: 1,
+        generation: 7,
+    };
+    let context = ActionContext {
+        actor: bace_types::EntityId(1),
+        account: bace_types::AccountId(1),
+        session: bace_gameplay_api::SessionId(7),
+        sequence: 53,
+    };
+    runtime.staff.pending = Some(Pending {
+        key,
+        context,
+        token: 91,
+        phase: Phase::Capturing {
+            request: StaffRequest::Query(
+                bace_gameplay_api::selection::TargetQueryKind::Health,
+                bace_types::EntityId(2),
+            ),
+            correlation: 91,
+        },
+    });
+    runtime
+        .accept_staff_capture(
+            bace_simulation::PlayerSnapshotOutcome {
+                correlation: 91,
+                result: Err(bace_simulation::CharacterRegistrationError::DurabilityPending),
+            },
+            0,
+        )
+        .unwrap();
+    assert!(matches!(
+        runtime.staff.pending.as_ref().map(|pending| &pending.phase),
+        Some(Phase::Capture(StaffRequest::Query(
+            bace_gameplay_api::selection::TargetQueryKind::Health,
+            bace_types::EntityId(2)
+        )))
+    ));
+    assert_eq!(runtime.staff.pending.as_ref().unwrap().token, 91);
+    assert_eq!(runtime.staff.pending.as_ref().unwrap().context, context);
+    assert!(runtime.staff.failure.is_none());
+    assert!(runtime.reject_staff_unsubmitted(key).is_ok());
+    runtime.poll_staff().unwrap();
+    runtime.shutdown_staff_workers().unwrap();
+    runtime.quiesce(Duration::ZERO).unwrap();
+}

@@ -3,6 +3,7 @@
 mod creatures;
 use bace_content::WeenieTemplate;
 use bace_gameplay_api::generators::*;
+pub(crate) use creatures::is_passive_npc;
 pub use creatures::{CreatureAdmissionAssets, CreatureAdmissionPolicy, prepare_creature};
 use std::sync::Arc;
 

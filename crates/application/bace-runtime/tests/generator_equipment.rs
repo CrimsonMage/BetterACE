@@ -112,3 +112,42 @@ fn missing_requested_treasure_tables_never_produce_equipment_success() {
         );
     }
 }
+
+#[test]
+fn static_human_wield_clothing_survives_negative_capacity_without_changing_source() {
+    let root = bace_random::RandomRoot::new([7; 32], 1).unwrap();
+    let mut source = item(30997, 12);
+    source.properties.ints.push(Property { id: 6, value: -1 });
+    source.properties.ints.push(Property { id: 7, value: -1 });
+    source.properties.create_list.push(CreateListEntry {
+        database_record_id: 1,
+        destination_type: 2,
+        weenie_class_id: 118,
+        stack_size: 1,
+        palette: 0,
+        shade: 0.,
+        try_to_bond: false,
+    });
+    let mut shirt = item(118, 2);
+    shirt.properties.ints = vec![
+        Property {
+            id: 9,
+            value: 0x100,
+        },
+        Property { id: 4, value: 6 },
+    ];
+    let templates = [(118, Arc::new(shirt))].into_iter().collect();
+    let gear = materialize_creature_equipment(&source, &templates, &[], &root, &intent()).unwrap();
+    assert_eq!(gear.len(), 1);
+    assert_eq!(gear[0].source.weenie_id, 118);
+    assert_ne!(gear[0].wielded_location, 0);
+    assert_eq!(source.properties.ints[0].value, -1);
+
+    source.weenie_type = 10;
+    source.weenie_id = 30991; // Pinned Society Greeter is a Creature, not a Shop.
+    let greeter =
+        materialize_creature_equipment(&source, &templates, &[], &root, &intent()).unwrap();
+    assert_eq!(greeter.len(), 1);
+    assert_ne!(greeter[0].wielded_location, 0);
+    assert_eq!(source.properties.ints[0].value, -1);
+}

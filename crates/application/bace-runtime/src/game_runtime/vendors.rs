@@ -58,6 +58,7 @@ struct Begin {
     max_message_bytes: usize,
     store: bace_db_postgres::PgStore,
     generation: Arc<bace_storage_codec::PackGeneration>,
+    source: bace_content::WeenieV1,
 }
 
 struct Pending {
@@ -65,7 +66,6 @@ struct Pending {
     context: ActionContext,
     vendor: EntityId,
     correlation: u64,
-    epoch: u64,
     prepared: Option<preparation::Prepared>,
     restored: Option<preparation::Restored>,
     ticket: Option<VendorLazyStockTicket>,
@@ -81,6 +81,7 @@ enum Phase {
     AwaitReserve,
     SubmitAdopt,
     AwaitAdopt,
+    #[allow(dead_code)] // Legacy durable Shop tests retain this transition.
     ReadySave,
     Saving(Job<Result<OperationOutcome, String>>),
     RetrySave {
@@ -95,6 +96,7 @@ enum Phase {
 
 enum ColdPrepared {
     Fresh(preparation::Prepared),
+    #[allow(dead_code)] // Legacy durable Shop restoration remains a test oracle.
     Restored(preparation::Restored),
 }
 
@@ -155,6 +157,7 @@ impl VendorRuntime {
             max_message_bytes,
             store,
             generation,
+            source,
         }: Begin,
     ) -> Result<(), String> {
         if self.has_pending()
@@ -168,45 +171,11 @@ impl VendorRuntime {
             return Err("vendor first-Use owner busy or invalid".into());
         }
         let phase = Phase::Cold(Box::pin(async move {
-            let state = store
-                .load_vendor_state(vendor.0)
-                .await
-                .map_err(|error| error.to_string())?
-                .ok_or("vendor has no durable world source")?;
-            let stored = state.source;
-            if stored.aggregate.persisted_version <= 0 {
-                return Err("vendor source is not durably committed".into());
-            }
-            let forest = state.forest;
-            let saved = bace_storage_codec::ItemSaveV5::decode(&stored.aggregate.bytes)
-                .map_err(|error| error.to_string())?;
-            if saved.entity.object_id != vendor.0
-                || saved.entity.state.weenie_type != 12
-                || saved.entity.state.weenie_id != fence.template
-                || saved.entity.template_revision != fence.revision
-                || stored.cell >> 16 != u32::from(fence.landblock)
-            {
-                return Err("durable vendor source subtype".into());
+            if source.weenie_type != 12 || source.weenie_id != fence.template {
+                return Err("vendor authored source subtype".into());
             }
             let source_hash = fence.hash;
             let source_revision = fence.revision;
-            let source = saved.entity.state.clone();
-            if let Some(forest) = forest {
-                return tokio::task::spawn_blocking(move || {
-                    preparation::restore(preparation::RestoreInput {
-                        vendor,
-                        vendor_expected_version: stored.aggregate.persisted_version,
-                        source,
-                        source_revision,
-                        source_hash,
-                        max_message_bytes,
-                        forest,
-                    })
-                })
-                .await
-                .map_err(|error| error.to_string())?
-                .map(ColdPrepared::Restored);
-            }
             let templates = tokio::task::spawn_blocking({
                 let generation = generation.clone();
                 let source = source.clone();
@@ -227,7 +196,7 @@ impl VendorRuntime {
             tokio::task::spawn_blocking(move || {
                 preparation::prepare(preparation::Input {
                     vendor,
-                    vendor_expected_version: stored.aggregate.persisted_version,
+                    vendor_expected_version: 1,
                     source,
                     source_revision,
                     source_hash,
@@ -247,7 +216,6 @@ impl VendorRuntime {
             context,
             vendor,
             correlation,
-            epoch,
             prepared: None,
             restored: None,
             ticket: None,
@@ -282,16 +250,9 @@ impl VendorRuntime {
             {
                 let prepared = pending.prepared.take().expect("matched prepared vendor");
                 pending.listing = Some(prepared.listing.clone());
-                let operation = match prepared.freeze(&ticket, pending.epoch) {
-                    Ok(operation) => operation,
-                    Err(error) => {
-                        pending.phase = Phase::Blocked(error);
-                        return Ok(());
-                    }
-                };
+                let receipt = ephemeral_receipt(&ticket);
                 pending.ticket = Some(ticket);
-                pending.operation = Some(operation);
-                pending.phase = Phase::ReadySave;
+                pending.phase = Phase::SubmitConfirm(receipt);
                 Ok(())
             }
             (Phase::AwaitConfirm, Ok(VendorDecision::Confirmed)) => {
@@ -527,20 +488,12 @@ impl GameRuntime {
             epoch: registration.epoch,
         };
         let generation = registration.generation.clone();
+        let source = registration.source.authored.as_ref().clone();
         if !matches!(request.action, InventoryAction::Use(_)) {
             // The joined Buy freezer and retained output are prepared, but a
             // connected authenticated ingress-to-receipt transcript is still
             // required before this route can publish success.
             return Ok(I::Unsupported);
-        }
-        // The admitted static Shop's first terminal checkpoint owns creation
-        // of its V5 world source. Keep this exact authenticated Use in the
-        // bounded ingress queue until that transaction has a committed root.
-        // A different Shop subtype still needs its own durable source owner.
-        if crate::npc_persistence::is_authored_static_shop(registration)?
-            && self.npc.vendor_source_pending(vendor)
-        {
-            return Ok(I::Blocked);
         }
         if self.vendors.has_pending() {
             return Ok(I::Blocked);
@@ -572,7 +525,10 @@ impl GameRuntime {
             actor: binding.actor,
             account: binding.account,
             session: binding.session,
-            sequence: envelope.sequence,
+            // The simulation's replay cursor is shared with other reliable
+            // gameplay actions, including locomotion. Use transport order,
+            // not the GameAction-local counter.
+            sequence: message.sequence,
         };
         let correlation = self.token()?;
         self.vendors.begin(Begin {
@@ -585,6 +541,7 @@ impl GameRuntime {
             max_message_bytes: self.limits.message_bytes,
             store: self.bootstrap.store.clone(),
             generation,
+            source,
         })?;
         Ok(I::Accepted)
     }
@@ -756,4 +713,14 @@ fn receipt(
         marker_version: 1,
         items,
     })
+}
+
+fn ephemeral_receipt(ticket: &VendorLazyStockTicket) -> VendorLazyStockReceipt {
+    VendorLazyStockReceipt {
+        vendor: ticket.vendor,
+        marker: ticket.marker,
+        operation_id: ticket.operation_id.clone(),
+        marker_version: 1,
+        items: ticket.item_ids.iter().map(|id| (*id, 1)).collect(),
+    }
 }

@@ -17,9 +17,6 @@ impl Frozen {
             .allegiance_operation()
             .ok_or("NPC allegiance composite missing")?
             .clone();
-        if operation.workflow.is_none() {
-            return Err("NPC composite missing checkpoint".into());
-        }
         Ok(Self::Placement(Box::new(
             PendingPlacementSave::new_allegiance(operation).map_err(|e| e.to_string())?,
         )))
@@ -186,6 +183,9 @@ pub(super) fn freeze(
             joined.placement = stage.inventory;
             joined.workflow = Some(stage.workflow);
         }
+        // The allegiance and player rewards commit atomically; the NPC
+        // continuation itself belongs only to this landblock incarnation.
+        joined.workflow = None;
         // Offline allegiance participants use the same lease fences as the
         // ordinary lane; source checkpoint CAS is part of this exact operation.
         joined.placement.leases = leases.to_vec();

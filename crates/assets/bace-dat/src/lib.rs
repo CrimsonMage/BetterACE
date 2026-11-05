@@ -4,9 +4,11 @@
 
 mod archive;
 mod landblock;
+mod store;
 
 pub use archive::{DatArchive, DatError, DatHeader, DatRecord, fingerprint};
 pub use landblock::Landblock;
+pub use store::DatStore;
 mod skill_table;
 mod table_reader;
 mod xp_table;

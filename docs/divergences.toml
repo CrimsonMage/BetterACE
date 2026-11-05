@@ -224,9 +224,9 @@ area = "objects"
 owners = ["bace-interactions", "bace-replication", "bace-wire"]
 reported_retail = "`QueryAge` / `QueryBirth` payload is the client's `u32`."
 reported_shard = "Reads it as a `String16L` (xref)."
-evidence_pointer = "`net/messages-outbound.md` \u00a73.20.4"
+evidence_pointer = "`net/messages-outbound.md` \u00a73.20.4; retail client `CM_Character::Event_QueryAge` (CM_Character.cpp:497-544) and `Event_QueryBirth` (546-592) write opcode 450/452 then one little-endian u32 target; GDLE Source/ClientEvents.cpp QUERY_AGE/QUERY_BIRTH `ReadUInt32`; pinned ACE GameActionQueryAge.cs reads an unused String16L"
 source_status = "ACCEPTED"
-bace_status = "requires_pinned_review"
+bace_status = "retail_u32_payload_decoder_verified_exact_4_bytes; runtime_route_and_age_reply_pending"
 
 [[observations]]
 id = 23
@@ -294,9 +294,9 @@ area = "chat"
 owners = ["bace-social", "bace-wire"]
 reported_retail = "`@age`'s answer (`0xF7B0` `0x01C3`) prints the age as `2d 17h 21m 25s` (45 corpus instances)."
 reported_shard = "The age text adds `y` / `w` units and drops a zero seconds unit (`1w 6d 21h 31m 1s`)."
-evidence_pointer = "`net/messages-inbound.md` \u00a73.24; `ui/chat.md` \u00a73.10.1; A\u00b7R313; CQ2 `00961994`"
+evidence_pointer = "`net/messages-inbound.md` \u00a73.24; `ui/chat.md` \u00a73.10.1; A\u00b7R313; CQ2 `00961994`; retail client `ClientCommunicationSystem::Handle_Character__QueryAgeResponse` (ClientCommunicationSystem.cpp:2007) prints the server text verbatim as 'You have played for %s.'; GDLE Source/ClientEvents.cpp `GetAgeString` (69-88) adds mo/d/h/m units and always prints s; pinned ACE GameActionQueryAge.cs `CalculateAgeMessage` adds y/mo/w"
 source_status = "ACCEPTED"
-bace_status = "requires_pinned_review"
+bace_status = "retail_dhms_format_evidence_recorded; formatter_and_age_source_absent"
 
 [[observations]]
 id = 30
@@ -729,8 +729,50 @@ status = "real_postgres_ban_replay_runtime_audit_generation_disconnect_and_feed_
 [[regressions]]
 id = "ace-appraisal-extreme-arithmetic"
 owners = ["bace-simulation"]
-description = "Pinned ACE Player.Examine and SkillCheck.GetSkillChance use int skill subtraction and the untrained creature's Focus.Current + Self.Current before a single-precision factor and double Math.Exp. BetterACE's prepared evaluator retains the source float boundary and override order for valid bounded skill/attribute values, but widens the integer arithmetic for malformed extreme values instead of reproducing unchecked overflow. This is a narrow invalid-input hardening correction; live Identify ingress remains unsupported. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Player.cs and Source/ACE.Server/WorldObjects/SkillCheck.cs. Valid-client evidence: 16 source-derived fixed appraisal vectors with pinned method hashes and order checks, not executed C# output. Invalid-input evidence: missing/out-of-range random draws and extreme attribute regression in the evaluator test."
-status = "prepared_appraisal_source_vectors_and_invalid_extreme_regression_pass; live_identify_unsupported"
+description = "Pinned ACE Player.Examine and SkillCheck.GetSkillChance use int skill subtraction and the untrained creature's Focus.Current + Self.Current before a single-precision factor and double Math.Exp. BetterACE's prepared evaluator retains the source float boundary and override order for valid bounded skill/attribute values, but widens the integer arithmetic for malformed extreme values instead of reproducing unchecked overflow. This is a narrow invalid-input hardening correction. Runtime now answers IdentifyObject on real UDP with queue-9 C9 appraisal; item-detail completeness remains under review. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Player.cs and Source/ACE.Server/WorldObjects/SkillCheck.cs. Valid-client evidence: 16 source-derived fixed appraisal vectors with pinned method hashes and order checks plus an ignored approved-DAT/PostgreSQL/UDP entered-player request-response regression, not executed C# output. Invalid-input evidence: missing/out-of-range random draws and extreme attribute regression in the evaluator test."
+status = "prepared_appraisal_source_vectors_and_invalid_extreme_regression_pass; real_udp_identify_response_pass; retail_item_details_incomplete"
+
+[[regressions]]
+id = "game-action-counter-inventory-fence"
+owners = ["bace-runtime", "bace-inventory"]
+description = "Pinned ACE GameActionPacket.HandleGameAction reads a uint action counter from the GameAction payload before the opcode and marks its semantics TODO verify; it does not use the counter to authorize the action. BetterACE retains an ordered transport-message replay fence shared by character actions, and inventory now supplies the same transport sequence as other runtime action routes. The earlier inventory-only payload-counter fence rejected valid retail equip and pack moves as StaleSequence after unrelated actions advanced the shared cursor. Approved-DAT, accepted-pack, PostgreSQL and real-UDP regressions cover Training Spadone WCID 41512 wield with a payload counter distinct from its transport sequence and three durable container moves with a repeated payload counter across fresh ordered messages. This is BetterACE transport hardening, not an ACE action-counter compatibility claim. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/Network/GameAction/GameActionPacket.cs."
+status = "spadone_wield_and_repeated_payload_counter_container_moves_real_udp_postgres_pass; retail_equip_pending"
+
+[[regressions]]
+id = "ace-shortcut-option-preservation"
+owners = ["bace-character", "bace-runtime"]
+description = "Pinned ACE GameActionSetCharacterOptions consumes the shortcut list in the options payload but does not replace the character's saved shortcuts; GameActionAddShortcut and GameActionRemoveShortcut own shortcut mutations. BetterACE follows that ownership and marks accepted shortcut edits dirty for the routine player save. This prevents a general options update from clearing assigned quickslots. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/Network/GameAction/Actions/GameActionSetCharacterOptions.cs, GameActionAddShortcut.cs and GameActionRemoveShortcut.cs. Domain and frozen-save regressions pass. An approved-DAT/accepted-pack real UDP and PostgreSQL regression assigns a starter-item shortcut, observes the five-second routine save, sends SetCharacterOptions with an empty shortcut section, observes another save, then logs out and reenters; frozen UI and outbound PlayerDescription still carry the assigned shortcut. Retail-client presentation remains unverified."
+status = "domain_frozen_save_and_real_udp_postgres_reentry_regressions_pass; retail_quickslot_presentation_pending"
+
+[[regressions]]
+id = "ace-item-appraisal-profile-details"
+owners = ["bace-runtime", "bace-wire"]
+description = "Pinned ACE AppraiseInfo.BuildWeapon, BuildArmor and AddPropertyEnchantments include melee, missile and ammunition weapon profiles, shield armor, an appraisal-only skill-limit property, and long-description decoration. BetterACE's source-only IdentifyObject profile now includes those authored fields and the mana-stone Use text. Item mana cost/rate come from source properties; current/max are overlaid from a bounded simulation-owned live item-mana query for an exactly bound owned item, because the saved baseline can lag during equipped mana consumption. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/Network/Structure/AppraiseInfo.cs and Source/ACE.Server/WorldObjects/Player.cs. Existing C9 byte fixtures, source-profile, simulation query, worker recovery and runtime overlay regressions pass; retail panel detail confirmation remains pending."
+status = "source_profile_and_live_item_mana_query_regressions_pass; retail_details_pending"
+
+[[regressions]]
+id = "ace-combat-stamina-spending"
+owners = ["bace-combat", "bace-simulation"]
+description = "Pinned ACE player melee and missile attacks spend stamina from StaminaTable cost and the linear base-Endurance reduction, while player evasion/being struck spends defense stamina with the source avoidance rule. BetterACE now calculates the pinned ACE player costs, charges once per swing or missile launch, and charges the player defender at impact. The pinned NPC attack path has no corresponding attack stamina debit. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/Entity/StaminaTable.cs, WorldObjects/Player_Combat.cs, Player_Melee.cs and Player_Missile.cs. Source-vector and simulation owner tests are required before claiming parity; retail stamina UI remains unverified."
+status = "source_vector_and_connected_owner_stamina_regressions_pass; retail_stamina_ui_pending"
+
+[[regressions]]
+id = "ace-mana-conversion-spell-cost"
+owners = ["bace-magic", "bace-simulation", "bace-runtime"]
+description = "Pinned ACE Creature_Magic.CalculateManaUsage skips conversion below Trained or for SpellFlags.IgnoresManaConversion (0x800), selects Held SpellDID ItemManaCost, and uses GetWeaponManaConversionModifier from the active weapon plus item/wielder multiplicative Float144/171 enchantments. BetterACE now applies those gates, the selected equipped weapon, f32 ties-even rounding and the source's conditional random draws at cast release; cold restore and live skill refresh both zero untrained conversion. Target/fellowship ManaMod expansion and dual-wield attack-state alternation remain unsupported, so this does not claim full ACE cast-cost parity. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Creature_Magic.cs and WorldObject_Weapon.cs. Source-focused magic/simulation tests pass; retail casting remains unverified."
+status = "source_conversion_gates_wand_cost_modifier_and_rng_regressions_pass; target_fellowship_and_dual_wield_cost_gaps_open; retail_casting_pending"
+
+[[regressions]]
+id = "ace-live-attribute-skill-item-buffs"
+owners = ["bace-character", "bace-magic", "bace-simulation"]
+description = "Pinned ACE creature attributes and skills derive current values from the live enchantment registry, including an attribute's contribution to a skill; equipped item enchantments affect their combat properties until expiry. BetterACE refreshes the simulation-owned source vectors on registry changes. A connected test applies Strength +20 and Healing +30, observes effective Healing rise from 100 to 150, then verifies expiry restores it; the equipped-item combat regression checks damage change and expiry. Retail buff presentation and all spell categories remain unqualified. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Entity/CreatureAttribute.cs and Source/ACE.Server/WorldObjects/Creature_Skills.cs."
+status = "connected_attribute_skill_and_equipped_item_buff_expiry_regressions_pass; retail_presentation_pending"
+
+[[regressions]]
+id = "ace-carried-container-move-publication"
+owners = ["bace-runtime", "bace-inventory"]
+description = "Pinned ACE GameActionPutItemInContainer parses item, container and placement; DoHandleActionPutItemInContainer sends PublicUpdateInstanceID(Container) immediately before ItemServerSaysContainId for a successful carried move. BetterACE now projects the new container property before the containment event after exact durable adoption. Consecutive item-only moves normalize read-only recovery-clock captures before deciding whether the player row belongs in a revision-fenced commit; any other unversioned player change still rejects. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/Network/GameAction/Actions/GameActionPutItemInContainer.cs and Source/ACE.Server/WorldObjects/Player_Inventory.cs. Source-order output and real UDP/PostgreSQL regression cover loose item to bag, bag to main inventory, then reordered main inventory slot, each with durable placement; retail bag/reorder behavior remains pending."
+status = "source_order_and_real_udp_postgres_three_move_regression_pass; retail_container_moves_pending"
 
 [[regressions]]
 id = "ace-ddd-cell-uncompressed-on-demand"
@@ -743,3 +785,105 @@ id = "ace-no-corpse-fresh-world-forest"
 owners = ["bace-simulation"]
 description = "Pinned ACE Creature_Death.cs GenerateTreasure/CreateCorpse places selected existing items and generated treasure roots into the world; generated descendants belong to their generated container roots. BetterACE preflights a bounded source-ordered forest before the separate NoCorpse durable operation so a malformed prepared child cannot be minted into the dead player's inventory, attached to a missing parent, or left outside the copied world roots. Valid-source evidence: a generated container and nested child pass one exact death receipt and WorldDrops adoption. Invalid-input evidence: actor-contained, missing-parent, cyclic/out-of-order and unrooted fresh rows reject before reservation. This admission hardening does not claim complete equipped NoCorpse output. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Creature_Death.cs."
 status = "source_ordered_fresh_world_forest_admission_and_connected_receipt_regression_pass; multiple_equipped_output_open"
+
+[[regressions]]
+id = "ace-negative-capacity-authored-npc-wield"
+owners = ["bace-runtime"]
+description = "The pinned complete world gives Society Greeter WCID 30991 (Creature type 10) two Wield clothing rows and ItemCapacity=-1, like Shops 30997 and 12718. Pinned ACE Creature.GenerateWieldList passes each through Container.TryAddToInventory, which rejects the signed sentinel before equipping. BetterACE stages only this authored Wield pass with temporary bounded capacity and keeps equipped items; the original NPC property remains -1. The greeter is a linked generator child. This is an intentional content correction, not ACE parity. Sources: ACE-World-16PY-Patches v0.9.295 at the docs/baselines.toml pin, weenie_properties_create_list and weenie_properties_int rows for 30991; ACE Creature and Container at the ACE pin."
+status = "synthetic_shop_and_creature_capacity_regression_and_approved_7f03_greeter_bare_vs_dressed_model_fixture_pass; retail_visual_confirmation_pending"
+
+[[regressions]]
+id = "ace-npc-motion-prestart-conflict-recovery"
+owners = ["bace-simulation", "bace-runtime"]
+description = "Pinned ACE EmoteManager Motion and ForceMotion skip an authored motion when the source is dormant, moving or out of range; they do not retain an entire emote lifecycle forever because an animation cannot start. BetterACE now re-inspects a stale NPC motion source up to three times, defers World MotionBusy for up to 120 polls, and resolves a persistent pre-start conflict through a typed skipped-motion preview and exact source checkpoint receipt before advancing the row. A standalone NPC Motion stage has no player snapshots or placement changes, so SaveHandle returns an in-memory committed receipt; NPC state is not written to PostgreSQL. The skip diagnostic records source, ticket and attempts. Historical retail logs show an NPC Use failure and a later motion Conflict but do not prove they share a ticket. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Managers/EmoteManager.cs (ForceMotion and Motion). Focused simulation movement, transient conflict, and frozen skipped-checkpoint restoration regressions pass; exact coordinator receipt gating and retail replay remain under validation."
+status = "bounded_motion_retry_and_frozen_skipped_checkpoint_regressions_pass; coordinator_receipt_and_retail_replay_pending"
+
+[[regressions]]
+id = "ace-player-npc-use-approach"
+owners = ["bace-simulation", "bace-runtime"]
+description = "Pinned ACE Player.HandleActionUseItem calls CreateMoveToChain for a landblock object and activates it after arrival. BetterACE retains the authenticated NPC Use while simulation-owned swept movement approaches the accepted source, then invokes the category-7 emote only after the authoritative cylinder-range check. The range now uses ACE Landblock.WithinUseRadius/WorldObject_Use cylinder distance across neighboring cells instead of combat line of sight. A 450-tick simulation deadline bounds the action; this does not claim exact ACE movement timing. Signed portal thresholds retain their separate behavior. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Player_Use.cs, Player_Move.cs and WorldObject_Use.cs."
+status = "synthetic_out_of_range_arrival_delayed_activation_and_cylinder_radius_regressions_pass; retail_greeter_interaction_pending"
+
+[[regressions]]
+id = "ace-binding-object-use-approach"
+owners = ["bace-simulation"]
+description = "Pinned ACE Player_Use resolves an authored world object, runs MoveToObject when outside its use cylinder, then invokes the object's use action on arrival. BetterACE's existing lifestone and allegiance-stone UseBinding route now retains a simulation-owned approach and invokes the existing binding transaction after authoritative reach. Cancellation, object retirement, timeout and player detach clear the approach without activation. Doors, switches and sign-like objects still lack production authored registration and activation/output routes, so this is not generic world-object Use parity. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Player_Use.cs, WorldObject_Use.cs, Door.cs and GenericObject.cs."
+status = "live_stone_approach_arrival_cancel_retirement_and_binding_regressions_pass; door_and_generic_object_use_unsupported; retail_validation_pending"
+
+[[regressions]]
+id = "ace-healing-kit-self-use"
+owners = ["bace-inventory", "bace-simulation", "bace-runtime"]
+description = "Pinned ACE Healer.HandleActionUseOnTarget gates on trained Healing and non-full target vital, DoHealMotion delays the heal until SkillHealSelf completion, and DoHealing spends Structure even when the skill contest fails. Value decreases by the cached template's StructureUnitValue and the final use consumes the kit. BetterACE routes an accepted self-target UseWithTarget through prepared DAT motion, a simulation-owned charge/vital reservation and one revision-fenced durable placement before owner adoption and ordered output. ACE Healer does not call generic CheckUseRequirements or shared cooldown for this action. Healer.DoHealMotion assigns NextUseTime at animation end, but does not check it for another healer use; Player_Combat.HandleActionChangeCombatMode reads this clock and delays a mode change by UseTimeEpsilon. BetterACE does not yet model that shared action clock. Other-player healing, proficiency gain and mana stones remain unsupported. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Healer.cs, Player_Use.cs and Player_Combat.cs. Charge, invalid Structure, full-vital, failed skill check, connected owner motion and receipt regressions pass. Ignored real UDP/PostgreSQL entry test verifies motion, durable charge and vital, output and graceful disconnect using approved DAT and pack. Retail client healing remains unverified."
+status = "self_heal_source_charge_and_trained_skill_supported; simulation_and_real_udp_postgres_regressions_pass; shared_next_use_time_combat_mode_delay_other_target_mana_stone_and_retail_healing_pending"
+
+[[regressions]]
+id = "ace-mana-stone-owned-item-use"
+owners = ["bace-inventory", "bace-simulation", "bace-runtime"]
+description = "Pinned ACE ManaStone.Use and Player.HandleActionUseWithTarget distinguish empty-stone extraction from charged-stone mana transfer. BetterACE prepares bounded source charge, target mana, destruction chance and augmentation decisions, then reserves owned stone and target item revisions under one simulation owner. The runtime freezes their mana changes into one revision-fenced durable placement and sends success only after an exact receipt; rejected or uncertain writes leave live mana unchanged. Empty-stone extraction from equipped gear and self-target distribution across equipped gear remain unsupported in the live route. Other-observer effects and retail packet behavior remain unverified. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/ManaStone.cs and Source/ACE.Server/WorldObjects/Player_Use.cs. Pure charge/rounding/destruction cases, simulation rejection and exact-receipt adoption, and runtime property-ID parsing have focused tests; no live PostgreSQL or retail end-to-end mana-stone regression has run."
+status = "owned_single_target_mana_transfer_and_empty_inventory_extraction_staged; focused_domain_simulation_and_runtime_tests_pass; live_database_and_retail_validation_pending; equipped_extraction_and_self_target_distribution_unsupported"
+
+[[regressions]]
+id = "gdle-player-movement-epoch-admission"
+owners = ["bace-session", "bace-runtime"]
+description = "Pinned GDLE ClientEvents.cpp MoveToState ignores instance and server-control stamps and rejects only client teleport or force-position stamps older than the server's. AutonomousPosition also requires the instance stamp to match. Both use GDLE MathLib's 16-bit wrap-aware newer-stamp comparison. BetterACE now applies these source decisions when admitting client controls; its simulation still uses the canonical server teleport epoch and never accepts a client pose, contact or velocity as physical state. Jump retains its previous exact epoch gate pending a separate source review. The first retail replay showed MoveToState admitted with ForcePosition=0, followed by a forced self-correction that advanced the server ForcePosition to 1 while the client remained 0; later movement was rejected as stale. Movement had requested forced correction for an ordinary 0.25m prediction difference, heading or contact. BetterACE now reserves forced correction for same-cell position divergence of at least 10m on MoveToState or 25m on AutonomousPosition, matching GDLE's thresholds; ordinary canonical visibility continues. Pinned GDLE simply breaks on an old teleport/force stamp before sending or advancing ForcePosition, so BetterACE now discards such an observation without requesting another forced update. Cross-cell distance requires an authored coordinate transform and remains unqualified. Source: gdlenhanced commit 353cbab52ef7da2b7063bc3e3f008461d8531693, Source/ClientEvents.cpp MoveToState and AutonomousPosition cases, Source/Moves.cpp Movement_UpdatePos, Source/ObjectMsgs.cpp MoveUpdate and Source/PhatSDK/MathLib.cpp is_newer_event_stamp. ACE at 47edade3bd3f6044b676d4eb877c4965c7eda62b remains the wire baseline, Source/ACE.Server/Network/Motion/MoveToState.cs and Source/ACE.Server/WorldObjects/Player_Tick.cs. Golden valid, stale and wrap-stamp cases, forced-correction threshold regression, and connected entered-runtime stale-stamp regression pass; retail movement after this correction remains pending."
+status = "source_derived_epoch_forced_correction_and_connected_stale_stamp_regressions_pass; retail_replay_after_correction_pending"
+
+[[regressions]]
+id = "ace-player-description-attribute-order"
+owners = ["bace-runtime", "bace-character", "bace-db-postgres"]
+description = "Pinned ACE PlayerFactory stores Quickness as property id 3 and Coordination as property id 4; GameEventPlayerDescription emits them in that order after Strength and Endurance. BetterACE creation already persisted these ids but entry projection read id 4 before id 3, so a character with distinct allocations saw those values reversed on login. The projection now emits ids 1,2,3,4,5,6. An approved-DAT and PostgreSQL regression sends nondefault six attributes and trained/specialized skill classes, reloads the save, then checks exact entry values. The existing retail-test character's saved six attributes are all 10 and no original creation packet is available, so its allocation loss cannot be attributed to a specific previous creation path. New creation diagnostics record the client's six values and 55 skill class values without identity data. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/Factories/PlayerFactory.cs and Source/ACE.Server/Network/GameEvent/Events/GameEventPlayerDescription.cs."
+status = "entry_projection_corrected; approved_dat_postgresql_creation_and_reload_regression_pass; fresh_retail_creation_capture_pending"
+
+[[regressions]]
+id = "retail-visibility-stale-read-after-equip"
+owners = ["bace-runtime", "bace-replication"]
+description = "A 2026-10-13 retail wand-equip trace ended with visibility knowledge stage StaleSnapshot for the player and blocked the lifecycle. An older simulation visibility read can arrive after a newer equip publication advances the observer's knowledge watermark. BetterACE now releases the older read's candidate buffer and asks for a fresh read without resetting already published knowledge or treating it as a world-owner failure. A staged tick-10 publication, late tick-9 read, and tick-11 continuation regression checks that the original client objects are not recreated. This is an internal ordering correction; exact retail visibility after equip remains pending."
+status = "late_read_regression_passes; retail_equip_replay_pending"
+
+[[regressions]]
+id = "ace-equipment-does-not-reset-area-visibility"
+owners = ["bace-runtime", "bace-replication"]
+description = "The 2026-10-13 retail client showed the entire nearby area disappear and reload on wand equip. BetterACE's equipment output marked its observer batch reset_visibility, causing observer_output to call reset_observer_event for the equipping player's session. That stages ObjectDelete for every known visible object and recreates them on the next visibility read. Equipment output no longer requests this full observer reset; the existing equipment blueprint and observer message lanes publish the changed actor and item. Pinned ACE TryEquipObjectWithBroadcasting sends ParentEvent, ObjDescEvent and TrackEquippedObject to viewers without resetting the equipping player's world view. A multi-object regression proves that an equipment blueprint change updates the actor and attachment while unrelated known objects remain, and that an explicit reset would delete them. The approved-DAT, PostgreSQL and real-UDP wand-equip regression also fails under the old reset by deleting unrelated known object 0x7860202a, and passes with the reset removed. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Creature_Equipment.cs, TryEquipObjectWithBroadcasting. Retail replay after the fix remains pending."
+status = "forced_equip_visibility_reset_removed; multi_object_and_differential_real_udp_regressions_pass; retail_replay_pending"
+
+[[regressions]]
+id = "retail-forward-key-release"
+owners = ["bace-motion", "bace-simulation", "bace-runtime"]
+description = "Pinned ACE Player_Tick.OnMoveToState_ClientMethod issues StopMotion when the ForwardCommand becomes Invalid; its server method applies the new raw state. BetterACE's accepted physics test now presses WalkForward, receives a Ready forward state, and verifies the accepted position stops changing over subsequent steps. The 2026-10-13 retail trace logged only an initial Ready state and later AutonomousPosition observations because previous diagnostics sampled only the first three messages. Runtime now logs every changed raw movement state, bounded by session capacity, to determine whether the client's release packet is received and admitted. The retail stop complaint is not resolved by the isolated simulation test alone. Source: official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b, Source/ACE.Server/WorldObjects/Player_Tick.cs, OnMoveToState_ClientMethod and OnMoveToState_ServerMethod."
+status = "press_release_simulation_regression_passes; live_release_trace_pending"
+
+[[regressions]]
+id = "retail-gameplay-sequence-versus-locomotion"
+owners = ["bace-runtime", "bace-simulation", "bace-physics"]
+description = "The 2026-10-13 retail trace shows WalkForward, WalkBack, Ready release and turn controls arriving in reliable transport order. A QueryHealth at transport sequence 30 later failed Stale after locomotion sequence 31 reached the simulation owner first; the staff adapter then blocked the entire lifecycle. NPC Use used the GameAction-local sequence rather than the reliable transport sequence, causing InvalidInput while ordinary controls continued. BetterACE now uses transport sequence for NPC and vendor actions, authenticates locomotion without advancing the slower gameplay-action replay cursor, and retains the Body's separate replay check for state and jump commands. A stale query outcome is logged and releases its staff owner without blocking the world. This is an internal asynchronous ordering correction; the accepted movement pose remains server-owned. Pinned GDLE 353cbab52ef7da2b7063bc3e3f008461d8531693 Source/ClientEvents.cpp MoveToState and Source/PhatSDK/MovementManager.cpp provide the raw-control behavior; official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b remains the GameAction wire reference. Retail replay after these changes is pending."
+status = "transport_sequence_and_locomotion_cursor_fix_staged; focused_tests_and_retail_replay_pending"
+
+[[regressions]]
+id = "gdle-authored-door-use-runtime"
+owners = ["bace-runtime", "bace-simulation", "bace-world"]
+description = "The 2026-10-13 retail client sent Use 0x0036 for door 0x77f03033, but the runtime classified it as unsupported because no authored door was registered. The accepted pack identifies that standalone type-19 door as weenie 12705 with motion table 0x09000086. BetterACE prepares type-19 doors from accepted region roots and DAT motion links, registers their existing world identity and collider with the simulation door authority, routes authenticated Use, and projects retained motion and UseDone output. The exact GUID resides in landblock 0x7f03 despite its high bits reading 0x77f0; active door lookup searches admitted region contents rather than deriving a landblock from the GUID. Pinned GDLE MotionTable::GetObjectSequence plays Off-to-On and On-to-Off links, while their cycles are held poses; the accepted table uses high_frame=-1, signed 30 fps traversal and direction-specific EtherealHook state. Its UseManager MoveToUse and cancellation guide a bounded simulation-owned approach before activation, with accepted body collision and no client pose authority. Approved-content tests cover the exact GUID lookup and door, plus all 8602 door links; synthetic owner tests cover approach, cancellation and door state. A stock-client door-use replay remains pending. Source: gdlenhanced commit 353cbab52ef7da2b7063bc3e3f008461d8531693, Source/UseManager.cpp, Source/PhatSDK/MotionTable.cpp, Source/PhatSDK/WeenieObject.cpp and Source/PhatSDK/AnimHooks.cpp; official ACE remains the 0x0036 and UseDone wire reference."
+status = "authored_door_registration_and_use_staged; approved_dat_and_synthetic_tests_pass; connected_and_retail_replay_pending"
+
+[[regressions]]
+id = "equipment-cold-avatar-cache-and-revision-retry"
+owners = ["bace-gameplay-api", "bace-simulation", "bace-runtime"]
+description = "A connected equip, dequip and immediate re-equip trace reproduced a stale character revision: equipment cold input held revision 4 while the simulation owner had revision 5, returning InvalidState after 225 ms. The equipment owner now returns a distinct StaleSnapshot only for that revision fence and the runtime recaptures/reprepares at most twice before reporting failure; exact revision checks and durable operation ordering remain in force. A bounded one-entry Arc cache reuses the immutable avatar DAT closure across matching content generation, portal digest, setup/motion/maneuver DIDs and scale. In the approved-DAT PostgreSQL real-UDP fixture, uncached equip took 339 ms with 195 ms DAT preparation; cached dequip and immediate re-equip took 165 ms and 172 ms with about 0.1 ms DAT lookup. Bag and actor-slot moves took 102-107 ms and passed exact durable placement and ordered output. These are local measurements, not a 1000-player capacity claim; the single global inventory pending slot remains a concurrency limit. Retail item-swap replay remains pending."
+status = "bounded_retry_and_cache_pass_connected_regressions; global_inventory_serialization_and_retail_replay_open"
+
+[[regressions]]
+id = "world-appraisal-static-guid-lookup"
+owners = ["bace-runtime"]
+description = "The accepted static door 0x77f03033 is in landblock 0x7f03 even though its GUID starts with 0x77f0. The world appraisal source lookup previously used GUID high bits to select a region, so IdentifyObject could return an empty source profile for a visible static object. It now searches admitted immutable regions by the complete GUID, as door Use does. An approved-pack regression identifies this exact object's weenie 12705 and type 19 from the correct region. Retail examination of the door remains unverified; ACE remains the IdentifyObject wire and appraisal profile reference."
+status = "approved_content_lookup_regression_passes; retail_appraisal_replay_pending"
+
+[[regressions]]
+id = "door-server-move-visibility-projection"
+owners = ["bace-physics", "bace-world", "bace-runtime"]
+description = "A 2026-10-13 retail Use of accepted door 0x77f03033 submitted successfully, then the player view failed InvalidProjection and retained unpublished visibility knowledge, producing Busy/fenced overlap and a blocked lifecycle. Beginning a server-owned MoveToObject had cleared the former manual locomotion drive, while the accepted object view still demanded that drive even when a valid movement goal and prepared style remained. The view now uses the retained admitted style for goal output, with Ready as the unused forward field; a synthetic server-move regression first reproduced MissingMotion and now passes. Runtime visibility prepares all changed projections before committing sequence owners and discards an unpublished read on a transient invalid view, preventing a single bad view from poisoning future output. The approved door has authored Use radius 2.0. A later OutOfRange in that trace followed the projection failure and movement rejections; retail approach and activation after this fix remain unverified. Pinned GDLE 353cbab52ef7da2b7063bc3e3f008461d8531693 Source/UseManager.cpp guides the MoveToUse flow; official ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b remains the movement packet reference."
+status = "synthetic_view_and_runtime_visibility_regressions_pass; retail_door_replay_pending"
+
+[[regressions]]
+id = "health-query-reservation-retry"
+owners = ["bace-runtime"]
+description = "During the 2026-10-13 door attempt a later QueryHealth 0x01bf snapshot returned DurabilityPending while another valuable character operation held the simulation reservation. The staff adapter treated that temporary refusal as a permanent failure and blocked the lifecycle. It now retains the original authenticated query and retries the snapshot after the reservation clears, without reporting an uncommitted result. A focused reserved-operation regression covers the pending and eventual response. This is internal scheduling; ACE remains the QueryHealth wire reference. Retail replay remains pending."
+status = "reservation_retry_regression_passes; retail_replay_pending"

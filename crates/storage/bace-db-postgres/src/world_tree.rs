@@ -11,7 +11,25 @@ impl PgStore {
         cell: u32,
         limits: InventoryLoadLimits,
     ) -> Result<Vec<LocatedSnapshot>, StoreError> {
-        if cell == 0
+        self.load_world_item_trees(&[cell], limits).await
+    }
+
+    /// Load one bounded region's world roots and their descendants under one
+    /// hierarchy lock. Empty cells cost no individual database round trip.
+    pub async fn load_world_item_trees(
+        &self,
+        cells: &[u32],
+        limits: InventoryLoadLimits,
+    ) -> Result<Vec<LocatedSnapshot>, StoreError> {
+        if cells.is_empty()
+            || cells.len() > 1024
+            || cells.contains(&0)
+            || cells
+                .iter()
+                .copied()
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+                != cells.len()
             || limits.max_items > 4096
             || limits.max_depth == 0
             || limits.max_depth > 64
@@ -23,12 +41,14 @@ impl PgStore {
         sqlx::query("SELECT pg_advisory_xact_lock(8589934591)")
             .execute(&mut *tx)
             .await?;
-        let roots=sqlx::query("SELECT s.object_id,s.version,octet_length(s.payload) AS bytes FROM item_places p JOIN entity_snapshots s ON s.object_id=p.item_id WHERE p.kind=1 AND p.cell_id=$1 ORDER BY s.object_id LIMIT $2").bind(i64::from(cell)).bind((limits.max_items+1) as i64).fetch_all(&mut *tx).await?;
+        let cell_ids: Vec<i64> = cells.iter().map(|&cell| i64::from(cell)).collect();
+        let roots=sqlx::query("SELECT s.object_id,s.version,octet_length(s.payload) AS bytes,p.cell_id FROM item_places p JOIN entity_snapshots s ON s.object_id=p.item_id WHERE p.kind=1 AND p.cell_id=ANY($1) ORDER BY s.object_id LIMIT $2").bind(&cell_ids).bind((limits.max_items+1) as i64).fetch_all(&mut *tx).await?;
         let mut metadata = BTreeMap::new();
         let mut frontier = Vec::new();
         let mut bytes = 0usize;
         for row in roots {
             let id = row.get::<i64, _>("object_id") as u32;
+            let cell = row.get::<i64, _>("cell_id") as u32;
             bytes = charge(bytes, row.get("bytes"), limits)?;
             metadata.insert(
                 id,

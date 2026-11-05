@@ -1,7 +1,8 @@
 //! GDLE-led door authority joined to the same world's synthetic dynamic collider.
 //! Prepared animations are immutable inputs, not durations/flags from clients.
 mod residency;
-use bace_gameplay_api::{DoorChange, DoorRejection};
+use crate::kernel::world_use::WorldApproach;
+use bace_gameplay_api::{ActionContext, DoorChange, DoorOutcome, DoorRejection};
 use bace_interactions::{DoorAction, DoorAuthority, DoorError, DoorMotion, DoorPhysics};
 use bace_types::EntityId;
 use bace_world::{DoorCollider, World};
@@ -20,6 +21,7 @@ pub struct PreparedDoorAnimation {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PreparedDoor {
     pub collider: DoorCollider,
+    pub style: u16,
     pub initially_open: bool,
     pub initially_locked: bool,
     pub reset_interval_ticks: Option<u64>,
@@ -30,6 +32,7 @@ pub struct PreparedDoor {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DoorEvent {
     pub door: EntityId,
+    pub style: u16,
     pub motion: Option<DoorMotion>,
     pub physics: Option<DoorPhysics>,
     pub locked: Option<bool>,
@@ -45,9 +48,18 @@ struct Entry {
     authority: DoorAuthority,
     animation: Option<Animation>,
 }
+struct PendingUse {
+    context: ActionContext,
+    door: EntityId,
+    approach: WorldApproach,
+    cancelled: bool,
+}
 pub(crate) struct Doors {
     entries: BTreeMap<EntityId, Entry>,
     events: VecDeque<DoorEvent>,
+    approaches: BTreeMap<EntityId, PendingUse>,
+    approach_scratch: Vec<EntityId>,
+    completions: VecDeque<DoorOutcome>,
     capacity: usize,
 }
 impl Doors {
@@ -55,20 +67,138 @@ impl Doors {
         Self {
             entries: BTreeMap::new(),
             events: VecDeque::with_capacity(capacity),
+            approaches: BTreeMap::new(),
+            approach_scratch: Vec::with_capacity(capacity),
+            completions: VecDeque::with_capacity(capacity),
             capacity,
         }
     }
     pub(crate) fn can_accept(&self) -> bool {
         self.events.len() < self.capacity
     }
+    pub(crate) fn can_register(&self, additional: usize) -> bool {
+        additional <= self.capacity.saturating_sub(self.entries.len())
+    }
     pub(crate) fn has_state(&self) -> bool {
-        !self.entries.is_empty() || !self.events.is_empty()
+        !self.entries.is_empty()
+            || !self.events.is_empty()
+            || !self.approaches.is_empty()
+            || !self.completions.is_empty()
     }
     pub(crate) fn pending_events(&self) -> usize {
         self.events.len()
     }
     pub(crate) fn take_event(&mut self) -> Option<DoorEvent> {
         self.events.pop_front()
+    }
+    pub(crate) fn take_completion(&mut self) -> Option<DoorOutcome> {
+        self.completions.pop_front()
+    }
+    /// GDLE UseManager::MoveToUse uses a 15-second server-owned MoveToObject
+    /// chain; final Activate happens only when the accepted body reaches range.
+    pub(crate) fn begin_use(
+        &mut self,
+        context: ActionContext,
+        door: EntityId,
+        world: &mut World,
+        tick: u64,
+    ) -> Result<Option<DoorChange>, DoorRejection> {
+        if self.approaches.contains_key(&context.actor) {
+            return Err(DoorRejection::InvalidState);
+        }
+        let entry = self.entries.get(&door).ok_or(DoorRejection::MissingDoor)?;
+        let (in_range, _) = world
+            .door_use_geometry(context.actor, door, entry.prepared.use_radius)
+            .map_err(|_| DoorRejection::MissingGeometry)?;
+        if in_range {
+            return self.apply(context.actor, door, world, tick).map(Some);
+        }
+        if self.approaches.len() >= self.capacity {
+            return Err(DoorRejection::Capacity);
+        }
+        let mut approach = WorldApproach::new(tick);
+        if approach
+            .advance(world, context.actor, door, entry.prepared.use_radius)
+            .is_err()
+        {
+            approach.stop(world, context.actor);
+            return Err(DoorRejection::MissingGeometry);
+        }
+        self.approaches.insert(
+            context.actor,
+            PendingUse {
+                context,
+                door,
+                approach,
+                cancelled: false,
+            },
+        );
+        Ok(None)
+    }
+    pub(crate) fn cancel_approach(&mut self, actor: EntityId, world: &mut World) {
+        if let Some(pending) = self.approaches.get_mut(&actor) {
+            pending.approach.stop(world, actor);
+            pending.cancelled = true;
+        }
+    }
+    fn poll_approaches(&mut self, world: &mut World, tick: u64) {
+        self.approach_scratch.clear();
+        self.approach_scratch
+            .extend(self.approaches.keys().copied());
+        while let Some(actor) = self.approach_scratch.pop() {
+            if self.completions.len() >= self.capacity || !self.can_accept() {
+                break;
+            }
+            let Some(mut pending) = self.approaches.remove(&actor) else {
+                continue;
+            };
+            let result = if pending.cancelled {
+                // GDLE UseManager::Cancel defaults error=0 and
+                // OnUseCancelled emits NotifyUseDone(0), without Activate.
+                Some(Ok(DoorChange::Unchanged))
+            } else if tick.saturating_sub(pending.approach.started_tick) >= 450 {
+                Some(Err(DoorRejection::OutOfRange))
+            } else {
+                let use_radius = match self.entries.get(&pending.door) {
+                    Some(entry) => entry.prepared.use_radius,
+                    None => {
+                        pending.approach.stop(world, actor);
+                        self.completions.push_back(DoorOutcome {
+                            context: pending.context,
+                            result: Err(DoorRejection::MissingDoor),
+                        });
+                        continue;
+                    }
+                };
+                match world.door_use_geometry(actor, pending.door, use_radius) {
+                    Err(_) => Some(Err(DoorRejection::MissingGeometry)),
+                    Ok((true, _)) => {
+                        pending.approach.stop(world, actor);
+                        Some(self.apply(actor, pending.door, world, tick))
+                    }
+                    Ok((false, _)) => {
+                        if pending
+                            .approach
+                            .advance(world, actor, pending.door, use_radius)
+                            .is_err()
+                        {
+                            Some(Err(DoorRejection::MissingGeometry))
+                        } else {
+                            None
+                        }
+                    }
+                }
+            };
+            if let Some(result) = result {
+                pending.approach.stop(world, actor);
+                self.completions.push_back(DoorOutcome {
+                    context: pending.context,
+                    result,
+                });
+            } else {
+                self.approaches.insert(actor, pending);
+            }
+        }
     }
     pub(crate) fn physics(&self, id: EntityId) -> Option<DoorPhysics> {
         self.entries.get(&id).map(|e| e.authority.physics())
@@ -79,6 +209,30 @@ impl Doors {
         prepared: PreparedDoor,
         world: &mut World,
     ) -> Result<(), DoorRejection> {
+        self.preflight(id, &prepared)?;
+        world
+            .register_door(id, prepared.collider)
+            .map_err(|_| DoorRejection::MissingGeometry)?;
+        let authority = DoorAuthority::new(
+            prepared.initially_open,
+            prepared.initially_locked,
+            prepared.reset_interval_ticks,
+        );
+        self.entries.insert(
+            id,
+            Entry {
+                prepared,
+                authority,
+                animation: None,
+            },
+        );
+        Ok(())
+    }
+    pub(crate) fn preflight(
+        &self,
+        id: EntityId,
+        prepared: &PreparedDoor,
+    ) -> Result<(), DoorRejection> {
         if self.entries.len() >= self.capacity {
             return Err(DoorRejection::Capacity);
         }
@@ -86,7 +240,7 @@ impl Doors {
             return Err(DoorRejection::InvalidState);
         }
         if !prepared.use_radius.is_finite()
-            || prepared.use_radius <= 0.0
+            || prepared.use_radius < 0.0
             || prepared.use_radius > 192.0
         {
             return Err(DoorRejection::InvalidState);
@@ -113,22 +267,6 @@ impl Doors {
         if prepared.collider.solid == prepared.initially_open {
             return Err(DoorRejection::InvalidState);
         }
-        world
-            .register_door(id, prepared.collider)
-            .map_err(|_| DoorRejection::MissingGeometry)?;
-        let authority = DoorAuthority::new(
-            prepared.initially_open,
-            prepared.initially_locked,
-            prepared.reset_interval_ticks,
-        );
-        self.entries.insert(
-            id,
-            Entry {
-                prepared,
-                authority,
-                animation: None,
-            },
-        );
         Ok(())
     }
     pub(crate) fn apply(
@@ -159,6 +297,7 @@ impl Doors {
             Self::started(entry, motion, tick)?;
             self.events.push_back(DoorEvent {
                 door,
+                style: entry.prepared.style,
                 motion: Some(motion),
                 physics: None,
                 locked: None,
@@ -187,6 +326,7 @@ impl Doors {
             Self::started(entry, motion, tick)?;
             self.events.push_back(DoorEvent {
                 door,
+                style: entry.prepared.style,
                 motion: Some(motion),
                 physics: None,
                 locked: None,
@@ -235,6 +375,7 @@ impl Doors {
             {
                 self.events.push_back(DoorEvent {
                     door: id,
+                    style: entry.prepared.style,
                     motion: Some(motion),
                     physics: None,
                     locked: None,
@@ -243,6 +384,7 @@ impl Doors {
         }
     }
     pub(crate) fn step(&mut self, world: &mut World, tick: u64) {
+        self.poll_approaches(world, tick);
         for (&door, entry) in &mut self.entries {
             if self.events.len() == self.capacity {
                 break;
@@ -298,6 +440,7 @@ impl Doors {
             if motion.is_some() || physics.is_some() || locked.is_some() {
                 self.events.push_back(DoorEvent {
                     door,
+                    style: entry.prepared.style,
                     motion,
                     physics,
                     locked,

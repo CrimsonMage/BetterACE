@@ -1,6 +1,31 @@
 //! Owner-held damage preparation and live registry composition; no I/O.
 use super::*;
 impl Magic {
+    /// ACE Creature_Rating.GetHealingRatingMod from the accepted, live rating view.
+    pub(crate) fn healing_rating_modifier(&self, actor: EntityId) -> Result<f32, CastRejection> {
+        let ratings = self.live_damage_profile(actor)?.healing_ratings;
+        fn positive(value: i32) -> Option<f32> {
+            if value >= 0 {
+                Some((100_i64 + i64::from(value)) as f32 / 100.0)
+            } else {
+                negative(value.checked_neg()?)
+            }
+        }
+        fn negative(value: i32) -> Option<f32> {
+            if value >= 0 {
+                Some(100.0 / (100_i64 + i64::from(value)) as f32)
+            } else {
+                positive(value.checked_neg()?)
+            }
+        }
+        let boost = positive(ratings[0]).ok_or(CastRejection::InvalidState)?;
+        let resist = negative(ratings[1]).ok_or(CastRejection::InvalidState)?;
+        let value = boost * resist;
+        value
+            .is_finite()
+            .then_some(value)
+            .ok_or(CastRejection::InvalidState)
+    }
     /// Skills in order: magic defense, sneak, deception, assess person, shield.
     /// Shield uses base skill; the other four use current accepted skill.
     pub(crate) fn refresh_damage_skills(

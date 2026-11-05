@@ -1,0 +1,927 @@
+# BetterACE chat-window ("spewbox") coverage ledger. Read-only P0-D inventory.
+# ACE source of truth: pinned commit below (ACE owns wire layout per docs/baselines.toml).
+# BACE paths are repo-relative. "path:line" names the opcode/variant line, encoder or projector
+# call site found in the working tree. An empty string means none was found.
+# Opcode values were checked against ACE GameEventType.cs / GameMessageOpcode.cs and BACE
+# opcode_event.rs / opcode_message.rs. Field order was compared by reading both sides.
+# No golden or differential test is cited here. Passing these rows is not ACE parity evidence.
+
+[meta]
+ace_commit = "47edade3bd3f6044b676d4eb877c4965c7eda62b"
+ace_absent_names = ["GameEventTransientString", "GameEventDisplayStatusMessage", "GameMessageServerMessage"]
+ace_absent_note = "git grep at the pin finds 0 matches for these names. The ServerMessage opcode (0xF7E0) carries GameMessageSystemChat. CommunicationTransientString is the only transient-string event."
+bace_error_codes = "BACE has no WeenieError or WeenieErrorWithString enum. Codes are raw u32 literals (for example 0x3E, 0x4A) at the call sites listed below."
+bace_chat_types = "BACE has no ChatMessageType enum. chat_type is a raw u32 literal (for example 2 Speech, 3 Tell, 7 System)."
+
+# ---------------------------------------------------------------------------
+# Part 1: chat-window message types
+# ---------------------------------------------------------------------------
+
+[[messages]]
+name = "GameMessageSystemChat"
+opcode = "0xF7E0"
+kind = "game_message"
+bace_encoder = "crates/network/bace-wire/src/chat.rs:39"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:170"
+ace_source = "Source/ACE.Server/Network/GameMessages/Messages/GameMessageSystemChat.cs"
+notes = "ACE writes GameMessageOpcode.ServerMessage (0xF7E0). Payload string16 + int32 chat type matches chat.rs:47-49. Other ChatMessage::System projectors: social_actions.rs:49 (depleted notice, chat_type 7), crafting_proficiency.rs:171, training_notice.rs:80, inventory.rs:442, item_experience.rs:56, enchantment_expiry.rs:23, experience.rs:136 and 164, staff_magic.rs:76, progression.rs:100, staff.rs:17/51/154 (all under crates/network/bace-replication/src). ACE call-site counts are in the emitters table."
+
+[[messages]]
+name = "GameEventWeenieError"
+opcode = "0x028A"
+kind = "game_event"
+bace_encoder = "crates/network/bace-wire/src/events.rs:14"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:193"
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventWeenieError.cs"
+notes = "Payload is one u32 error code after the GameEvent header (ACE writes uint errorType). BACE carries the code as a raw u32 (events.rs:6). Other projectors: crates/network/bace-replication/src/attribute_transfer.rs:74, crates/network/bace-replication/src/locomotion.rs:54 (literal 0x3E), crates/application/bace-runtime/src/game_runtime/deaths/output.rs:465 (literal 0x4A), deaths/output/pk_status.rs:22, recalls/bindings.rs:572, pets/output.rs:358, crafting/output.rs:199. docs/divergences.toml:375 records retail 0x3E behaviour."
+
+[[messages]]
+name = "GameEventWeenieErrorWithString"
+opcode = "0x028B"
+kind = "game_event"
+bace_encoder = "crates/network/bace-wire/src/group_output.rs:114"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:195"
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventWeenieErrorWithString.cs"
+notes = "Encoder is GroupEvent::ErrorWithString (group_output.rs:55 variant, :96 opcode). Writes u32 code then string (matches ACE field order). Other projectors: crates/network/bace-replication/src/skill_devices.rs:114 and :132, crates/application/bace-runtime/src/game_runtime/attribute_transfer/output.rs:73, inventory/equipment_output.rs:438, pets/output.rs:362. ACE's 52-byte capacity is a constructor hint only. Byte-level golden test not checked here."
+
+[[messages]]
+name = "GameEventCommunicationTransientString"
+opcode = "0x02EB"
+kind = "game_event"
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:50"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:165"
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventCommunicationTransientString.cs"
+notes = "Single string payload. Variant SocialEvent::Transient at social_output.rs:28, write at :84. The length guard in social_tables.rs:114-119 counts chars, not bytes, while its parameter is named max_bytes. Worth a look against ACE's 16-bit length limit."
+
+[[messages]]
+name = "GameMessageHearSpeech"
+opcode = "0x02BB"
+kind = "game_message"
+bace_encoder = "crates/network/bace-wire/src/chat.rs:40"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:91"
+ace_source = "Source/ACE.Server/Network/GameMessages/Messages/GameMessageHearSpeech.cs"
+notes = "Payload text, sender_name, u32 sender_id, u32 chat_type matches ACE field order (chat.rs:51-70). Projected only from SocialEvent::Chat with ChatDelivery::Speech (chat_type 2)."
+
+[[messages]]
+name = "GameMessageHearRangedSpeech"
+opcode = "0x02BC"
+kind = "game_message"
+bace_encoder = "crates/network/bace-wire/src/chat.rs:41"
+bace_projector = ""
+ace_source = "Source/ACE.Server/Network/GameMessages/Messages/GameMessageHearRangedSpeech.cs"
+notes = "Encoder exists (RangedSpeech variant, f32 range at chat.rs:67-69) and matches ACE field order. No runtime projector. Only tools/bace-compat/tests/message_vectors.rs:181 constructs it. Not emitted by the server."
+
+[[messages]]
+name = "GameMessageEmoteText"
+opcode = "0x01E0"
+kind = "game_message"
+bace_encoder = "crates/network/bace-wire/src/chat.rs:42"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:98"
+ace_source = "Source/ACE.Server/Network/GameMessages/Messages/GameMessageEmoteText.cs"
+notes = "Payload u32 sender_id, string sender_name, string text (chat.rs:80-83) matches ACE. ACE's EmoteManager.cs also emits popup text (see GameEventPopupString)."
+
+[[messages]]
+name = "GameMessageSoulEmote"
+opcode = "0x01E2"
+kind = "game_message"
+bace_encoder = "crates/network/bace-wire/src/chat.rs:43"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:104"
+ace_source = "Source/ACE.Server/Network/GameMessages/Messages/GameMessageSoulEmote.cs"
+notes = "Same payload as EmoteText (chat.rs:77). Not the same as GameEventType.Emote, which is also 0x01E2 in the separate GameEvent opcode namespace."
+
+[[messages]]
+name = "GameEventTell"
+opcode = "0x02BD"
+kind = "game_event"
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:48"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:110"
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventTell.cs"
+notes = "Encoder is SocialEvent::Tell (variant social_output.rs:16, write :62-72). Payload text, sender_name, sender_id, target_id, chat_type, trailing u32 0 matches the second ACE constructor. ACE's first constructor (worldObject form) has no separate BACE encoder. The caller passes sender_name explicitly."
+
+[[messages]]
+name = "GameEventChannelBroadcast"
+opcode = "0x0147"
+kind = "game_event"
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:49"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:121"
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventChannelBroadcast.cs"
+notes = "Variant ChannelBroadcast at social_output.rs:23, write at :75. Payload channel u32, sender_name, text. The projector sends an empty sender name to the initiator (social_actions.rs:125-126), matching ACE's comment."
+
+[[messages]]
+name = "GameEventPopupString"
+opcode = "0x0004"
+kind = "game_event"
+bace_encoder = ""
+bace_projector = ""
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventPopupString.cs"
+notes = "Unsupported in BACE. Only the opcode constant exists (crates/network/bace-wire/src/opcode_event.rs:10). Pinned ACE references it in 5 files: Managers/WorldManager.cs, Network/Handlers/DDDHandler.cs, WorldObjects/Game.cs, WorldObjects/Managers/EmoteManager.cs and the class itself. Deferred. Do not treat the absence as no-emit."
+
+[[messages]]
+name = "GameEventChannelList"
+opcode = "0x0148"
+kind = "game_event"
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:54"
+bace_projector = ""
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventChannelList.cs"
+notes = "Encoder only (ChannelList variant at social_output.rs:35, write at :102). No projector and no test constructs it. Unsupported at runtime."
+
+[[messages]]
+name = "GameEventChannelIndex"
+opcode = "0x0149"
+kind = "game_event"
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:55"
+bace_projector = ""
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventChannelIndex.cs"
+notes = "Encoder only (ChannelIndex variant at social_output.rs:38, write at :103, at most 3 lists). ACE builds one of three name lists (8, 7 or 5 entries by privilege). Encoder rejection of 4 lists is covered by tests/social.rs:177. No projector."
+
+[[messages]]
+name = "GameEventFriendsListUpdate"
+opcode = "0x0021"
+kind = "game_event"
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:52"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:199"
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventFriendsListUpdate.cs"
+notes = "Encoder is SocialEvent::Friends (write at social_output.rs:93, table writer FriendsUpdate::write at social_tables.rs:24). Projectors: social_actions.rs:199-227 and session_output.rs:165 (login). ACE has a full-list constructor and a single-entry update constructor (GameEventFriendsListUpdate.cs:30 and :45). Byte-level test status not checked here."
+
+[[messages]]
+name = "GameEventSetSquelchDB"
+opcode = "0x01F4"
+kind = "game_event"
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:53"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:229"
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventCommunicationSetSquelch.cs"
+notes = "The task card name GameEventSquelchDB does not exist at the pin. The ACE class is GameEventSetSquelchDB in GameEventCommunicationSetSquelch.cs, opcode GameEventType.SetSquelchDB. Encoder write is SquelchDatabase::write (social_tables.rs:85). Projector is SocialEvent::Squelches, encode at social_actions.rs:280."
+
+[[messages]]
+name = "GameEventSetTurbineChatChannels"
+opcode = "0x0295"
+kind = "game_event"
+bace_encoder = "crates/network/bace-wire/src/social_output.rs:51"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:282"
+ace_source = "Source/ACE.Server/Network/GameEvent/Events/GameEventSetTurbineChatChannels.cs"
+notes = "Extra row, not on the card. Field order (allegiance, 2, 3, 4, 5, 10, society, 7, 8, 9) matches the ACE constructor and TurbineChatChannel.cs (Source/ACE.Server/Entity/TurbineChatChannel.cs). Golden test status not checked here."
+
+[[messages]]
+name = "GameMessageTurbineChat"
+opcode = "0xF7DE"
+kind = "game_message"
+bace_encoder = "crates/network/bace-wire/src/turbine_chat.rs:99"
+bace_projector = "crates/network/bace-replication/src/social_actions.rs:134"
+ace_source = "Source/ACE.Server/Network/GameMessages/Messages/GameMessageTurbineChat.cs"
+notes = "Extra row, not on the card. Encoder is TurbineChatEvent::encode (turbine_chat.rs:99, opcode writers at :136 and :164). Projectors: ChatDelivery::Turbine at social_actions.rs:134 (queue 4) and SocialEvent::TurbineEcho at social_actions.rs:147. Opcode constant at crates/network/bace-wire/src/opcode_message.rs:78."
+
+# ---------------------------------------------------------------------------
+# Part 2: error enums. BACE has no named enum; codes are raw u32 values.
+# ---------------------------------------------------------------------------
+
+[weenie_error]
+ace_count = 369
+bace_count = 0
+bace_location = "crates/network/bace-wire/src/events.rs:6"
+notes = "ACE source: Source/ACE.Entity/Enum/WeenieError.cs, 369 members including None=0x0000. Values are unique. BACE SimpleGameEvent::WeenieError(u32) accepts any code and encodes it unchanged. Literal codes at call sites include 0x3E (locomotion.rs:54) and 0x4A (deaths/output.rs:465). docs/divergences.toml:85 and :375 cite 0x3D and 0x3E. Missing = every ACE member, since BACE has no named constant. Missing does not mean the code cannot be emitted."
+missing = [
+    "None=0x0000",
+    "NoMem=0x0001",
+    "BadParam=0x0002",
+    "DivZero=0x0003",
+    "SegV=0x0004",
+    "Unimplemented=0x0005",
+    "UnknownMessageType=0x0006",
+    "NoAnimationTable=0x0007",
+    "NoPhysicsObject=0x0008",
+    "NoBookieObject=0x0009",
+    "NoWslObject=0x000A",
+    "NoMotionInterpreter=0x000B",
+    "UnhandledSwitch=0x000C",
+    "DefaultConstructorCalled=0x000D",
+    "InvalidCombatManeuver=0x000E",
+    "BadCast=0x000F",
+    "MissingQuality=0x0010",
+    "MissingDatabaseObject=0x0012",
+    "NoCallbackSet=0x0013",
+    "CorruptQuality=0x0014",
+    "BadContext=0x0015",
+    "NoEphseqManager=0x0016",
+    "BadMovementEvent=0x0017",
+    "CannotCreateNewObject=0x0018",
+    "NoControllerObject=0x0019",
+    "CannotSendEvent=0x001A",
+    "PhysicsCantTransition=0x001B",
+    "PhysicsMaxDistanceExceeded=0x001C",
+    "YoureTooBusy=0x001D",
+    "CannotSendMessage=0x001F",
+    "IllegalInventoryTransaction=0x0020",
+    "ExternalWeenieObject=0x0021",
+    "InternalWeenieObject=0x0022",
+    "MotionFailure=0x0023",
+    "YouCantJumpWhileInTheAir=0x0024",
+    "InqCylSphereFailure=0x0025",
+    "ThatIsNotAValidCommand=0x0026",
+    "CarryingItem=0x0027",
+    "Frozen=0x0028",
+    "Stuck=0x0029",
+    "YouAreTooEncumbered=0x002A",
+    "BadContain=0x002C",
+    "BadParent=0x002D",
+    "BadDrop=0x002E",
+    "BadRelease=0x002F",
+    "MsgBadMsg=0x0030",
+    "MsgUnpackFailed=0x0031",
+    "MsgNoMsg=0x0032",
+    "MsgUnderflow=0x0033",
+    "MsgOverflow=0x0034",
+    "MsgCallbackFailed=0x0035",
+    "ActionCancelled=0x0036",
+    "ObjectGone=0x0037",
+    "NoObject=0x0038",
+    "CantGetThere=0x0039",
+    "Dead=0x003A",
+    "ILeftTheWorld=0x003B",
+    "ITeleported=0x003C",
+    "YouChargedTooFar=0x003D",
+    "YouAreTooTiredToDoThat=0x003E",
+    "CantCrouchInCombat=0x003F",
+    "CantSitInCombat=0x0040",
+    "CantLieDownInCombat=0x0041",
+    "CantChatEmoteInCombat=0x0042",
+    "NoMtableData=0x0043",
+    "CantChatEmoteNotStanding=0x0044",
+    "TooManyActions=0x0045",
+    "Hidden=0x0046",
+    "GeneralMovementFailure=0x0047",
+    "YouCantJumpFromThisPosition=0x0048",
+    "CantJumpLoadedDown=0x0049",
+    "YouKilledYourself=0x004A",
+    "MsgResponseFailure=0x004B",
+    "ObjectIsStatic=0x004C",
+    "InvalidPkStatus=0x004D",
+    "InvalidXpAmount=0x03E9",
+    "InvalidPpCalculation=0x03EA",
+    "InvalidCpCalculation=0x03EB",
+    "UnhandledStatAnswer=0x03EC",
+    "HeartAttack=0x03ED",
+    "TheContainerIsClosed=0x03EE",
+    "InvalidInventoryLocation=0x03F0",
+    "ChangeCombatModeFailure=0x03F1",
+    "FullInventoryLocation=0x03F2",
+    "ConflictingInventoryLocation=0x03F3",
+    "ItemNotPending=0x03F4",
+    "BeWieldedFailure=0x03F5",
+    "BeDroppedFailure=0x03F6",
+    "YouAreTooFatiguedToAttack=0x03F7",
+    "YouAreOutOfAmmunition=0x03F8",
+    "YourAttackMisfired=0x03F9",
+    "YouveAttemptedAnImpossibleSpellPath=0x03FA",
+    "MagicIncompleteAnimList=0x03FB",
+    "MagicInvalidSpellType=0x03FC",
+    "MagicInqPositionAndVelocityFailure=0x03FD",
+    "YouDontKnowThatSpell=0x03FE",
+    "IncorrectTargetType=0x03FF",
+    "YouDontHaveAllTheComponents=0x0400",
+    "YouDontHaveEnoughManaToCast=0x0401",
+    "YourSpellFizzled=0x0402",
+    "YourSpellTargetIsMissing=0x0403",
+    "YourProjectileSpellMislaunched=0x0404",
+    "MagicSpellbookAddSpellFailure=0x0405",
+    "MagicTargetOutOfRange=0x0406",
+    "YourSpellCannotBeCastOutside=0x0407",
+    "YourSpellCannotBeCastInside=0x0408",
+    "MagicGeneralFailure=0x0409",
+    "YouAreUnpreparedToCastASpell=0x040A",
+    "YouveAlreadySwornAllegiance=0x040B",
+    "CantSwearAllegianceInsufficientXp=0x040C",
+    "AllegianceIgnoringRequests=0x040D",
+    "AllegianceSquelched=0x040E",
+    "AllegianceMaxDistanceExceeded=0x040F",
+    "AllegianceIllegalLevel=0x0410",
+    "AllegianceBadCreation=0x0411",
+    "AllegiancePatronBusy=0x0412",
+    "YouAreNotInAllegiance=0x0414",
+    "AllegianceRemoveHierarchyFailure=0x0415",
+    "FellowshipIgnoringRequests=0x0417",
+    "FellowshipSquelched=0x0418",
+    "FellowshipMaxDistanceExceeded=0x0419",
+    "FellowshipMember=0x041A",
+    "FellowshipIllegalLevel=0x041B",
+    "FellowshipRecruitBusy=0x041C",
+    "YouMustBeLeaderOfFellowship=0x041D",
+    "YourFellowshipIsFull=0x041E",
+    "FellowshipNameIsNotPermitted=0x041F",
+    "LevelTooLow=0x0420",
+    "LevelTooHigh=0x0421",
+    "ThatChannelDoesntExist=0x0422",
+    "YouCantUseThatChannel=0x0423",
+    "YouAreAlreadyOnThatChannel=0x0424",
+    "YouAreNotOnThatChannel=0x0425",
+    "AttunedItem=0x0426",
+    "YouCannotMergeDifferentStacks=0x0427",
+    "YouCannotMergeEnchantedItems=0x0428",
+    "YouMustControlAtLeastOneStack=0x0429",
+    "CurrentlyAttacking=0x042A",
+    "MissileAttackNotOk=0x042B",
+    "TargetNotAcquired=0x042C",
+    "ImpossibleShot=0x042D",
+    "BadWeaponSkill=0x042E",
+    "UnwieldFailure=0x042F",
+    "LaunchFailure=0x0430",
+    "ReloadFailure=0x0431",
+    "UnableToMakeCraftReq=0x0432",
+    "CraftAnimationFailed=0x0433",
+    "YouCantCraftWithThatNumberOfItems=0x0434",
+    "CraftGeneralErrorUiMsg=0x0435",
+    "CraftGeneralErrorNoUiMsg=0x0436",
+    "YouDoNotPassCraftingRequirements=0x0437",
+    "YouDoNotHaveAllTheNecessaryItems=0x0438",
+    "NotAllTheItemsAreAvailable=0x0439",
+    "YouMustBeInPeaceModeToTrade=0x043A",
+    "YouAreNotTrainedInThatTradeSkill=0x043B",
+    "YourHandsMustBeFree=0x043C",
+    "YouCannotLinkToThatPortal=0x043D",
+    "YouHaveSolvedThisQuestTooRecently=0x043E",
+    "YouHaveSolvedThisQuestTooManyTimes=0x043F",
+    "QuestUnknown=0x0440",
+    "QuestTableCorrupt=0x0441",
+    "QuestBad=0x0442",
+    "QuestDuplicate=0x0443",
+    "QuestUnsolved=0x0444",
+    "ItemRequiresQuestToBePickedUp=0x0445",
+    "QuestSolvedTooLongAgo=0x0446",
+    "TradeIgnoringRequests=0x044C",
+    "TradeSquelched=0x044D",
+    "TradeMaxDistanceExceeded=0x044E",
+    "TradeAlreadyTrading=0x044F",
+    "TradeBusy=0x0450",
+    "TradeClosed=0x0451",
+    "TradeExpired=0x0452",
+    "TradeItemBeingTraded=0x0453",
+    "TradeNonEmptyContainer=0x0454",
+    "TradeNonCombatMode=0x0455",
+    "TradeIncomplete=0x0456",
+    "TradeStampMismatch=0x0457",
+    "TradeUnopened=0x0458",
+    "TradeEmpty=0x0459",
+    "TradeAlreadyAccepted=0x045A",
+    "TradeOutOfSync=0x045B",
+    "PKsMayNotUsePortal=0x045C",
+    "NonPKsMayNotUsePortal=0x045D",
+    "HouseAbandoned=0x045E",
+    "HouseEvicted=0x045F",
+    "HouseAlreadyOwned=0x0460",
+    "HouseBuyFailed=0x0461",
+    "HouseRentFailed=0x0462",
+    "Hooked=0x0463",
+    "MagicInvalidPosition=0x0465",
+    "YouMustHaveDarkMajestyToUsePortal=0x0466",
+    "InvalidAmmoType=0x0467",
+    "SkillTooLow=0x0468",
+    "YouHaveUsedAllTheHooks=0x0469",
+    "TradeAiDoesntWant=0x046A",
+    "HookHouseNotOwned=0x046B",
+    "YouMustCompleteQuestToUsePortal=0x0474",
+    "HouseNoAllegiance=0x047E",
+    "YouMustOwnHouseToUseCommand=0x047F",
+    "YourMonarchDoesNotOwnAMansionOrVilla=0x0480",
+    "YourMonarchsHouseIsNotAMansionOrVilla=0x0481",
+    "YourMonarchHasClosedTheMansion=0x0482",
+    "YouMustBeMonarchToPurchaseDwelling=0x048A",
+    "AllegianceTimeout=0x048D",
+    "YourOfferOfAllegianceWasIgnored=0x048E",
+    "ConfirmationInProgress=0x048F",
+    "YouMustBeAMonarchToUseCommand=0x0490",
+    "YouMustSpecifyCharacterToBoot=0x0491",
+    "YouCantBootYourself=0x0492",
+    "ThatCharacterDoesNotExist=0x0493",
+    "ThatPersonIsNotInYourAllegiance=0x0494",
+    "CantBreakFromPatronNotInAllegiance=0x0495",
+    "YourAllegianceHasBeenDissolved=0x0496",
+    "YourPatronsAllegianceHasBeenBroken=0x0497",
+    "YouHaveMovedTooFar=0x0498",
+    "TeleToInvalidPosition=0x0499",
+    "MustHaveDarkMajestyToUse=0x049A",
+    "YouFailToLinkWithLifestone=0x049B",
+    "YouWanderedTooFarToLinkWithLifestone=0x049C",
+    "YouSuccessfullyLinkWithLifestone=0x049D",
+    "YouMustLinkToLifestoneToRecall=0x049E",
+    "YouFailToRecallToLifestone=0x049F",
+    "YouFailToLinkWithPortal=0x04A0",
+    "YouSuccessfullyLinkWithPortal=0x04A1",
+    "YouFailToRecallToPortal=0x04A2",
+    "YouMustLinkToPortalToRecall=0x04A3",
+    "YouFailToSummonPortal=0x04A4",
+    "YouMustLinkToPortalToSummonIt=0x04A5",
+    "YouFailToTeleport=0x04A6",
+    "YouHaveBeenTeleportedTooRecently=0x04A7",
+    "YouMustBeAnAdvocateToUsePortal=0x04A8",
+    "PortalAisNotAllowed=0x04A9",
+    "PlayersMayNotUsePortal=0x04AA",
+    "YouAreNotPowerfulEnoughToUsePortal=0x04AB",
+    "YouAreTooPowerfulToUsePortal=0x04AC",
+    "YouCannotRecallPortal=0x04AD",
+    "YouCannotSummonPortal=0x04AE",
+    "LockAlreadyUnlocked=0x04AF",
+    "YouCannotLockOrUnlockThat=0x04B0",
+    "YouCannotLockWhatIsOpen=0x04B1",
+    "KeyDoesntFitThisLock=0x04B2",
+    "LockUsedTooRecently=0x04B3",
+    "YouArentTrainedInLockpicking=0x04B4",
+    "AllegianceInfoEmptyName=0x04B5",
+    "AllegianceInfoSelf=0x04B6",
+    "AllegianceInfoTooRecent=0x04B7",
+    "AbuseNoSuchCharacter=0x04B8",
+    "AbuseReportedSelf=0x04B9",
+    "AbuseComplaintHandled=0x04BA",
+    "YouDoNotOwnThatSalvageTool=0x04BD",
+    "YouDoNotOwnThatItem=0x04BE",
+    "MaterialCannotBeCreated=0x04C1",
+    "ItemsAttemptingToSalvageIsInvalid=0x04C2",
+    "YouCannotSalvageItemsInTrading=0x04C3",
+    "YouMustBeHouseGuestToUsePortal=0x04C4",
+    "YourAllegianceRankIsTooLowToUseMagic=0x04C5",
+    "YourArcaneLoreIsTooLowToUseMagic=0x04C7",
+    "ItemDoesntHaveEnoughMana=0x04C8",
+    "YouHaveBeenInPKBattleTooRecently=0x04CC",
+    "TradeAiRefuseEmote=0x04CD",
+    "YouFailToAlterSkill=0x04D0",
+    "FellowshipDeclined=0x04DB",
+    "FellowshipTimeout=0x04DC",
+    "YouHaveFailedToAlterAttributes=0x04DD",
+    "CannotTransferAttributesWhileWieldingItem=0x04E0",
+    "YouHaveSucceededTransferringAttributes=0x04E1",
+    "HookIsDuplicated=0x04E2",
+    "ItemIsWrongTypeForHook=0x04E3",
+    "HousingChestIsDuplicated=0x04E4",
+    "HookWillBeDeleted=0x04E5",
+    "HousingChestWillBeDeleted=0x04E6",
+    "CannotSwearAllegianceWhileOwningMansion=0x04E7",
+    "YouCantDoThatWhileInTheAir=0x04EB",
+    "CannotChangePKStatusWhileRecovering=0x04EC",
+    "AdvocatesCannotChangePKStatus=0x04ED",
+    "LevelTooLowToChangePKStatusWithObject=0x04EE",
+    "LevelTooHighToChangePKStatusWithObject=0x04EF",
+    "YouFeelAHarshDissonance=0x04F0",
+    "YouArePKAgain=0x04F1",
+    "YouAreTemporarilyNoLongerPK=0x04F2",
+    "PKLiteMayNotUsePortal=0x04F3",
+    "YouArentTrainedInHealing=0x04FC",
+    "YouDontOwnThatHealingKit=0x04FD",
+    "YouCantHealThat=0x04FE",
+    "YouArentReadyToHeal=0x0500",
+    "YouCanOnlyHealPlayers=0x0501",
+    "LifestoneMagicProtectsYou=0x0502",
+    "PortalEnergyProtectsYou=0x0503",
+    "YouAreNonPKAgain=0x0504",
+    "YoureTooCloseToYourSanctuary=0x0505",
+    "CantDoThatTradeInProgress=0x0506",
+    "OnlyNonPKsMayEnterPKLite=0x0507",
+    "YouAreNowPKLite=0x0508",
+    "YouDoNotBelongToAFellowship=0x050F",
+    "UsingMaxHooksSilent=0x0511",
+    "YouAreNowUsingMaxHooks=0x0512",
+    "YouAreNoLongerUsingMaxHooks=0x0513",
+    "YouAreNotPermittedToUseThatHook=0x0516",
+    "LockedFellowshipCannotRecruitYou=0x0519",
+    "ActivationNotAllowedNotOwner=0x051A",
+    "TurbineChatIsEnabled=0x051D",
+    "YouCannotAddPeopleToHearList=0x0520",
+    "YouAreNowDeafTo_Screams=0x0523",
+    "YouCanHearAllPlayersOnceAgain=0x0524",
+    "YouChickenOut=0x0526",
+    "YouCanPossiblySucceed=0x0527",
+    "FellowshipIsLocked=0x0528",
+    "TradeComplete=0x0529",
+    "NotASalvageTool=0x052A",
+    "CharacterNotAvailable=0x052B",
+    "YouMustWaitToPurchaseHouse=0x0532",
+    "YouDoNotHaveAuthorityInAllegiance=0x0535",
+    "YouHaveMaxAccountsBanned=0x0540",
+    "YouHaveMaxAllegianceOfficers=0x0545",
+    "YourAllegianceOfficersHaveBeenCleared=0x0546",
+    "YouCannotJoinChannelsWhileGagged=0x0548",
+    "YouAreNoLongerAllegianceOfficer=0x054A",
+    "YourAllegianceDoesNotHaveHometown=0x054C",
+    "HookItemNotUsable_CannotOpen=0x054E",
+    "HookItemNotUsable_CanOpen=0x054F",
+    "MissileOutOfRange=0x0550",
+    "MustPurchaseThroneOfDestinyToUseFunction=0x0552",
+    "MustPurchaseThroneOfDestinyToUseItem=0x0553",
+    "MustPurchaseThroneOfDestinyToUsePortal=0x0554",
+    "MustPurchaseThroneOfDestinyToAccessQuest=0x0555",
+    "YouFailedToCompleteAugmentation=0x0556",
+    "AugmentationUsedTooManyTimes=0x0557",
+    "AugmentationTypeUsedTooManyTimes=0x0558",
+    "AugmentationNotEnoughExperience=0x0559",
+    "ExitTrainingAcademyToUseCommand=0x055D",
+    "OnlyPKsMayUseCommand=0x055F",
+    "OnlyPKLiteMayUseCommand=0x0560",
+    "MaxFriendsExceeded=0x0561",
+    "ThatCharacterNotOnYourFriendsList=0x0563",
+    "OnlyHouseOwnerCanUseCommand=0x0564",
+    "InvalidAllegianceNameCantBeEmpty=0x0565",
+    "InvalidAllegianceNameTooLong=0x0566",
+    "InvalidAllegianceNameBadCharacters=0x0567",
+    "InvalidAllegianceNameInappropriate=0x0568",
+    "InvalidAllegianceNameAlreadyInUse=0x0569",
+    "AllegianceNameCleared=0x056B",
+    "InvalidAllegianceNameSameName=0x056C",
+    "InvalidOfficerLevel=0x056F",
+    "AllegianceOfficerTitleIsNotAppropriate=0x0570",
+    "AllegianceNameIsTooLong=0x0571",
+    "AllegianceOfficerTitlesCleared=0x0572",
+    "AllegianceTitleHasIllegalChars=0x0573",
+    "YouHaveNotPreApprovedVassals=0x0579",
+    "YouHaveClearedPreApprovedVassal=0x057C",
+    "CharIsAlreadyGagged=0x057D",
+    "CharIsNotCurrentlyGagged=0x057E",
+    "YourAllegianceChatPrivilegesRestored=0x0581",
+    "TooManyUniqueItems=0x0584",
+    "HeritageRequiresSpecificArmor=0x0585",
+    "ArmorRequiresSpecificHeritage=0x0586",
+    "OlthoiCannotInteractWithThat=0x0587",
+    "OlthoiCannotUseLifestones=0x0588",
+    "OlthoiVendorLooksInHorror=0x0589",
+    "OlthoiCannotJoinFellowship=0x058B",
+    "OlthoiCannotJoinAllegiance=0x058C",
+    "YouCannotUseThatItem=0x058D",
+    "ThisPersonWillNotInteractWithYou=0x058E",
+    "OnlyOlthoiMayUsePortal=0x058F",
+    "OlthoiMayNotUsePortal=0x0590",
+    "YouMayNotUsePortalWithVitae=0x0591",
+    "YouMustBeTwoWeeksOldToUsePortal=0x0592",
+    "OlthoiCanOnlyRecallToLifestone=0x0593",
+    "ContractError=0x0594",
+]
+
+[weenie_error_with_string]
+ace_count = 113
+bace_count = 0
+bace_location = "crates/network/bace-wire/src/group_output.rs:55"
+notes = "ACE source: Source/ACE.Entity/Enum/WeenieErrorWithString.cs, 113 members. BACE GroupEvent::ErrorWithString { code: u32, text } accepts any code. Missing = every ACE member. Missing does not mean the code cannot be emitted."
+missing = [
+    "_IsTooBusyToAcceptGifts=0x001E",
+    "_CannotCarryAnymore=0x002B",
+    "YouFailToAffect_YouCannotAffectAnyone=0x004E",
+    "YouFailToAffect_TheyCannotBeHarmed=0x004F",
+    "YouFailToAffect_WithBeneficialSpells=0x0050",
+    "YouFailToAffect_YouAreNotPK=0x0051",
+    "YouFailToAffect_TheyAreNotPK=0x0052",
+    "YouFailToAffect_NotSamePKType=0x0053",
+    "YouFailToAffect_AcrossHouseBoundary=0x0054",
+    "_IsNotAcceptingGiftsRightNow=0x03EF",
+    "_IsAlreadyOneOfYourFollowers=0x0413",
+    "_CannotHaveAnyMoreVassals=0x0416",
+    "_DoesntKnowWhatToDoWithThat=0x046A",
+    "YouMustBeAboveLevel_ToBuyHouse=0x0488",
+    "YouMustBeAtOrBelowLevel_ToBuyHouse=0x0489",
+    "YouMustBeAboveAllegianceRank_ToBuyHouse=0x048B",
+    "YouMustBeAtOrBelowAllegianceRank_ToBuyHouse=0x048C",
+    "The_WasNotSuitableForSalvaging=0x04BF",
+    "The_ContainseTheWrongMaterial=0x04C0",
+    "YouMustBe_ToUseItemMagic=0x04C6",
+    "Your_IsTooLowToUseItemMagic=0x04C9",
+    "Only_MayUseItemMagic=0x04CA",
+    "YouMustSpecialize_ToUseItemMagic=0x04CB",
+    "AiRefuseItemDuringEmote=0x04CE",
+    "_CannotAcceptStackedItems=0x04CF",
+    "Your_SkillMustBeTrained=0x04D1",
+    "NotEnoughSkillCreditsToSpecialize=0x04D2",
+    "TooMuchXPToRecoverFromSkill=0x04D3",
+    "Your_SkillIsAlreadyUntrained=0x04D4",
+    "CannotLowerSkillWhileWieldingItem=0x04D5",
+    "YouHaveSucceededSpecializing_Skill=0x04D6",
+    "YouHaveSucceededUnspecializing_Skill=0x04D7",
+    "YouHaveSucceededUntraining_Skill=0x04D8",
+    "CannotUntrain_SkillButRecoveredXP=0x04D9",
+    "TooManyCreditsInSpecializedSkills=0x04DA",
+    "AttributeTransferFromTooLow=0x04DE",
+    "AttributeTransferToTooHigh=0x04DF",
+    "ItemUnusableOnHook_CannotOpen=0x04E8",
+    "ItemUnusableOnHook_CanOpen=0x04E9",
+    "ItemOnlyUsableOnHook=0x04EA",
+    "_FailsToAffectYou_TheyCannotAffectAnyone=0x04F4",
+    "_FailsToAffectYou_YouCannotBeHarmed=0x04F5",
+    "_FailsToAffectYou_TheyAreNotPK=0x04F6",
+    "_FailsToAffectYou_YouAreNotPK=0x04F7",
+    "_FailsToAffectYou_NotSamePKType=0x04F8",
+    "_FailsToAffectYouAcrossHouseBoundary=0x04F9",
+    "_IsAnInvalidTarget=0x04FA",
+    "YouAreInvalidTargetForSpellOf_=0x04FB",
+    "_IsAtFullHealth=0x04FF",
+    "_HasNoSpellTargets=0x0509",
+    "YouHaveNoTargetsForSpellOf_=0x050A",
+    "_IsNowOpenFellowship=0x050B",
+    "_IsNowClosedFellowship=0x050C",
+    "_IsNowLeaderOfFellowship=0x050D",
+    "YouHavePassedFellowshipLeadershipTo_=0x050E",
+    "MaxNumberOf_Hooked=0x0510",
+    "MaxNumberOf_HookedUntilOneIsRemoved=0x0514",
+    "NoLongerMaxNumberOf_Hooked=0x0515",
+    "_IsNotCloseEnoughToYourLevel=0x0517",
+    "LockedFellowshipCannotRecruit_=0x0518",
+    "YouHaveEnteredThe_Channel=0x051B",
+    "YouHaveLeftThe_Channel=0x051C",
+    "_WillNotReceiveMessage=0x051E",
+    "MessageBlocked_=0x051F",
+    "_HasBeenAddedToHearList=0x0521",
+    "_HasBeenRemovedFromHearList=0x0522",
+    "FailToRemove_FromLoudList=0x0525",
+    "YouCannotOpenLockedFellowship=0x0528",
+    "YouAreNowSnoopingOn_=0x052C",
+    "YouAreNoLongerSnoopingOn_=0x052D",
+    "YouFailToSnoopOn_=0x052E",
+    "_AttemptedToSnoopOnYou=0x052F",
+    "_IsAlreadyBeingSnoopedOn=0x0530",
+    "_IsInLimbo=0x0531",
+    "YouHaveBeenBootedFromAllegianceChat=0x0533",
+    "_HasBeenBootedFromAllegianceChat=0x0534",
+    "AccountOf_IsAlreadyBannedFromAllegiance=0x0536",
+    "AccountOf_IsNotBannedFromAllegiance=0x0537",
+    "AccountOf_WasNotUnbannedFromAllegiance=0x0538",
+    "AccountOf_IsBannedFromAllegiance=0x0539",
+    "AccountOf_IsUnbannedFromAllegiance=0x053A",
+    "ListOfBannedCharacters=0x053B",
+    "_IsBannedFromAllegiance=0x053E",
+    "YouAreBannedFromAllegiance=0x053F",
+    "_IsNowAllegianceOfficer=0x0541",
+    "ErrorSetting_AsAllegianceOfficer=0x0542",
+    "_IsNoLongerAllegianceOfficer=0x0543",
+    "ErrorRemoving_AsAllegianceOFficer=0x0544",
+    "YouMustWait_BeforeCommunicating=0x0547",
+    "YourAllegianceOfficerStatusChanged=0x0549",
+    "_IsAlreadyAllegianceOfficerOfThatLevel=0x054B",
+    "The_IsCurrentlyInUse=0x54D",
+    "YouAreNotListeningTo_Channel=0x0551",
+    "AugmentationSkillNotTrained=0x055A",
+    "YouSuccededAcquiringAugmentation=0x055B",
+    "YouSucceededRecoveringXPFromSkill_AugmentationNotUntrainable=0x055C",
+    "AFK=0x055E",
+    "_IsAlreadyOnYourFriendsList=0x0562",
+    "YouMayOnlyChangeAllegianceNameOnceEvery24Hours=0x056A",
+    "_IsTheMonarchAndCannotBePromotedOrDemoted=0x056D",
+    "ThatLevelOfAllegianceOfficerIsNowKnownAs_=0x056E",
+    "YourAllegianceIsCurrently_=0x0574",
+    "YourAllegianceIsNow_=0x0575",
+    "YouCannotAcceptAllegiance_YourAllegianceIsLocked=0x0576",
+    "YouCannotSwearAllegiance_AllegianceOf_IsLocked=0x0577",
+    "YouHavePreApproved_ToJoinAllegiance=0x0578",
+    "_IsAlreadyMemberOfYourAllegiance=0x057A",
+    "_HasBeenPreApprovedToJoinYourAllegiance=0x057B",
+    "YourAllegianceChatPrivilegesRemoved=0x057F",
+    "_IsTemporarilyGaggedInAllegianceChat=0x0580",
+    "YourAllegianceChatPrivilegesRestoredBy_=0x0582",
+    "YouRestoreAllegianceChatPrivilegesTo_=0x0583",
+    "_CowersFromYou=0x058A",
+]
+
+# ---------------------------------------------------------------------------
+# Part 3: chat message types
+# ---------------------------------------------------------------------------
+
+[chat_message_type]
+ace_count = 31
+bace_count = 0
+bace_location = "crates/network/bace-wire/src/chat.rs:8"
+notes = "ACE source: Source/ACE.Entity/Enum/ChatMessageType.cs. The enum has 31 members. 0x1A is commented out at line 259 and absent. BACE ChatMessage::System, Speech and related variants take chat_type as a raw u32. Named-enum coverage is 0. Value coverage is unconstrained: BACE sends the raw number. Literals in use include 2 (Speech, social_actions.rs:91), 3 (Tell, social_actions.rs:110) and 7 (System, social_actions.rs:49-52)."
+
+missing = [
+    "Broadcast=0x00",
+    "AllChannels=0x01",
+    "Speech=0x02",
+    "Tell=0x03",
+    "OutgoingTell=0x04",
+    "System=0x05",
+    "Combat=0x06",
+    "Magic=0x07",
+    "Channel=0x08",
+    "ChannelSend=0x09",
+    "Social=0x0A",
+    "SocialSend=0x0B",
+    "Emote=0x0C",
+    "Advancement=0x0D",
+    "Abuse=0x0E",
+    "Help=0x0F",
+    "Appraisal=0x10",
+    "Spellcasting=0x11",
+    "Allegiance=0x12",
+    "Fellowship=0x13",
+    "WorldBroadcast=0x14",
+    "CombatEnemy=0x15",
+    "CombatSelf=0x16",
+    "Recall=0x17",
+    "Craft=0x18",
+    "Salvaging=0x19",
+    "x1B=0x1B",
+    "x1C=0x1C",
+    "x1D=0x1D",
+    "x1E=0x1E",
+    "AdminTell=0x1F",
+]
+
+# ---------------------------------------------------------------------------
+# Part 4: top emitters at the pinned ACE commit, top 40 files by combined count.
+# count = matching lines for "new GameMessageSystemChat(" (git grep -c, Source/ACE.Server).
+# weenie_error_count = matching lines for "new GameEventWeenieError(" in the same file.
+# git grep -c counts matching lines, not calls, so multi-line constructions are undercounted.
+# Totals: 724 SystemChat lines in 85 files; 239 WeenieError lines in 28 files.
+# WeenieErrorWithString (58 lines in 17 files) is not included in the per-file counts.
+# ---------------------------------------------------------------------------
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_Allegiance.cs"
+count = 90
+weenie_error_count = 49
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_House.cs"
+count = 76
+weenie_error_count = 28
+
+[[emitters]]
+file = "Source/ACE.Server/Command/Handlers/DeveloperCommands.cs"
+count = 103
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Command/Handlers/AdminCommands.cs"
+count = 58
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Command/Handlers/DeveloperContentCommands.cs"
+count = 57
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_Location.cs"
+count = 10
+weenie_error_count = 43
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_Inventory.cs"
+count = 14
+weenie_error_count = 16
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_Death.cs"
+count = 23
+weenie_error_count = 6
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/WorldObject_Magic.cs"
+count = 9
+weenie_error_count = 17
+
+[[emitters]]
+file = "Source/ACE.Server/Entity/Fellowship.cs"
+count = 19
+weenie_error_count = 3
+
+[[emitters]]
+file = "Source/ACE.Server/Command/Handlers/AdvocateCommands.cs"
+count = 19
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Managers/SquelchManager.cs"
+count = 18
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Command/Handlers/PlayerCommands.cs"
+count = 17
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Network/GameAction/Actions/GameActionChatChannel.cs"
+count = 0
+weenie_error_count = 16
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Portal.cs"
+count = 2
+weenie_error_count = 14
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_Skills.cs"
+count = 15
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player.cs"
+count = 10
+weenie_error_count = 4
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_Trade.cs"
+count = 2
+weenie_error_count = 9
+
+[[emitters]]
+file = "Source/ACE.Server/Managers/RecipeManager.cs"
+count = 9
+weenie_error_count = 1
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_Fellowship.cs"
+count = 4
+weenie_error_count = 6
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/SpellProjectile.cs"
+count = 9
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Command/Handlers/SentinelCommands.cs"
+count = 8
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/PKModifier.cs"
+count = 5
+weenie_error_count = 3
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_Magic.cs"
+count = 7
+weenie_error_count = 1
+
+[[emitters]]
+file = "Source/ACE.Server/Managers/QuestManager.cs"
+count = 5
+weenie_error_count = 2
+
+[[emitters]]
+file = "Source/ACE.Server/Entity/Enlightenment.cs"
+count = 6
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Entity/Tailoring.cs"
+count = 6
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/ManaStone.cs"
+count = 6
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Managers/EmoteManager.cs"
+count = 6
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Command/Handlers/HelpCommands.cs"
+count = 5
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Entity/Cloak.cs"
+count = 5
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Managers/WorldManager.cs"
+count = 5
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Gem.cs"
+count = 3
+weenie_error_count = 2
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Healer.cs"
+count = 5
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_Networking.cs"
+count = 2
+weenie_error_count = 3
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Player_Xp.cs"
+count = 5
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Managers/PlayerManager.cs"
+count = 4
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/Network/GameAction/Actions/GameActionTalk.cs"
+count = 4
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/AttributeTransferDevice.cs"
+count = 4
+weenie_error_count = 0
+
+[[emitters]]
+file = "Source/ACE.Server/WorldObjects/Bindstone.cs"
+count = 1
+weenie_error_count = 3
+

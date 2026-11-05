@@ -3,6 +3,12 @@ resolver = "3"
 members = ["apps/*", "crates/*/*", "tools/*"]
 default-members = ["apps/bace-server", "apps/bace-cli", "tools/xtask"]
 
+# Full DAT fingerprinting is mandatory at startup. Unoptimized SHA-256 took
+# 14.7 seconds for the approved portal/cell pair versus under a second with
+# native sha256sum on the same machine; optimize only this dependency in dev.
+[profile.dev.package.sha2]
+opt-level = 3
+
 [workspace.package]
 version = "0.1.0"
 edition = "2024"

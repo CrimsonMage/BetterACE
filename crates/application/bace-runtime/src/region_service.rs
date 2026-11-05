@@ -25,6 +25,7 @@ use bace_types::EntityId;
 use std::{
     collections::{BTreeMap, VecDeque},
     sync::Arc,
+    time::Instant,
 };
 #[derive(Clone, Copy, Debug)]
 pub struct RegionClock {
@@ -45,9 +46,10 @@ pub struct RegionServiceConfig {
     pub aetheria_drop_rate: f32,
     pub options: crate::generator_preparation::GeneratorPreparationOptions,
 }
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Phase {
     Assets,
+    #[allow(dead_code)] // Kept for legacy pinned-source recovery tests; live activation skips it.
     NpcSources,
     Cells,
     Reconcile,
@@ -59,6 +61,7 @@ enum Phase {
     Submitted,
 }
 struct Loading {
+    phase_started: Instant,
     npc_after: Option<u32>,
     npc_heads: VecDeque<bace_db_postgres::StoredNpcSourceHead>,
     npc_request: Option<Arc<crate::npc_region::NpcRegionRequest>>,
@@ -71,7 +74,6 @@ struct Loading {
     phase: Phase,
     submitted: bool,
     cells: Vec<u32>,
-    cell_index: usize,
     snapshots: Vec<LocatedSnapshot>,
     restore: Arc<Vec<LocatedSnapshot>>,
     retirement: Vec<PendingPlacementSave>,
@@ -318,6 +320,29 @@ impl RegionService {
     pub fn prepared_region(&self, landblock: u16) -> Option<&Arc<PreparedRegionActivation>> {
         self.active.get(&landblock)
     }
+    pub(crate) fn is_active_door(&self, id: EntityId) -> bool {
+        // Static instance GUIDs are assigned by world content and need not
+        // encode their landblock. The retail door 0x77f03033 lives in 0x7f03.
+        // Use is infrequent; scan only resident immutable region indexes here
+        // instead of maintaining a second mutable identity map on every load,
+        // unload and content refresh.
+        self.active
+            .values()
+            .any(|region| region_contains_door(&region.content, id))
+    }
+    pub(crate) fn appraisal_source(
+        &self,
+        id: bace_types::EntityId,
+    ) -> Option<&bace_content::WeenieV1> {
+        self.sources
+            .get(&id.0)
+            .map(|source| &source.item.entity.state)
+            .or_else(|| {
+                self.active
+                    .values()
+                    .find_map(|region| region_appraisal_source(&region.content, id))
+            })
+    }
     /// Only retries retained inputs; it never resets IDs, RNG identity or expiry.
     pub fn retry(&mut self, landblock: u16) {
         self.blocked.remove(&landblock);
@@ -444,6 +469,7 @@ impl RegionService {
                     aetheria_drop_rate: self.config.aetheria_drop_rate,
                 };
                 self.loading = Some(Loading {
+                    phase_started: Instant::now(),
                     npc_after: None,
                     npc_heads: VecDeque::new(),
                     npc_request: None,
@@ -456,7 +482,6 @@ impl RegionService {
                     phase: Phase::Assets,
                     submitted: false,
                     cells: vec![],
-                    cell_index: 0,
                     snapshots: vec![],
                     restore: Arc::new(vec![]),
                     retirement: vec![],
@@ -469,6 +494,7 @@ impl RegionService {
                     source_bytes: BTreeMap::new(),
                     restore_clock: None,
                 });
+                eprintln!("region {landblock:04x}: Assets start");
             } else {
                 return Ok(());
             }
@@ -482,8 +508,20 @@ impl RegionService {
         if self.blocked.contains_key(&block) {
             return Ok(());
         }
+        let old_phase = self.loading.as_ref().expect("loading owner").phase;
         if let Err(error) = self.advance_loading(worker, saves, clock).await {
             self.blocked.insert(block, error);
+        }
+        if let Some(loading) = self.loading.as_mut()
+            && loading.phase != old_phase
+        {
+            let spent = loading.phase_started.elapsed();
+            eprintln!(
+                "region {block:04x}: {old_phase:?} ended after {:.3}s; {:?} start",
+                spent.as_secs_f64(),
+                loading.phase
+            );
+            loading.phase_started = Instant::now();
         }
         Ok(())
     }
@@ -608,7 +646,9 @@ impl RegionService {
                     return Err("invalid region geometry cell count".into());
                 }
                 l.prepared = Some(Arc::new(prepared));
-                l.phase = Phase::NpcSources;
+                // NPCs are regenerated from this prepared .bace region. Old
+                // canonical heads are not consulted during activation.
+                l.phase = Phase::Cells;
             }
             Phase::NpcSources => {
                 if l.submitted {
@@ -714,28 +754,18 @@ impl RegionService {
                 }
             }
             Phase::Cells => {
-                if let Some(&cell) = l.cells.get(l.cell_index) {
-                    let used = l
-                        .snapshots
-                        .iter()
-                        .map(|s| s.aggregate.bytes.len())
-                        .sum::<usize>();
-                    let rows = self
-                        .store
-                        .load_world_item_tree(
-                            cell,
-                            InventoryLoadLimits {
-                                max_items: 4096 - l.snapshots.len(),
-                                max_depth: 64,
-                                max_total_bytes: 64 * 1024 * 1024 - used,
-                            },
-                        )
-                        .await
-                        .map_err(|e| e.to_string())?;
-                    l.snapshots.extend(rows);
-                    l.cell_index += 1;
-                    return Ok(());
-                }
+                l.snapshots = self
+                    .store
+                    .load_world_item_trees(
+                        &l.cells,
+                        InventoryLoadLimits {
+                            max_items: 4096,
+                            max_depth: 64,
+                            max_total_bytes: 64 * 1024 * 1024,
+                        },
+                    )
+                    .await
+                    .map_err(|e| e.to_string())?;
                 // Classification is lossless on failure; never start generators
                 // while any old generated root lacks a durable tombstone.
                 let snapshots = std::mem::take(&mut l.snapshots);
@@ -935,6 +965,23 @@ impl RegionService {
         }
         Ok(())
     }
+}
+fn region_contains_door(region: &crate::world_content::PreparedRegion, id: EntityId) -> bool {
+    region.instances.iter().any(|instance| {
+        instance.source.guid == id.0
+            && !instance.source.is_link_child
+            && instance.template.weenie_type == 19
+    })
+}
+fn region_appraisal_source(
+    region: &crate::world_content::PreparedRegion,
+    id: EntityId,
+) -> Option<&bace_content::WeenieV1> {
+    region
+        .instances
+        .iter()
+        .find(|instance| instance.source.guid == id.0)
+        .map(|instance| instance.template.as_ref())
 }
 fn limits() -> InventoryLoadLimits {
     InventoryLoadLimits {

@@ -10,6 +10,7 @@ fn complete_region_pvs_matches_raw_env_cells_and_has_closed_references() {
         cell: dir.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     };
     let mut assets = VerifiedRegionAssets::open(&manifest).unwrap();
     let (geometry, rows) = assets.prepare_geometry_with_visibility(0xa260).unwrap();

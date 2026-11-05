@@ -58,7 +58,7 @@ pub fn prepare_player_description(
                 p.value.rotation_z,
             ],
         });
-    for (slot, id) in [1, 2, 4, 3, 5, 6].into_iter().enumerate() {
+    for (slot, id) in [1, 2, 3, 4, 5, 6].into_iter().enumerate() {
         let a = &p
             .attributes
             .iter()

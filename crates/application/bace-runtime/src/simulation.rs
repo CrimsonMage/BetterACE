@@ -5,6 +5,8 @@ use bace_gameplay_api::CastOutcome;
 use bace_gameplay_api::ServerCastOutcome;
 use bace_gameplay_api::weapon_combat::PhysicalLaunchProposal;
 use bace_gameplay_api::{CombatOutcome, DoorOutcome, ProgressionOutcome};
+use bace_simulation::HealingKitOutcome;
+use bace_simulation::ManaStoneOutcome;
 use bace_simulation::PhysicalCombatEvent;
 use bace_simulation::VendorOutcome;
 use bace_simulation::{AttributeTransferDeviceTicket, AttributeTransferOutcome};
@@ -34,6 +36,7 @@ mod player_admissions;
 mod region_admissions;
 pub use region_admissions::RecoveredRegionAdmissions;
 mod inventory_outputs;
+mod item_mana_queries;
 mod npc_service_outputs;
 mod player_snapshots;
 mod pve_service_outputs;
@@ -43,6 +46,7 @@ mod magic_resource_outputs;
 mod object_view_outputs;
 mod physical_resource_outputs;
 mod visibility_outputs;
+pub use item_mana_queries::RecoveredItemManaQueries;
 pub use locomotion_outputs::RecoveredLocomotion;
 pub use magic_resource_outputs::RecoveredMagicResource;
 pub use npc_service_outputs::RecoveredNpcServices;
@@ -160,6 +164,7 @@ pub struct SimulationWorker {
     physical_resource: physical_resource_outputs::PhysicalResourceReceivers,
     magic_resource: magic_resource_outputs::MagicResourceReceivers,
     player_snapshots: player_snapshots::PlayerSnapshotReceivers,
+    item_mana_queries: item_mana_queries::ItemManaQueryReceivers,
     player_admissions: player_admissions::PlayerAdmissionReceivers,
     region_admissions: region_admissions::RegionAdmissionReceivers,
     input: SimulationInput,
@@ -185,6 +190,8 @@ pub struct SimulationWorker {
     skill_device_outcomes: mpsc::Receiver<SkillDeviceOutcome>,
     skill_device_proposals: mpsc::Receiver<SkillDeviceTicket>,
     attribute_transfer_outcomes: mpsc::Receiver<AttributeTransferOutcome>,
+    healing_kit_outcomes: mpsc::Receiver<HealingKitOutcome>,
+    mana_stone_outcomes: mpsc::Receiver<ManaStoneOutcome>,
     attribute_transfer_proposals: mpsc::Receiver<AttributeTransferDeviceTicket>,
     crafting_proposals: mpsc::Receiver<CraftingTicket>,
     crafting_outcomes: mpsc::Receiver<CraftingOutcome>,
@@ -279,6 +286,8 @@ impl SimulationWorker {
         let (player_admission_output, player_admissions) = player_admissions::channels(1);
         let (region_admission_output, region_admissions) = region_admissions::channels(1);
         let (player_snapshot_output, player_snapshots) = player_snapshots::channels(1);
+        let (item_mana_query_output, item_mana_queries) =
+            item_mana_queries::channels(output_capacity);
         let (pve_service_output, pve_services) = pve_service_outputs::channels(output_capacity);
         let (npc_service_output, npc_services) = npc_service_outputs::channels(output_capacity);
         let (inventory_sender, inventory_output) = inventory_outputs::channels(output_capacity);
@@ -316,6 +325,9 @@ impl SimulationWorker {
             mpsc::sync_channel(output_capacity);
         let (attribute_transfer_outcomes_output, attribute_transfer_outcomes) =
             mpsc::sync_channel(output_capacity);
+        let (healing_kit_outcomes_output, healing_kit_outcomes) =
+            mpsc::sync_channel(output_capacity);
+        let (mana_stone_outcomes_output, mana_stone_outcomes) = mpsc::sync_channel(output_capacity);
         let (attribute_transfer_proposals_output, attribute_transfer_proposals) =
             mpsc::sync_channel(output_capacity);
         let (crafting_proposals_output, crafting_proposals) = mpsc::sync_channel(output_capacity);
@@ -367,6 +379,7 @@ impl SimulationWorker {
                         physical_resource: physical_resource_output,
                         magic_resource: magic_resource_output,
                         player_snapshots: player_snapshot_output,
+                        item_mana_queries: item_mana_query_output,
                         player_admissions: player_admission_output,
                         region_admissions: region_admission_output,
                         progression: outcome_sender,
@@ -388,6 +401,8 @@ impl SimulationWorker {
                         skill_device_outcomes: skill_device_outcomes_output,
                         skill_device_proposals: skill_device_proposals_output,
                         attribute_transfer_outcomes: attribute_transfer_outcomes_output,
+                        healing_kit_outcomes: healing_kit_outcomes_output,
+                        mana_stone_outcomes: mana_stone_outcomes_output,
                         attribute_transfer_proposals: attribute_transfer_proposals_output,
                         crafting_proposals: crafting_proposals_output,
                         crafting_outcomes: crafting_outcomes_output,
@@ -434,6 +449,7 @@ impl SimulationWorker {
             physical_resource,
             magic_resource,
             player_snapshots,
+            item_mana_queries,
             player_admissions,
             region_admissions,
             input: SimulationInput { sender, admission },
@@ -459,6 +475,8 @@ impl SimulationWorker {
             skill_device_outcomes,
             skill_device_proposals,
             attribute_transfer_outcomes,
+            healing_kit_outcomes,
+            mana_stone_outcomes,
             attribute_transfer_proposals,
             crafting_proposals,
             crafting_outcomes,
@@ -511,6 +529,12 @@ impl SimulationWorker {
     }
     pub fn attribute_transfer_outcomes(&self) -> &mpsc::Receiver<AttributeTransferOutcome> {
         &self.attribute_transfer_outcomes
+    }
+    pub fn healing_kit_outcomes(&self) -> &mpsc::Receiver<HealingKitOutcome> {
+        &self.healing_kit_outcomes
+    }
+    pub fn mana_stone_outcomes(&self) -> &mpsc::Receiver<ManaStoneOutcome> {
+        &self.mana_stone_outcomes
     }
     pub fn attribute_transfer_proposals(&self) -> &mpsc::Receiver<AttributeTransferDeviceTicket> {
         &self.attribute_transfer_proposals
@@ -706,6 +730,12 @@ impl SimulationWorker {
         let mut delivered: Vec<_> = self.attribute_transfer_outcomes.try_iter().collect();
         delivered.append(&mut exit.undelivered_attribute_transfer_outcomes);
         exit.undelivered_attribute_transfer_outcomes = delivered;
+        let mut delivered: Vec<_> = self.healing_kit_outcomes.try_iter().collect();
+        delivered.append(&mut exit.undelivered_healing_kit_outcomes);
+        exit.undelivered_healing_kit_outcomes = delivered;
+        let mut delivered: Vec<_> = self.mana_stone_outcomes.try_iter().collect();
+        delivered.append(&mut exit.undelivered_mana_stone_outcomes);
+        exit.undelivered_mana_stone_outcomes = delivered;
         let mut delivered: Vec<_> = self.attribute_transfer_proposals.try_iter().collect();
         delivered.append(&mut exit.undelivered_attribute_transfer_proposals);
         exit.undelivered_attribute_transfer_proposals = delivered;
@@ -761,6 +791,7 @@ impl SimulationWorker {
         self.physical_resource.recover(&mut exit.physical_resource);
         self.magic_resource.recover(&mut exit.magic_resource);
         self.player_snapshots.recover(&mut exit.player_snapshots);
+        self.item_mana_queries.recover(&mut exit.item_mana_queries);
         self.player_admissions.recover(&mut exit.player_admissions);
         self.region_admissions.recover(&mut exit.region_admissions);
         Ok(exit)
@@ -817,6 +848,8 @@ fn drive(
         mpsc::sync_channel(MAX_CAPACITY);
     let (attribute_transfer_outcomes, _attribute_transfer_outcomes_receiver) =
         mpsc::sync_channel(MAX_CAPACITY);
+    let (healing_kit_outcomes, _healing_kit_outcomes_receiver) = mpsc::sync_channel(MAX_CAPACITY);
+    let (mana_stone_outcomes, _mana_stone_outcomes_receiver) = mpsc::sync_channel(MAX_CAPACITY);
     let (attribute_transfer_proposals, _attribute_transfer_proposals_receiver) =
         mpsc::sync_channel(MAX_CAPACITY);
     let (crafting_proposals, _crafting_proposals_receiver) = mpsc::sync_channel(MAX_CAPACITY);
@@ -839,6 +872,7 @@ fn drive(
     let (player_admissions, _player_admission_receivers) = player_admissions::channels(1);
     let (region_admissions, _region_admission_receivers) = region_admissions::channels(1);
     let (player_snapshots, _player_snapshot_receivers) = player_snapshots::channels(1);
+    let (item_mana_queries, _item_mana_query_receivers) = item_mana_queries::channels(MAX_CAPACITY);
     let (pve_services, _pve_service_receivers) = pve_service_outputs::channels(MAX_CAPACITY);
     let (npc_services, _npc_service_receivers) = npc_service_outputs::channels(MAX_CAPACITY);
     let (inventory_output, _inventory_receiver) = inventory_outputs::channels(MAX_CAPACITY);
@@ -866,6 +900,7 @@ fn drive(
             physical_resource,
             magic_resource,
             player_snapshots,
+            item_mana_queries,
             player_admissions,
             region_admissions,
             progression: output,
@@ -887,6 +922,8 @@ fn drive(
             skill_device_outcomes,
             skill_device_proposals,
             attribute_transfer_outcomes,
+            healing_kit_outcomes,
+            mana_stone_outcomes,
             attribute_transfer_proposals,
             crafting_proposals,
             crafting_outcomes,

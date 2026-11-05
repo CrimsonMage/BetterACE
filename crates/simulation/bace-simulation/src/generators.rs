@@ -160,6 +160,7 @@ pub struct PreparedGeneratorRoot {
     pub entity: EntityId,
     pub location: GeneratorLocation,
     pub shape: Arc<bace_physics::CollisionShape>,
+    pub authored_static: bool,
     pub creature: Option<GeneratedNpcTemplate>,
     pub loadout: Option<PreparedNpcLoadout>,
 }

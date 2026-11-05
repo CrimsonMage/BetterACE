@@ -108,7 +108,8 @@ async fn stop(runtime: Box<GameRuntime>, threads: Vec<std::thread::JoinHandle<()
     if let Some(dat) = dat {
         match tokio::task::spawn_blocking(move || dat.shutdown()).await {
             Ok(Ok(())) => {}
-            Ok(Err((owner, drain))) => {
+            Ok(Err(rejected)) => {
+                let (owner, drain) = *rejected;
                 recovery._dat = Some(owner);
                 recovery._dat_drain = drain;
                 failures.push("DAT preparation shutdown retained recovery".into());

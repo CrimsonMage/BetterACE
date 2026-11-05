@@ -1,5 +1,5 @@
 use super::*;
-use crate::recalls::{PendingBinding, PreparedBindingObject};
+use crate::recalls::{PendingBinding, PendingBindingApproach, PreparedBindingObject};
 use bace_interactions::BindingKind;
 impl Kernel {
     pub fn preflight_binding_objects(
@@ -45,7 +45,20 @@ impl Kernel {
                     .then_some((actor, p.context, p.motion_owner))
             })
             .collect();
-        if self.recalls.events.len().saturating_add(affected.len()) > self.recalls.capacity {
+        let approaching: Vec<_> = self
+            .recalls
+            .binding_approaches
+            .iter()
+            .filter_map(|(&actor, p)| objects.contains(&p.object).then_some(actor))
+            .collect();
+        if self
+            .recalls
+            .events
+            .len()
+            .saturating_add(affected.len())
+            .saturating_add(approaching.len())
+            > self.recalls.capacity
+        {
             return Err(RecallError::Capacity);
         }
         for &(actor, _, owner) in &affected {
@@ -59,6 +72,17 @@ impl Kernel {
                 .events
                 .push_back(RecallEvent::Cancelled { context });
         }
+        for actor in approaching {
+            let approach = self
+                .recalls
+                .binding_approaches
+                .remove(&actor)
+                .expect("indexed");
+            approach.movement.stop(&mut self.world, actor);
+            self.recalls.events.push_back(RecallEvent::Cancelled {
+                context: approach.context,
+            });
+        }
         for object in objects {
             self.recalls.bindings.remove(object);
         }
@@ -69,48 +93,16 @@ impl Kernel {
         actor: EntityId,
         object: &PreparedBindingObject,
     ) -> Result<bool, RecallError> {
-        let (a, ap) = self
-            .world
-            .actor_state(actor)
-            .map_err(|_| RecallError::Invalid)?;
-        let (b, bp) = self
-            .world
-            .actor_state(object.entity)
-            .map_err(|_| RecallError::Invalid)?;
-        // Cross-landblock interaction requires a prepared shared frame. Outdoor
-        // offsets are authoritative; unrelated dungeon frames cannot be compared.
-        if a.0 >> 16 != b.0 >> 16 && (a.0 & 65535 >= 256 || b.0 & 65535 >= 256) {
-            return Ok(false);
-        }
-        let ab = self.world.body(actor).map_err(|_| RecallError::Invalid)?;
-        let bb = self
-            .world
-            .body(object.entity)
-            .map_err(|_| RecallError::Invalid)?;
-        let ah = ab
-            .collision_shape()
-            .map_or(ab.collision_radius() * 2., |s| s.height());
-        let bh = bb
-            .collision_shape()
-            .map_or(bb.collision_radius() * 2., |s| s.height());
-        let mut offset = bp.position() - ap.position();
-        offset.x += (((b.0 >> 24) as i32 - (a.0 >> 24) as i32) * 192) as f32;
-        offset.y += ((((b.0 >> 16) & 255) as i32 - ((a.0 >> 16) & 255) as i32) * 192) as f32;
-        let reach =
-            offset.length_squared().sqrt() - (ab.collision_radius() + bb.collision_radius());
-        let dz = if ap.position().z <= bp.position().z {
-            bp.position().z - (ap.position().z + ah)
-        } else {
-            ap.position().z - (bp.position().z + bh)
-        };
-        let distance = if dz > 0. && reach > 0. {
-            f64::from(dz * dz + reach * reach).sqrt()
-        } else if dz < 0. && reach < 0. {
-            -f64::from(dz * dz + reach * reach).sqrt()
-        } else {
-            f64::from(reach)
-        };
-        Ok(distance as f32 <= object.use_radius)
+        super::super::world_use::within_use_radius(
+            &self.world,
+            actor,
+            object.entity,
+            object.use_radius,
+        )
+        .map_err(|error| match error {
+            super::super::world_use::WorldUseError::MissingContent => RecallError::MissingAssets,
+            _ => RecallError::Invalid,
+        })
     }
     pub(super) fn start_binding(
         &mut self,
@@ -129,6 +121,7 @@ impl Kernel {
         }
         if self.recall_access(context.actor)?.busy
             || self.recalls.pending_bindings.len() >= self.recalls.capacity
+            || self.recalls.binding_approaches.contains_key(&context.actor)
         {
             return Err(RecallError::Busy);
         }
@@ -146,7 +139,34 @@ impl Kernel {
             relation.map_or(0, |r| r.officer_level),
         )?;
         if !self.binding_in_range(context.actor, &object)? {
-            return Err(RecallError::MovedTooFar);
+            if self.recalls.binding_approaches.len() >= self.recalls.capacity {
+                return Err(RecallError::Capacity);
+            }
+            let mut movement = super::super::world_use::WorldApproach::new(self.tick);
+            if movement
+                .advance(
+                    &mut self.world,
+                    context.actor,
+                    object.entity,
+                    object.use_radius,
+                )
+                .is_err()
+            {
+                movement.stop(&mut self.world, context.actor);
+                return Err(RecallError::MovedTooFar);
+            }
+            self.recalls.binding_approaches.insert(
+                context.actor,
+                PendingBindingApproach {
+                    context,
+                    object: object.entity,
+                    animation_seconds,
+                    style,
+                    motion,
+                    movement,
+                },
+            );
+            return Ok(());
         }
         let delay =
             bace_interactions::recall_delay_ticks(RecallKind::Lifestone, animation_seconds)?;
@@ -185,6 +205,66 @@ impl Kernel {
             until_tick: due,
         });
         Ok(())
+    }
+    pub(super) fn step_binding_approaches(&mut self) {
+        self.recalls.scratch.clear();
+        self.recalls
+            .scratch
+            .extend(self.recalls.binding_approaches.keys().copied().take(32));
+        for index in 0..self.recalls.scratch.len() {
+            if self.recalls.events.len() >= self.recalls.capacity {
+                break;
+            }
+            let actor = self.recalls.scratch[index];
+            let Some(mut approach) = self.recalls.binding_approaches.remove(&actor) else {
+                continue;
+            };
+            let object = self.recalls.bindings.get(&approach.object).cloned();
+            let result = if self.tick.saturating_sub(approach.movement.started_tick) >= 450
+                || self.characters.get(actor).is_none()
+                || self.world.is_in_portal_transit(actor)
+            {
+                Err(RecallError::MovedTooFar)
+            } else if let Some(object) = object {
+                match self.binding_in_range(actor, &object) {
+                    Ok(true) => {
+                        approach.movement.stop(&mut self.world, actor);
+                        match self.start_binding(
+                            approach.context,
+                            approach.object,
+                            approach.animation_seconds,
+                            approach.style,
+                            approach.motion,
+                        ) {
+                            Ok(()) => continue,
+                            Err(error) => {
+                                self.recalls.events.push_back(RecallEvent::Rejected {
+                                    context: approach.context,
+                                    error,
+                                });
+                                continue;
+                            }
+                        }
+                    }
+                    Ok(false) => approach
+                        .movement
+                        .advance(&mut self.world, actor, object.entity, object.use_radius)
+                        .map_err(|_| RecallError::MovedTooFar),
+                    Err(error) => Err(error),
+                }
+            } else {
+                Err(RecallError::MissingAssets)
+            };
+            if let Err(error) = result {
+                approach.movement.stop(&mut self.world, actor);
+                self.recalls.events.push_back(RecallEvent::Rejected {
+                    context: approach.context,
+                    error,
+                });
+            } else {
+                self.recalls.binding_approaches.insert(actor, approach);
+            }
+        }
     }
     pub(super) fn step_bindings(&mut self) {
         self.recalls.scratch.clear();

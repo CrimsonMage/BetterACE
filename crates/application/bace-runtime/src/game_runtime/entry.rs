@@ -118,6 +118,20 @@ impl GameRuntime {
                         self.unexpected_snapshot = Some(outcome);
                         "crafting snapshot correlation mismatch".to_owned()
                     })?;
+            } else if self.healing_kits.owns_capture(&outcome) {
+                self.healing_kits
+                    .accept_capture(outcome, unix)
+                    .map_err(|outcome| {
+                        self.unexpected_snapshot = Some(outcome);
+                        "healing-kit snapshot correlation mismatch".to_owned()
+                    })?;
+            } else if self.mana_stones.owns_capture(&outcome) {
+                self.mana_stones
+                    .accept_capture(outcome)
+                    .map_err(|outcome| {
+                        self.unexpected_snapshot = Some(outcome);
+                        "mana-stone snapshot correlation mismatch".to_owned()
+                    })?;
             } else if self.inventory_owns_capture(&outcome) {
                 self.accept_inventory_capture(outcome, unix)
                     .map_err(|outcome| {

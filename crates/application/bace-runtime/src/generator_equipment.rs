@@ -65,8 +65,32 @@ pub fn materialize_creature_equipment_with_inventory(
     }
     let mut rng = bace_spawning::generator_event_stream(root, intent, 0x20000)
         .map_err(|e| format!("creature random: {e:?}"))?;
+    // Patches contains static human Creatures and Shops with authored Wield
+    // clothing but ItemCapacity=-1. ACE's TryAddToInventory consequently
+    // discards every piece before it can equip. For this authored appearance case,
+    // stage the Wield pass in a temporary inventory and retain only items that
+    // actually equipped. The persisted NPC still has its original capacities.
+    let stage_wield = matches!(source.weenie_type, 10 | 12)
+        && int(source, 6, 0) == -1
+        && table.is_none()
+        && !has_inventory
+        && source
+            .properties
+            .create_list
+            .iter()
+            .any(|row| row.destination_type & 2 != 0);
+    let mut staged = stage_wield.then(|| source.clone());
+    if let Some(staged) = staged.as_mut() {
+        let capacity = staged
+            .properties
+            .ints
+            .iter_mut()
+            .find(|property| property.id == 6)
+            .ok_or("NPC Wield staging capacity missing")?;
+        capacity.value = 1024;
+    }
     let mut result = bace_loot::generate_creature_equipment(
-        source,
+        staged.as_ref().unwrap_or(source),
         templates,
         wielded.as_ref(),
         &[],
@@ -74,6 +98,15 @@ pub fn materialize_creature_equipment_with_inventory(
         &mut rng,
     )
     .map_err(|e| format!("creature equipment: {e:?}"))?;
+    if stage_wield {
+        if result
+            .iter()
+            .any(|item| item.wielded_location != 0 && item.parent_index.is_some())
+        {
+            return Err("NPC staged Wield item has nested custody".into());
+        }
+        result.retain(|item| item.wielded_location != 0);
+    }
     if has_inventory {
         let generated = inventory
             .ok_or("missing inventory treasure")?
@@ -340,16 +373,14 @@ fn prepare_creature_loadout_impl(
     }
     let mut attributes = [0; 6];
     for (id, out) in attributes.iter_mut().enumerate() {
-        let row = source
+        *out = source
             .properties
             .attributes
             .iter()
             .find(|p| p.id == id as u32 + 1)
-            .ok_or("missing creature attribute")?;
-        *out = row
-            .value
-            .init_level
-            .checked_add(row.value.level_from_cp)
+            .map_or(Some(0), |row| {
+                row.value.init_level.checked_add(row.value.level_from_cp)
+            })
             .ok_or("creature attribute overflow")?;
     }
     let mut profile =

@@ -17,6 +17,22 @@ The live authenticated roster path now queues CharacterList and ServerName in
 one reliable UI batch, then DDD_Interrogation after that prefix is admitted.
 A matching client iteration
 response receives DDD_EndDDD; its reliable admission gates world entry.
+Pinned ACE's `DDDHandler.DDD_EndDDD` ignores a client EndDDD when no BeginDDD
+was sent. The stock-client echo after a matching interrogation now follows that
+path without a boot or a second EndDDD response.
+For region e74e, accepted content includes a placed nonattackable NPC with a
+ready-only motion table and two invalid creature templates reached only by
+future generator references. Pinned ACE's `Creature.IsNPC` and
+`Monster.SetMonsterState` classify the placed NPC as noncombatant. Cold
+preparation now admits it as a stationary collidable actor using its authored
+ready animation; indirect invalid templates remain unavailable and fail at
+spawn. The actual-DAT e74e replay checks that no placed root is held by an
+NPC physical profile error. Full retail world-entry parity remains unverified.
+The same approved e74e replay resolves source rows with a landblock-header
+outdoor cell hint through the pinned GDLE-style outdoor coordinate mapping and
+retains signed `-1` inventory capacity as zero usable slots. One authored
+stationary portal is embedded in its supporting terrain; its initial placement
+uses a bounded exception while its verified collision shape remains active.
 Responses before interrogation admission remain retained. Missing or newer DAT iterations receive an
 explicit AccountBoot while patching stays disabled by default. Opt-in patching
 prepares exact Portal/Language metadata on blocking capacity, sends Begin and
@@ -440,6 +456,13 @@ Committed split-to-wield output now selects the fresh equipped ID from the
 exact proposal and verifies both source and created rows before private
 publication and observer visibility. Two focused runtime output tests pass;
 stock-client equipment playback remains deferred.
+An approved-DAT and real-UDP entry regression now completes a starter wand
+`GetAndWieldItem` transaction through PostgreSQL and the private `WieldObject`
+event. Its 75 prepared avatar motions exposed a 64-entry admission cap that
+silently retried as queue pressure; the bounded cap is now 128 and invalid
+physical companions report retained failure. Shield skill is required only
+when a shield is present, and one runtime-owned CharGen serves later appearance
+changes across entered sessions. Retail client playback still needs observation.
 The dequip equipment owner now checks the complete accepted direct-equipped
 roster, each item's revision and location, before using thrown-weapon metadata
 to select the authored combat stance. Omitted, duplicated and nested forged
@@ -968,17 +991,27 @@ after encoding the complete response. The simulation NPC owner freezes authored
 Tolerance Int67, suppresses source-excluded Idle auto-acquisition, and previews
 then adopts one appraisal wake with the examiner as target and ordered
 Scream(18)/NewEnemy(17) obligations. Focused wire, projection and NPC owner
-tests pass. Live Identify ingress remains unsupported because source-filtered
-AppraiseInfo, friendly alerts, authored emote completion and reliable output
-retention are not yet one complete action; codecs and a wake owner alone do
-not establish live appraisal parity.
+tests pass. Live Identify ingress now sends a bounded queue-9 response for the
+character, owned items and already known world objects. It uses the pinned
+assessment-property allowlists and immutable spell IDs; missing targets get an
+empty failure response. Clothing includes the pinned eight-field authored
+ArmorProfile; live bane enchantments are not applied. The complete
+source-filtered AppraiseInfo, friendly
+alerts, authored emote completion and reliable output retention are not yet
+one complete action, so this is scaffolded live identification rather than
+ACE appraisal parity.
+The approved-DAT/PostgreSQL/real-UDP entry regression now covers IdentifyObject,
+QueryHealth and GetAndWieldItem in sequence. It exposed a staff ban poll that
+discarded a non-ban query phase and held later inventory input indefinitely;
+the poll preserves non-ban phases, and the query receipt plus wield response pass.
+Retail examination and end-to-end equip remain to be confirmed on a live client.
 The appraisal foundation now also has the pinned 176 numeric assessment-property
 IDs across six source families and an explicit owner cache decision for missing,
 cleared, repeated success and the five-second failed-attempt boundary. It takes
 the roll and time as inputs; the focused source extraction and cache tests pass.
 Connected effective AssessCreature/Deception and modified profiles, FindObject membership,
 friendly alerts, authored emote completion and reliable publication still gate
-live Identify.
+complete Identify.
 The prepared appraisal roll now follows pinned `Player.Examine` and
 `SkillCheck.GetSkillChance` for AssessCreature/AssessPerson versus Deception,
 untrained creature Focus/Self modification, one source draw, resist and final
@@ -986,7 +1019,7 @@ Pet/CombatPet override. An oracle checks exact pinned source hashes and method
 order and emits 16 fixed source-derived vectors; it did not execute C#.
 The focused evaluator test and strict simulation Clippy pass. Authoritative
 profile collection, FindObject, friendly alerts, emotes and reliable response
-retention still gate live Identify ingress.
+retention still gate complete live Identify behavior.
 The isolated implementation checkpoint passed
 `cargo fmt --all -- --check`, strict workspace all-target Clippy,
 `cargo test --workspace` (498 suites, 1,908 passed, 61 ignored, including
@@ -998,3 +1031,156 @@ Concurrent unstaged creation, generator, geometry and lifecycle work is not
 part of this frozen validation. Approved DAT-backed nested source
 admission/cold reload and stock-client transcripts remain separate acceptance
 work; no game client was used.
+
+The 2026-10-13 retail-entry checkpoint added a bounded four-profile cache in
+the player preparation worker for approved avatar DAT closures. An ignored
+approved-DAT test measured a cold closure at 322.746 ms and an identical
+cached closure at 12.328 µs. An accepted-pack, approved-DAT, PostgreSQL and
+real-UDP regression now enters a character, identifies an item, queries health
+and wields a starter wand. A separate real-UDP quickslot regression assigns a
+shortcut, survives two routine saves including a general options update, and
+reloads the shortcut after logout and reconnect. A three-move real-UDP inventory
+regression retains the exact loose-item, bag, main-inventory and reordered
+placement in PostgreSQL. Those earlier tests did not explain the user's retail
+two-handed weapon rejection or prove retail bag and shortcut presentation.
+The later retail trace exposed the actual inventory ingress fence error: the
+inventory route supplied the decoded GameAction counter to a character replay
+cursor that other action routes advance with the ordered transport sequence.
+Pinned ACE parses that payload counter but marks its semantics unverified and
+does not use it for authorization. The corrected route uses the ordered
+transport sequence. A real-UDP/PostgreSQL Training Spadone request with
+transport sequence 17 and action counter 1 commits wield location `0x02000000`
+and emits Wield `0x0023`; three successive bag/inventory moves with a repeated
+payload counter also commit. Retail equip still needs a new live attempt. A
+rejected inventory snapshot now sends an exact proposal rejection and frees the
+save reservation instead of retaining a blocked logout indefinitely.
+
+Live Identify now projects additional authored weapon, armor, description and
+mana-stone details, and queries simulation-owned current/max mana for the exact
+owned item. Connected tests cover that overlay, attribute and skill buff
+refresh/expiry, equipped item buff effects, ACE-gated Mana Conversion cost and
+physical attack/defense stamina spending. The source-backed NPC Use approach
+and binding-stone approach are admitted by simulation-owned motion and a
+cross-cell cylinder reach check. Retail examination, Society Greeter approach,
+equipment and buff presentation still need a fresh client transcript. The last
+retail log entered the world but later reported an NPC motion `Conflict` and
+blocked lifecycle work. The rebuilt server is listening on loopback UDP ports
+9000/9001; startup reached game services in 1.651 s, with 171.2 MiB RSS,
+1.840 CPU seconds and 15 threads. The fresh retail transcript is pending.
+Movement admission now uses the pinned GDLE stamp policy for MoveToState and
+AutonomousPosition while the simulation keeps server-owned position and
+teleport state; source-derived valid, stale and wrap-stamp tests pass.
+The next source audit found that a stale client ForcePosition stamp was itself
+requesting another forced correction. Pinned GDLE discards that packet without
+advancing ForcePosition. BetterACE now does the same; a fixture that enters
+through real UDP and PostgreSQL then submits a stale packet to the runtime
+holds the server stamp at 1 after the client's packet carries 0.
+The prior correction rule also fired on ordinary 0.25 m prediction, contact or
+heading differences. It now uses pinned GDLE's 10 m MoveToState and 25 m
+AutonomousPosition thresholds within one cell; cross-cell comparison remains
+unqualified. The current server logs the accepted and observed positions when
+it does request a correction. Its latest startup took 3.011 s, with 170.1 MiB
+RSS, 2.160 CPU seconds and 15 threads. The retail retry is still pending, so
+this does not establish playable movement.
+
+The same retail trace marked the character Entered and removed the runtime
+entry marker before its first movement action. The simulation entered receipt
+also clears the world entry marker. A wand equip later hit a generic visibility
+projection failure. Branch-specific diagnostics and a regression for an equip
+during an in-flight visibility read are now in place; that regression publishes
+only the equipped child and root update. The old log cannot identify its exact
+failure branch, and the current retail replay is needed. An accepted-pack,
+approved-DAT, PostgreSQL and real-UDP regression now confirms wand equip and
+dequip, the exact client inventory event, and committed placement even when
+both GameActions reuse the payload counter.
+
+The self-target Healing Kit `UseWithTarget` route now requires trained Healing,
+waits for approved-DAT heal motion, spends Structure and template-derived Value
+after the motion even on a failed skill roll, and commits the kit and player
+vital atomically before UseDone. A real-UDP/PostgreSQL regression observes
+Structure 3 to 2, Value 90 to 60, correct output order, and graceful logout.
+It also exposed a trailing Ready animation hook that blocked actor retirement;
+the owner now drains all callbacks for its exact return token. Other-player
+healing, ACE's NextUseTime combat-mode delay and proficiency gain remain
+unsupported. A charged mana stone now has a bounded owned-item target route
+with simulation ownership and a two-item durable commit. Equipped-item empty
+extraction and self-target distribution remain unsupported; no retail or
+PostgreSQL end-to-end test has run for this route. The current 2026-10-13
+checkpoint passes workspace format, strict all-target Clippy, workspace tests,
+`cargo xtask check` and diff checks. `cargo xtask check` covers 52 crates and
+2,051 Rust files; the largest is 1,439 lines. Retail behavior remains to be
+checked against the running server.
+
+The next retail trace identified an exact fatal boundary after wand equip:
+`visibility knowledge stage: StaleSnapshot` on the player. A late simulation
+visibility read is now discarded with its buffer returned for reuse; a staged
+publication, late read and fresh continuation regression passes. The rebuilt
+server reached game services in 1.596 s with 170.0 MiB RSS, 2.010 CPU seconds
+and 15 threads. Retail equip and area continuity need a new attempt.
+
+The same trace did not show a forward key release because movement diagnostics
+sampled only the first few packets. Runtime now logs every changed raw movement
+state with bounded session tracking. A simulation regression presses WalkForward,
+then submits Ready and verifies accepted position stops. This establishes the
+simulation response to a received release, not that the live client release is
+arriving and clearing the current session; the new retail trace is pending.
+
+A source audit of creation found that entry `PlayerDescription` emitted
+Coordination before Quickness, contrary to the saved property ids and pinned
+ACE packet order. The projection is corrected. An approved-DAT/PostgreSQL
+regression with distinct six attributes, trained and specialized skills passes
+creation, durable reload and entry projection. The existing retail character's
+record has six attributes at 10 and no specialized skill; no original creation
+packet was captured, so its prior allocation loss remains unexplained. New
+creation diagnostics record the incoming allocation values and skill classes
+for a fresh retail attempt, without account or character identity.
+This checkpoint passes workspace format, strict all-target Clippy, workspace
+tests, `cargo xtask check` (52 crates, 2,052 Rust files; largest 1,439 lines),
+and diff checks. The ignored approved-DAT/PostgreSQL creation integration
+test also passes when explicitly supplied the local assets. The latest server
+has not yet received a retail session.
+
+The area reload on equip had a separate direct cause from the stale read:
+equipment output requested a full observer visibility reset after every equip
+or dequip. That reset sent ObjectDelete for all known nearby objects and the
+next visibility read recreated them. Pinned ACE equipment broadcasting updates
+the equipped item and actor appearance without this reset. The equipment path
+now retains its normal observer updates without requesting the reset. A
+multi-object visibility regression confirms that the actor and attachment
+change while unrelated known objects remain; its explicit reset control
+reproduces the old area deletion. The approved-DAT, PostgreSQL and real-UDP
+wand-equip test also fails under the old reset when it deletes unrelated known
+object `0x7860202a`, then passes after the reset call is removed. Workspace
+format, strict Clippy, tests and `cargo xtask check` pass. The rebuilt server
+reached game services in 3.286 s at 170.2 MiB RSS; a fresh retail equip replay
+is still pending.
+
+The next retail trace confirmed pressed and released movement controls reach
+the server. A later health query failed `Stale` and the staff adapter blocked
+the lifecycle. Movement now authenticates against the bound character while
+its authoritative Body owns the movement replay cursor; it no longer advances
+the separate gameplay-action cursor. NPC Use and vendor Use now take reliable
+transport sequence rather than the GameAction-local counter. A stale staff
+query is logged and retired without a global world hold. Synthetic NPC Use,
+approach cancellation, movement replay and sequence tests pass; retail replay
+is pending.
+
+Door `0x77f03033` was an authored type-19 door absent from production door
+registration. The accepted pack has weenie 12705 and motion table `0x09000086`.
+The GDLE-led door path now prepares the door from its region root, plays the
+DAT Off/On links and ethereal hooks, retains the same world collider identity,
+and routes Use and server-owned approach through simulation. The door GUID's
+high bits are `0x77f0` although the authored landblock is `0x7f03`, so the
+active door lookup searches admitted region contents. The exact door
+and all standalone type-19 doors in the approved 8602 region pass source-asset
+tests; synthetic door approach, cancellation and state tests pass. Connected
+runtime and stock-client door interaction are still being checked.
+
+Connected equipment tests reproduced an immediate re-equip failure from a
+stale cold character revision. A distinct rejection now triggers up to two
+fresh captures without weakening the revision fence. A one-entry immutable
+avatar DAT cache reduced local dequip and re-equip from 325/605 ms to 165/172
+ms; the first uncached equip took 339 ms, with 195 ms in DAT preparation.
+Connected bag and actor-slot moves passed at 102-107 ms. These local timings
+do not qualify 1000-player inventory throughput: one global pending inventory
+slot still serializes actions. Retail item-swap replay remains pending.

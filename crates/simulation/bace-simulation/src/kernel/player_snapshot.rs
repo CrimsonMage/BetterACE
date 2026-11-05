@@ -49,6 +49,7 @@ impl Kernel {
         if let Some((crate::PlayerSnapshotOperation::Inventory(id), revision)) = operation
             && !self.validate_inventory_snapshot(binding, id, revision)
             && !self.validate_magic_resource_snapshot(binding, id, revision)
+            && !self.validate_mana_stone_snapshot(binding, id, revision)
         {
             return Err(E::DurabilityPending);
         }
@@ -88,6 +89,20 @@ impl Kernel {
                             != Some(&ticket.inventory)
                         || !self.inventory.reserved(binding.actor)
                 })
+        {
+            return Err(E::DurabilityPending);
+        }
+        if let Some((crate::PlayerSnapshotOperation::HealingKit(id), revision)) = operation
+            && self.healing_kits.pending.get(&id).is_none_or(|ticket| {
+                ticket.context.actor != binding.actor
+                    || ticket.actor_revision != revision
+                    || self.inventory.pending_ticket(id).is_none_or(|held| {
+                        ticket
+                            .inventory
+                            .as_ref()
+                            .map_or(!held.proposal.changes.is_empty(), |source| source != held)
+                    })
+            })
         {
             return Err(E::DurabilityPending);
         }

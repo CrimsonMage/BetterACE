@@ -235,6 +235,7 @@ impl Worker {
                                 &prepared,
                                 &batch.admission,
                             )?;
+                            let doors = assets.prepare_doors(&prepared, &batch.admission)?;
                             let views = assets.prepare_region_visibility(
                                 &prepared,
                                 &encounters,
@@ -270,6 +271,7 @@ impl Worker {
                                     visibility: prepared.visibility.clone(),
                                     region: batch.admission,
                                     items,
+                                    doors,
                                     bindings,
                                     dungeon,
                                     keep_alive: u32::try_from(keep_alive)

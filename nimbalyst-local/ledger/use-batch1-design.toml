@@ -1,0 +1,923 @@
+# P0-I Use batch 1 design (read-only; gate freeze, no crates/ or docs/ edits).
+# Families: Container, Food, Chest, Lock/Key (Key), Lockpick. Order follows use-types.toml implementation_order.
+#
+# Pins and sources:
+#   ACE:  .reference/ACE-47edade3bd3f6044b676d4eb877c4965c7eda62b/Source/...  (paths below are relative to that snapshot)
+#   GDLE: /home/jokerfactor/Documents/GitHub/gdlenhanced @ 353cbab  (paths below are relative to its Source/)
+#   Authority (docs/baselines.toml): lock/door STATE = gdle (coordinator instruction); food, container range and
+#   wire layout = ace (gameplay_default). Where they disagree the card records both and names the chosen source.
+#
+# git status column: clean = committed and unmodified; WIP-M = modified uncommitted by another worker;
+#   WIP-?? = untracked; new = does not exist yet. Re-check before implementing (gate freeze).
+#
+# Template key: 'healing' = healing-kit path (runtime game_runtime/healing_kits*, healing_kit_service.rs,
+#   bace-inventory/src/healing_kit.rs, bace-simulation kernel/healing_kits.rs + characters/healing_kits.rs);
+#   'corpse' = corpse Open/Close path (runtime game_runtime/deaths/access*, simulation kernel/player_death/corpse_access.rs).
+#
+# Durability vocabulary: 'none' = no persisted change; 'item-receipt' = freeze_inventory / placement receipt
+#   (healing_kit_service.rs freeze, placement_saves.rs PendingPlacementSave); 'routine' = dirty revision + 5 s
+#   save (SAVE-01); 'GAP' = no existing persistence path.
+
+# ---------------------------------------------------------------------------
+# Shared prerequisites: land these first. COORDINATOR-OWNED = contract or file currently in other workers' WIP.
+# ---------------------------------------------------------------------------
+
+[[shared]]
+id = "S1"
+title = "Use dispatch by WeenieType (single seam)"
+owner = "bace-runtime"
+coordinator_owned = true
+reason = "game_runtime/ingress.rs is WIP-M; the dispatch chain there is a sequence of try-each handlers, not a router."
+current_state = "ingress.rs:430-470 (corpse), 686-720 (skill device, healing, mana stone, crafting) each decode and return Unsupported. healing_kits.rs checks saved weenie_type == 28 (ACE WeenieType.Healer) inline. No shared target-type resolve exists."
+proposal = "Decode 0x0035/0x0036 once per message. Resolve target WeenieType from the accepted baseline (online_saves.inventory_baseline) or the region world source (region_service/sources.rs world_item_source). Route to one handler per type. Keep unknown types Unsupported."
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/ingress.rs", status = "WIP-M" },
+  { path = "crates/application/bace-runtime/src/game_runtime/use_dispatch.rs", status = "new" },
+]
+depends_on = []
+oracle = "none (routing)"
+tests = ["each WeenieType resolves to exactly one handler", "unknown type stays Unsupported", "malformed envelope returns error, no mutation"]
+durability = "none"
+
+[[shared]]
+id = "S2"
+title = "UseDone(0) after activation (TryUseItem seam)"
+owner = "bace-runtime"
+coordinator_owned = true
+reason = "The corpse output (deaths/access/output.rs) is WIP-M; a shared helper must be added without disturbing it."
+current_state = "ACE Player.TryUseItem (Player_Use.cs:223-240) queues SendUseDoneEvent after LastUseTime for every activation, including Container and Food. BACE corpse Open/Close output (deaths/access/output.rs) emits ViewContents/CloseContainer and WeenieError but no UseDone. skill_devices/output.rs:87-90 documents the rule and is the closest template."
+proposal = "Add one helper that appends SimpleGameEvent::UseDone(code) after an activation step. Code 0 on success or no-op activation; ACE error codes on refusal. Use it from containers, food and locks. Add UseDone to the corpse Open/Close output only after coordination with the WIP owner."
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/use_done.rs", status = "new" },
+  { path = "crates/application/bace-runtime/src/game_runtime/deaths/access/output.rs", status = "WIP-M" },
+]
+encoder = "exists: bace-wire events.rs:5-20 SimpleGameEvent::UseDone(u32) -> GameEventType::UseDone 0x01C7"
+depends_on = []
+oracle = "ACE Player_Use.cs:223-240 transcript (table test)"
+tests = ["refusal sends error code, success sends 0", "corpse Open still sends ViewContents before UseDone (ordering)"]
+durability = "none"
+
+[[shared]]
+id = "S3"
+title = "NoLongerViewingContents 0x0195 runtime handler"
+owner = "bace-runtime"
+coordinator_owned = false
+reason = "Inbound decode exists; no runtime handler calls the viewer close."
+current_state = "bace-wire inventory_input.rs:176 decodes 0x0195 as InventoryAction::StopViewing(u32). grep finds no consumer in bace-runtime or bace-replication."
+proposal = "Route StopViewing to the same viewer-close used by corpse detach (deaths.viewers map, access.rs queue_corpse_viewer_detach) and to the new container close (C4)."
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/deaths/access.rs", status = "clean" },
+  { path = "crates/application/bace-runtime/src/game_runtime/containers.rs", status = "new (C3)" },
+]
+encoder = "inbound decode exists: bace-wire inventory_input.rs:176"
+depends_on = ["S1"]
+oracle = "ACE Player_Use.cs:258-264 HandleActionNoLongerViewingContents (Close only if Viewer == actor); GDLE ClientEvents.cpp:1720-1728 and Container.cpp:1452-1458 (HandleNoLongerViewing requires _openedById == other)"
+tests = ["stop from non-viewer is a no-op", "stop from viewer closes and sends CloseGroundContainer", "stop for unknown object is a no-op"]
+durability = "none"
+
+[[shared]]
+id = "S4"
+title = "Shared use reach and obstruction helper"
+owner = "bace-simulation"
+coordinator_owned = false
+reason = "The distance and segment-clear logic is private to the corpse path; containers and locks need the same rule."
+current_state = "kernel/player_death/corpse_access.rs:113-176 authorize_corpse_use computes inventory_use_distance (bace-inventory physical.rs:9) against the target UseRadius (property float 54, default 0.5 per ACE Container.cs:119-120) and segment_clear. corpse_access.rs is clean."
+proposal = "Extract the reach and obstruction check into a crate-private fn in kernel/use_reach.rs. Corpse code calls it unchanged. Containers and locks reuse it."
+files = [
+  { path = "crates/simulation/bace-simulation/src/kernel/player_death/corpse_access.rs", status = "clean" },
+  { path = "crates/simulation/bace-simulation/src/kernel/use_reach.rs", status = "new" },
+  { path = "crates/simulation/bace-simulation/src/kernel.rs", status = "WIP-M" },
+]
+depends_on = []
+oracle = "ACE Container.cs:119-120 (default UseRadius 0.5); corpse rules unchanged"
+tests = ["existing corpse reach tests still pass", "range boundary equals UseRadius accepted", "non-finite or >20 radius rejected (existing rule)"]
+durability = "none"
+
+[[shared]]
+id = "S5"
+title = "Durable non-player world property change (container lock state)"
+owner = "bace-persistence"
+coordinator_owned = true
+reason = "Persistence contract and DTO shape. Chest Locked, LastUnlocker and UseLockTimestamp need a durable path that no placement operation provides."
+current_state = "bace-persistence placements.rs:16-20 PlacementChange carries only item placement (expected/destination). WorldPlacementOperation (placements.rs:65) wraps PlacementOperation. FrozenInventoryItem (game_inventory.rs:15-23) carries EntitySaveV1 state, but no operation changes entity bools for a world object."
+proposal = "Owner choice: (a) add a revision-checked world property change op with a frozen DTO (DATA-02 migration), or (b) a WorldContainerStateV1 frozen DTO keyed by object id. Either needs a durable operation id and a receipt (SAVE-02)."
+files = [
+  { path = "crates/storage/bace-persistence/src/placements.rs", status = "clean" },
+  { path = "crates/storage/bace-storage-codec/src/", status = "clean (new DTO file expected)" },
+]
+depends_on = []
+oracle = "none"
+tests = ["DTO round-trip is not parity evidence; needs migration test and reject-on-stale-revision test"]
+durability = "GAP (this card closes it)"
+
+[[shared]]
+id = "S6"
+title = "Gameplay-API Use request and decision types"
+owner = "bace-gameplay-api"
+coordinator_owned = true
+reason = "Shared contract crate. bace-gameplay-api/src/door.rs (UseDoor) is the only use-type today."
+current_state = "crates/simulation/bace-gameplay-api/src/ has door.rs (clean), corpse_consent.rs, inventory_actions.rs. No container, lock or consumable request types."
+proposal = "Add UseContainer { container }, UseUnlocker { unlocker, target }, UseConsumable { item }, each with the matching Rejection enum, following door.rs (UseDoor + DoorRejection)."
+files = [
+  { path = "crates/simulation/bace-gameplay-api/src/container.rs", status = "new" },
+  { path = "crates/simulation/bace-gameplay-api/src/lib.rs", status = "clean (mod/use lines only)" },
+]
+depends_on = []
+oracle = "none"
+tests = ["type-level only; behavior tests live in the simulation cards"]
+durability = "none"
+
+# ---------------------------------------------------------------------------
+# Family 1: Container (ACE Container.cs ActOnUse; GDLE Container.cpp DoUseResponse)
+# ---------------------------------------------------------------------------
+
+[[card]]
+id = "C1"
+family = "Container"
+title = "World container viewer state machine (Open / Close / InUse)"
+owner = "bace-simulation"
+coordinator_owned = false
+kind = "simulation"
+files = [
+  { path = "crates/simulation/bace-simulation/src/kernel/container_access.rs", status = "new" },
+  { path = "crates/simulation/bace-simulation/src/kernel.rs", status = "WIP-M (mod line only)" },
+]
+template = "corpse (kernel/player_death/corpse_access.rs: apply_corpse_access_command 12-95, authorize_corpse_use 113-176, decide 409-463)"
+ace = [
+  "Source/ACE.Server/WorldObjects/Container.cs:695-724 ActOnUse: close previously opened container (LastOpenedContainerId), return if owned/contained, Open if !IsOpen, else Close if viewer or InUse message",
+  "Container.cs:727-737 InUseMessage 'The {Name} is already in use by {viewer}!'",
+  "Container.cs:740-760 Open: sets Viewer, LastOpenedContainerId, IsOpen, then SendInventory",
+  "Container.cs:119-120 default UseRadius 0.5",
+]
+gdle = [
+  "Source/Container.cpp:1238-1262 DoUseResponse: busy -> none; not ground container -> none; out of IsInOpenRange -> none (silent); IsLocked -> sound OpenFailDueToLock, none",
+  "Source/Container.cpp:1437-1450 CheckOpenContainer: _openedById other -> WERROR_CHEST_ALREADY_OPEN",
+  "Source/Container.cpp:1103 IsInOpenRange",
+]
+disagreement = "GDLE returns silently when out of range; ACE (gameplay default) first moves the player into range (Player_Use.cs:136-170 CreateMoveToChain). Choose ACE; record GDLE difference."
+outbound = [
+  "none new at this step (viewer is transient). Projection is card C3."
+]
+encoder = "n/a"
+oracle = "No numeric oracle. Source-derived decision table (test fixture written from the ACE/GDLE citations above; not executed against source)."
+tests = [
+  "owned or contained container: no-op (ACE 709-710)",
+  "already open by another viewer: Denied InUse with the viewer-name message",
+  "open by the same actor: Close",
+  "actor opens previously-viewed container: prior container closes first",
+  "stale actor binding: Ownership rejection (corpse authorize_corpse_close pattern)",
+  "out of reach: OutOfRange; obstructed segment: Obstructed",
+]
+durability = "none (transient viewer). Container contents are read-only here."
+depends_on = ["S4"]
+
+[[card]]
+id = "C2"
+family = "Container"
+title = "Accepted world-container source and direct-children read"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "runtime"
+files = [
+  { path = "crates/application/bace-runtime/src/region_service/sources.rs", status = "clean" },
+  { path = "crates/application/bace-runtime/src/region_service.rs", status = "WIP-M (do not touch; expose via sources.rs only)" },
+]
+template = "corpse: region_service/sources.rs corpse_source 340-345, corpse_open_contents 365-373, container_children_in 33-57 (private container_children 375)"
+ace = [
+  "Source/ACE.Server/WorldObjects/Container.cs:785-807 SendInventory: GameEventViewContents for the container, then each direct subcontainer, then CreateObject for items and one level of nested items",
+]
+gdle = [
+  "Source/Container.cpp:1114 OnContainerOpened (opener record)",
+]
+outbound = ["ViewContents 0x0196 per container (card C3)"]
+encoder = "exists: bace-wire inventory_output.rs:26-30 InventoryEvent::ViewContents, encode 115-120"
+oracle = "none beyond ACE SendInventory ordering (table)"
+tests = [
+  "children sorted by (pack_slot, slot, object_id) as corpse",
+  "more than 1024 children rejected",
+  "non-container child with contents rejected (corpse rule, sources.rs:23-30)",
+  "world item with Contained placement is not a root",
+]
+durability = "none (read of accepted cache)."
+depends_on = []
+
+[[card]]
+id = "C3"
+family = "Container"
+title = "Use route and canonical ViewContents projection"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "runtime"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/containers.rs", status = "new" },
+  { path = "crates/application/bace-runtime/src/game_runtime/containers/output.rs", status = "new" },
+  { path = "crates/application/bace-runtime/src/game_runtime/ingress.rs", status = "WIP-M (route registration; S1)" },
+]
+template = "corpse: deaths/access.rs handle_corpse_use_message 76-186 (decode, owner check, Pending) and deaths/access/output.rs project_corpse_access 41-70 (rejection codes), 264-272 (ViewContents steps), content_creation_plan 12-40"
+ace = [
+  "Container.cs:695-724 (Use), Container.cs:785-807 (SendInventory), Player_Use.cs:136-170 (move to target first)",
+]
+gdle = [
+  "Source/Container.cpp:1238-1262 (DoUseResponse)",
+]
+outbound = [
+  "ViewContents 0x0196 (InventoryEvent::ViewContents)",
+  "CreateObject per item via existing content_creation_plan / P::Create",
+  "WeenieError via SimpleGameEvent::WeenieError (events.rs:7) for refusals",
+  "UseDone via S2",
+]
+encoder = "exists for all of the above (inventory_output.rs, events.rs). CreateObject uses existing object codecs."
+finding = "deaths/access/output.rs:41-70 maps OutOfRange to 0x3D (YouChargedTooFar, weenie_error.rs:68). ACE uses MoveTo for range, not 0x3D. Verify the mapping before reuse; the corpse path may carry the same mistake."
+oracle = "ACE SendInventory ordering table; no numeric oracle"
+tests = [
+  "repeat open re-sends CreateObject with the same sequence owner (corpse pinned repeat-open test pattern, access/output.rs:839)",
+  "refusal sends WeenieError only, no ViewContents",
+  "ViewContents item count bounded by max_items",
+]
+durability = "none"
+depends_on = ["S1", "S2", "C1", "C2"]
+
+[[card]]
+id = "C4"
+family = "Container"
+title = "Close paths: toggle, previous-container auto-close, NoLongerViewing"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "runtime"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/containers.rs", status = "new (C3)" },
+  { path = "crates/application/bace-runtime/src/game_runtime/deaths/access.rs", status = "clean (begin_corpse_close 258-296 is the template)" },
+]
+template = "corpse: deaths/access.rs begin_corpse_close 258-296; access/output.rs Close steps 200-203"
+ace = [
+  "Container.cs:700-707 previous container closed before new Use",
+  "Container.cs:840-870 Close and FinishClose: IsOpen=false, Viewer=0, GameEventCloseGroundContainer, LastOpenedContainerId reset",
+  "Player_Use.cs:258-264 HandleActionNoLongerViewingContents",
+]
+gdle = [
+  "Source/ClientEvents.cpp:1720-1728 NoLongerViewingContents",
+  "Source/Container.cpp:1452-1458 HandleNoLongerViewing (requires _openedById match)",
+]
+outbound = ["CloseGroundContainer 0x0052 (InventoryEvent::CloseContainer)"]
+encoder = "exists: inventory_output.rs:76 Event::CloseGroundContainer, opcode_event.rs:18"
+oracle = "ACE transcript table; no numeric oracle"
+tests = [
+  "toggle close by viewer emits CloseGroundContainer",
+  "opening B while A is open closes A first",
+  "NoLongerViewing from non-viewer is a no-op",
+  "close does not clear another actor's viewer",
+]
+durability = "none"
+depends_on = ["C1", "C3", "S3"]
+
+[[card]]
+id = "C5"
+family = "Container"
+title = "Integration and regression on real UDP with approved content"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "test"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/containers/tests.rs", status = "new" },
+]
+template = "healing_kit real UDP ignored test (register healing-kit row); corpse open/close test access/output.rs:501 and 724"
+oracle = "ACE transcript from C1-C4"
+tests = [
+  "ignored real UDP + PostgreSQL: open a world container, see contents, close, reopen",
+  "two sessions: second Use gets InUse",
+]
+durability = "none"
+depends_on = ["C3", "C4"]
+
+# ---------------------------------------------------------------------------
+# Family 2: Food (ACE Food.cs ActOnUse/ApplyConsumable/BoostVital; GDLE Food.cpp)
+# ---------------------------------------------------------------------------
+
+[[card]]
+id = "F1"
+family = "Food"
+title = "Consumable gate decision (busy, jumping, portal space) in simulation"
+owner = "bace-simulation"
+coordinator_owned = false
+kind = "simulation"
+files = [
+  { path = "crates/simulation/bace-simulation/src/kernel/consumables.rs", status = "new" },
+  { path = "crates/simulation/bace-simulation/src/kernel.rs", status = "WIP-M (mod line)" },
+]
+template = "healing: simulation kernel/healing_kits.rs (655 lines; charge + vital in one command) and characters/healing_kits.rs (55)"
+ace = [
+  "Source/ACE.Server/WorldObjects/Food.cs:42-62 ActOnUse: IsBusy/Teleporting/suicideInProgress -> YoureTooBusy; IsJumping -> YouCantDoThatWhileInTheAir",
+  "Food.cs:68-100 ApplyConsumable: item presence, dispel guard, BoostVital, CastSpell, sound, TryConsumeFromInventoryWithNetworking(this,1) unless UnlimitedUse",
+  "Source/ACE.Server/WorldObjects/Player_Use.cs:268-318 ApplyConsumable motion chain (IsBusy until animation)",
+]
+gdle = [
+  "Source/Food.cpp:22-37 Use: FindContainedItem -> WERROR_OBJECT_GONE; IsInPortalSpace -> WERROR_ACTIONS_LOCKED; then Motion_Eat use event",
+]
+disagreement = "ACE applies a boost without a spell; GDLE DoUseResponse (Food.cpp:39-48) says 'You can't do that yet!' when SPELL_DID is absent. Policy gameplay_default = ace: follow ACE, record GDLE."
+outbound = ["UseDone via S2 after motion completes"]
+encoder = "exists: events.rs:7 WeenieError, events.rs UseDone"
+oracle = "ACE Food.cs gate table; no numeric oracle"
+tests = [
+  "busy, teleporting, suicide each refuse with YoureTooBusy (0x1D) and consume nothing",
+  "jumping refuses with YouCantDoThatWhileInTheAir",
+  "missing item (stale id) refuses with ObjectGone-equivalent",
+]
+durability = "none at this step (decision only)."
+depends_on = ["S6"]
+
+[[card]]
+id = "F2"
+family = "Food"
+title = "Vital boost arithmetic (pure) with a .NET oracle"
+owner = "bace-character"
+coordinator_owned = false
+kind = "pure"
+files = [
+  { path = "crates/gameplay/bace-character/src/consumable.rs", status = "new" },
+  { path = "crates/gameplay/bace-character/src/lib.rs", status = "WIP-M (mod/use lines; includes P4-D2 age mod)" },
+]
+template = "bace-character vital_values.rs (VitalValues) and proficiency.rs (round_ties_even pattern)"
+ace = [
+  "Food.cs:117-135 BoostVital: ratingMod = BoostValue > 0 ? GetHealingRatingMod() : 1; boostValue = (int)Math.Round(BoostValue*ratingMod) (ties to even); UpdateVitalDelta; Health >= 0 -> OnHeal, < 0 -> DamageHistory.Add",
+  "Creature_Vitals.cs:65-80 UpdateVitalDelta (int and uint overloads)",
+  "Creature_Rating.cs:405-410 GetHealingRatingMod = boost * resist",
+]
+gdle = [
+  "Source/Food.cpp:53-132 DoUseResponse switch on BOOSTER_ENUM_INT (boost by vital; read the switch when implementing)",
+]
+disagreement = "GDLE boost formula not yet compared arithmetically; ACE is the gameplay default. Record any difference found by the oracle."
+outbound = ["none (pure)"]
+encoder = "n/a"
+oracle = { kind = "dotnet", script = "crates/gameplay/bace-character/oracle/consumable_generate.py", harness = "C# from verbatim Food.BoostVital arithmetic and Creature_Vitals.UpdateVitalDelta", dotnet = "env BACE_DOTNET, default /home/jokerfactor/.dotnet/dotnet", pattern = "crates/gameplay/bace-character/oracle/vitals_generate.py (fetches pinned ACE files, compiles method text)", output = "crates/gameplay/bace-character/tests/fixtures/consumable.csv" }
+tests = [
+  "positive boost scales by rating mod with ties-to-even",
+  "negative boost (drain) uses unscaled value",
+  "clamp at max vital and at zero",
+  "i32::MIN and overflow delta rejected, not wrapped",
+  "zero or non-finite rating mod rejected",
+]
+durability = "none (pure)."
+depends_on = []
+
+[[card]]
+id = "F3"
+family = "Food"
+title = "Eat or drink motion, sound and vital chat (outbound projection)"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "runtime"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/consumables/output.rs", status = "new" },
+  { path = "crates/application/bace-runtime/src/game_runtime/consumables.rs", status = "new (F4)" },
+]
+template = "healing: game_runtime/healing_kits/output.rs 30-74 (project_server_motion; retained motion cleared after send) and 107-112 (UseDone code)"
+ace = [
+  "Food.cs:59 motion = Sound.Eat1 ? MotionCommand.Eat : MotionCommand.Drink",
+  "Food.cs:134 'The {Name} {verb} {vitalChange} points of your {BoosterEnum}.'",
+]
+gdle = ["Source/Food.cpp:22 Motion_Eat; Food.cpp:44 sound (Sound_Eat1 default)"]
+outbound = [
+  "Motion via bace_replication::project_server_motion (existing; healing output 57-63)",
+  "Chat via ChatMessage (chat.rs:7-37, existing)",
+  "Sound via combat_output.rs Sound 0xF750 (existing; reuse or lift to shared module)",
+  "UseDone via S2",
+]
+encoder = "exists for all (motion, chat, sound, UseDone)"
+oracle = "ACE Food.cs text table; no numeric oracle"
+tests = ["motion selected from use sound (Eat1 vs other)", "chat text matches ACE format for positive and negative vitals"]
+durability = "none"
+depends_on = ["S2", "F2"]
+
+[[card]]
+id = "F4"
+family = "Food"
+title = "Runtime route and single durable receipt (stack decrement + vital)"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "runtime"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/consumables.rs", status = "new" },
+  { path = "crates/application/bace-runtime/src/game_runtime/consumables/preparation.rs", status = "new" },
+  { path = "crates/application/bace-runtime/src/game_runtime/ingress.rs", status = "WIP-M (route registration via S1)" },
+]
+template = "healing: game_runtime/healing_kits.rs handle_healing_kit_message 149-242 (decode, pending, owner checks); healing_kit_service.rs freeze 312 (kit + vital + stamina in one revision-fenced placement); placement_saves.rs new_world 33, poll 108"
+ace = ["Food.cs:61 ApplyConsumable is driven by Player TryUseItem"]
+gdle = ["Source/Food.cpp:22-37 (use event), Food.cpp:39 DoUseResponse (consumption and boost)"]
+outbound = ["Accepted: F3 motion/chat/sound. Refusal: F1 WeenieError. Done: UseDone via S2."]
+encoder = "exists (see F3)"
+durability = "item-receipt + routine: one placement freezes the stack decrement and the player vital (same as healing kits). Uncertain commit resolved before retry (SAVE-02)."
+oracle = "ACE ApplyConsumable order (motion, boost, cast, sound, consume); table"
+tests = [
+  "exact placement receipt adopts stack decrement and vital together",
+  "rollback keeps the food and the vital unchanged",
+  "replay with the same operation id does not consume twice",
+  "stack of 1 removes the item; stack > 1 decrements by exactly 1",
+]
+depends_on = ["F1", "F2", "F3", "S1", "S2", "S6"]
+
+[[card]]
+id = "F5"
+family = "Food"
+title = "Spell-bearing food: explicit Unsupported until magic lands"
+owner = "bace-magic"
+coordinator_owned = false
+kind = "runtime"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/consumables.rs", status = "new (F4; Unsupported branch only)" },
+]
+template = "none (blocked)"
+ace = ["Food.cs:97-100 CastSpell(player) for SpellDID"]
+gdle = ["Source/Food.cpp:39-48 CastSpellInstant, else 'You can't do that yet!'"]
+disagreement = "ACE casts; GDLE refuses when there is no spell. ACE is the default; a spell cast needs bace-magic casting (magic feature scaffolded)."
+outbound = ["WeenieError Unsupported path; no UseDone until magic"]
+durability = "none"
+oracle = "none"
+tests = ["spell-bearing food returns explicit Unsupported and consumes nothing"]
+depends_on = ["F4"]
+blocked_by = "magic (casting and components, register magic feature 'scaffolded')"
+
+# ---------------------------------------------------------------------------
+# Family 3: Chest (ACE Chest.cs; GDLE Container.cpp lock and reset; Key.cpp; Lock.cs)
+# ---------------------------------------------------------------------------
+
+[[card]]
+id = "H1"
+family = "Chest"
+title = "Lock gate decision (locked, unlocker window, viewer) as a pure rule"
+owner = "bace-inventory"
+coordinator_owned = false
+kind = "pure"
+files = [
+  { path = "crates/gameplay/bace-inventory/src/lock.rs", status = "new (shared with K1)" },
+  { path = "crates/gameplay/bace-inventory/src/lib.rs", status = "WIP-M (mod/use lines)" },
+]
+template = "bace-inventory activation.rs (pure rule returning an enum) and healing_kit.rs (pure proposal)"
+ace = [
+  "Source/ACE.Server/WorldObjects/Chest.cs:96-173 CheckUseRequirements: IsLocked -> sound OpenFailDueToLock (and optional transient text), return false",
+  "Chest.cs:114-121 UseLockTimestamp + unlocker_window > now and actor != LastUnlocker -> InUseMessage",
+  "Chest.cs:124-143 IsOpen: viewer closes it; other viewer -> InUseMessage; viewer missing -> Close(null)",
+  "Chest.cs:145-171 quest gating (out of scope; quest feature)",
+]
+gdle = [
+  "Source/Container.cpp:1252-1256 IsLocked -> EmitSound OpenFailDueToLock, WERROR_NONE",
+  "Source/Container.cpp:1275-1292 'This chest is claimed by the person who unlocked it.' with a timer (570 s window in the expression _nextReset - 570)",
+]
+disagreement = "ACE uses server property unlocker_window; GDLE uses _nextReset - 570. Lock state is gdle per coordinator, so the window comes from GDLE timing; owner to confirm the constant."
+outbound = ["Sound OpenFailDueToLock (existing Sound encoder, 0xF750)", "transient text (existing chat encoder)"]
+encoder = "exists"
+oracle = "ACE and GDLE rule table (no numeric executable oracle)"
+tests = [
+  "locked: refused, sound only",
+  "unlocked and window open for a different actor: refused with the claimed message",
+  "same actor during window: allowed",
+  "viewer closes own chest (toggle)",
+  "invalid: unlocker timestamp in the future is treated as expired, not wrapped",
+]
+durability = "none (decision only)."
+depends_on = []
+
+[[card]]
+id = "H2"
+family = "Chest"
+title = "Durable unlock state (Locked, LastUnlocker, UseLockTimestamp)"
+owner = "bace-persistence"
+coordinator_owned = true
+kind = "persistence"
+files = [
+  { path = "crates/storage/bace-persistence/src/placements.rs", status = "clean" },
+  { path = "crates/storage/bace-storage-codec/src/ (new frozen DTO)", status = "new (after S5 decision)" },
+]
+template = "corpse V5 checkpoint (access_saves.rs freeze 27-60) for an exact receipt; placement_saves.rs PendingPlacementSave"
+ace = ["Chest.cs:293-305 Unlock(lockpick): LastUnlocker, UseLockTimestamp set only on UnlockSuccess"]
+gdle = ["Source/Key.cpp:40-49 SetLocked(FALSE), LAST_UNLOCKER_IID set, _nextReset = now + 600 for containers"]
+outbound = ["PublicUpdatePropertyBool Locked (encoder exists: property.rs, opcode_message.rs:22 0x02D2)"]
+encoder = "exists for the broadcast; the durable change needs S5"
+oracle = "none"
+tests = [
+  "unlock change persists with exact revision; stale revision rejected",
+  "rollback keeps the chest locked",
+  "reload keeps Locked = false and LastUnlocker",
+]
+durability = "GAP until S5 lands; then SAVE-02 receipt with durable operation id"
+depends_on = ["S5"]
+
+[[card]]
+id = "H3"
+family = "Chest"
+title = "Chest reset timer (relock, clear unmanaged inventory, regenerate)"
+owner = "bace-simulation"
+coordinator_owned = false
+kind = "simulation"
+files = [
+  { path = "crates/simulation/bace-simulation/src/kernel/chest_reset.rs", status = "new" },
+]
+template = "simulation corpse_expiry.rs (timer owned by the simulation, retained ticket)"
+ace = [
+  "Chest.cs:59 Default_ChestResetInterval = 120 (Storage.cs:18 overrides)",
+  "Chest.cs:184-200 Open schedules Reset after ChestResetInterval; Reset 231-265 closes, relocks if DefaultLocked, clears unmanaged inventory, regenerates generators",
+]
+gdle = [
+  "Source/Key.cpp:49-51 unlocked container gets _nextReset = now + 600",
+  "Source/Lockpick.cpp (quest chest branch) _nextReset = now + 300",
+]
+disagreement = "ACE reset 120 s after open; GDLE 600 s after unlock (key) and 300 s (lockpick quest chest). Lock state is gdle; owner must pick the interval and anchor."
+outbound = ["PublicUpdatePropertyBool Locked on relock (existing encoder)"]
+encoder = "exists"
+oracle = "ACE and GDLE table; no numeric oracle"
+tests = [
+  "reset while open closes the chest first",
+  "reset relocks only when DefaultLocked",
+  "stale reset ticket (timestamp mismatch) does nothing (ACE 233-236)",
+]
+durability = "GAP until S5 (relock is a durable state change)"
+depends_on = ["H2", "C1"]
+
+[[card]]
+id = "H4"
+family = "Chest"
+title = "Chest Use route (type 20) on top of the container route"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "runtime"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/containers.rs", status = "new (C3; chest branch)" },
+]
+template = "C3 container route"
+ace = ["Chest.cs:175-182 ActOnUse -> Open(player)"]
+gdle = ["Source/Container.cpp:1238-1262 DoUseResponse (same gate as Container)"]
+outbound = ["ViewContents 0x0196; CreateObject; refusal sound and text"]
+encoder = "exists"
+oracle = "table"
+tests = ["locked chest refuses and sends sound", "unlocked chest sends ViewContents and sets viewer"]
+durability = "none (open is transient)"
+depends_on = ["C3", "H1"]
+
+# ---------------------------------------------------------------------------
+# Family 4: Lock/Key (ACE Key.cs, Lock.cs; GDLE Key.cpp)
+# ---------------------------------------------------------------------------
+
+[[card]]
+id = "K1"
+family = "Lock/Key"
+title = "Key match rule (lock code, key code, opens-any-lock) as a pure function"
+owner = "bace-inventory"
+coordinator_owned = false
+kind = "pure"
+files = [
+  { path = "crates/gameplay/bace-inventory/src/lock.rs", status = "new (H1 same file; land K1 first or together)" },
+]
+template = "bace-inventory activation.rs (pure enum outcome)"
+ace = [
+  "Source/ACE.Server/WorldObjects/Lock.cs:248-281 LockHelper.Unlock(key): no lock code -> IncorrectKey; Open -> Open; key code equals lock code (OrdinalIgnoreCase) or the magic key code or key.OpensAnyLock -> AlreadyUnlocked if unlocked, else unlock; otherwise IncorrectKey",
+]
+gdle = [
+  "Source/Key.cpp:30-40 !IsLocked -> WERROR_CHEST_ALREADY_UNLOCKED (container only); lock code and key code compared with stricmp, or OPENS_ANY_LOCK on the key; else WERROR_CHEST_WRONG_KEY",
+]
+disagreement = "ACE accepts the magic key string '_bohemund's_magic_key_' (Lock.cs:260-268); GDLE does not. Decide whether the magic key is in scope (content has one sonic screwdriver)."
+outbound = ["none (pure)"]
+encoder = "n/a"
+oracle = "Table from both sources; GDLE condition is inline in Key.cpp:40, so no executable oracle."
+tests = [
+  "exact match, case-insensitive match",
+  "no lock code -> IncorrectKey",
+  "opens-any-lock key matches an unlocked-or-locked lock as ACE does",
+  "already unlocked (non-open) -> AlreadyUnlocked",
+  "open target -> Open",
+  "invalid: empty code strings do not match each other",
+]
+durability = "none"
+depends_on = []
+
+[[card]]
+id = "K2"
+family = "Lock/Key"
+title = "Key Use-with route (UseWithTarget, weenie type 22)"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "runtime"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/locks.rs", status = "new" },
+  { path = "crates/application/bace-runtime/src/game_runtime/locks/output.rs", status = "new" },
+  { path = "crates/application/bace-runtime/src/game_runtime/ingress.rs", status = "WIP-M (route registration via S1)" },
+]
+template = "healing: game_runtime/healing_kits.rs handle_healing_kit_message 149-190 (decode_crafting UseWithTarget, saved weenie_type check, pending state)"
+ace = [
+  "Source/ACE.Server/WorldObjects/Key.cs:54-80 HandleActionUseOnTarget: CheckUseRequirements; Structure 0 or > MaxStructure -> delete key, UseDone YouCannotUseThatItem; else UnlockerHelper.UseUnlocker",
+  "Source/ACE.Server/WorldObjects/Player_Use.cs:136-170 target not in this player: CreateMoveToChain then HandleActionUseOnTarget",
+]
+gdle = [
+  "Source/Key.cpp:15-25 UseWith: CGenericUseEvent with max use distance 1.0",
+]
+disagreement = "Reach: ACE uses the target UseRadius (default 0.5, Container.cs:119-120) after a move; GDLE uses 1.0. ACE is the gameplay default; GDLE's 1.0 is recorded."
+outbound = [
+  "UseDone error codes via S2 and K5",
+  "transient or chat text via K4",
+]
+encoder = "exists: decode_crafting path (healing) and the UseDone/WeenieError encoders"
+oracle = "ACE Key.cs table"
+tests = [
+  "UseWithTarget with weenie type 22 routes here; other types Unsupported",
+  "stale key (not owned) refuses",
+  "key outside reach refuses before any Structure change",
+  "malformed UseWithTarget payload returns error",
+]
+durability = "none at routing; durable effects are K3 and K4"
+depends_on = ["S1", "S4", "K1"]
+
+[[card]]
+id = "K3"
+family = "Lock/Key"
+title = "Unlocker Structure decrement and destroy-at-zero (shared Key and Lockpick)"
+owner = "bace-inventory"
+coordinator_owned = false
+kind = "pure"
+files = [
+  { path = "crates/gameplay/bace-inventory/src/unlocker.rs", status = "new" },
+  { path = "crates/gameplay/bace-inventory/src/lib.rs", status = "WIP-M (mod/use lines)" },
+]
+template = "bace-inventory/src/healing_kit.rs propose_healing_kit_charge 10-50 (Structure decrement, unit value, remove at 0, revision + 1, propose_item_changes)"
+ace = [
+  "Source/ACE.Server/WorldObjects/Lock.cs:35-96 ConsumeUnlocker: unless Structure null or UnlimitedUse: Structure-1 (min 0), Value -= StructureUnitValue, message 'has/have N uses left' or 'used up'; at 0 TryConsumeFromInventoryWithNetworking",
+]
+gdle = [
+  "Source/Key.cpp:42 DecrementStackOrStructureNum (only inside the matched branch)",
+  "Source/Lockpick.cpp (DoUseWithResponse) DecrementStackOrStructureNum before the skill check",
+]
+disagreement = "GDLE Key decrements only on a match; ACE decrements on every success or failed pick. Lockpick: both decrement on every attempt. Key: ACE and GDLE differ on a wrong key (ACE consumes nothing: IncorrectKey path has no ConsumeUnlocker call; verify Lock.cs:184-186 before implementing)."
+outbound = ["Structure public update (PublicUpdatePropertyInt, existing) and message text (K4)"]
+encoder = "exists: property.rs PropertyUpdate"
+oracle = "ACE ConsumeUnlocker table (Structure, Value, unlimited); no numeric executable oracle"
+tests = [
+  "Structure 2 -> 1 decrements and keeps the item",
+  "Structure 1 -> 0 removes the item (placement Removed)",
+  "UnlimitedUse keeps Structure",
+  "missing Structure is Requirements error, not a silent 0",
+  "Structure above MaxStructure refused (ACE Key.cs:68)",
+]
+durability = "item-receipt: the changed InventoryItem goes through freeze_inventory (game_inventory.rs freeze) in one placement with the unlock result (see K4)."
+depends_on = []
+
+[[card]]
+id = "K4"
+family = "Lock/Key"
+title = "Unlock success projection and durable receipt"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "runtime"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/locks/output.rs", status = "new (K2)" },
+  { path = "crates/application/bace-runtime/src/game_runtime/locks/preparation.rs", status = "new" },
+]
+template = "healing: healing_kit_service.rs freeze 312 (one receipt for item and vital); healing_kits/output.rs 30-74 (motion pattern not needed)"
+ace = [
+  "Lock.cs:35-96 ConsumeUnlocker messages",
+  "Lock.cs:156-168 success: ConsumeUnlocker; lockpick also Lockpicking sound and Proficiency.OnSuccessUse",
+  "Lock.cs:99-117 (lockpick path only)",
+]
+gdle = [
+  "Source/Key.cpp:53-61 'The X has been unlocked. Your key has N uses left.' / 'is used up.'",
+]
+outbound = [
+  "PublicUpdatePropertyBool Locked = false (0x02D2, existing encoder property.rs)",
+  "Sound LockSuccess (existing Sound 0xF750 encoder, combat_output.rs:98; lift to shared if needed)",
+  "Text via chat.rs ChatMessage (existing)",
+  "Structure update (K3)",
+]
+encoder = "exists for all outbound items"
+durability = "item-receipt (Structure, K3) + GAP (Locked flag, H2 / S5). Success must not be reported before the receipt is confirmed (SAVE-02)."
+oracle = "ACE message table"
+tests = [
+  "success sends unlock broadcast only after receipt confirmation",
+  "failed receipt sends no success text and keeps the chest locked",
+  "replay with the same operation id does not decrement twice",
+]
+depends_on = ["K1", "K3", "S5", "H2"]
+
+[[card]]
+id = "K5"
+family = "Lock/Key"
+title = "UseDone error code table for key and lock refusals"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "runtime"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/locks/output.rs", status = "new (K2)" },
+]
+template = "bace-runtime skill_devices/output.rs 42 (UseDone with a named ACE error)"
+ace = [
+  "Lock.cs:119-196 UseUnlocker: non-lock target -> YouCannotLockOrUnlockThat (0x4B0); door with empty LockCode -> 0x4B0; IncorrectKey -> KeyDoesntFitThisLock (0x4B2); AlreadyUnlocked -> LockAlreadyUnlocked (0x4AF); Open -> YouCannotLockWhatIsOpen (0x4B1); CannotBePicked -> 0x4B0",
+  "Lock.cs:156-168 success and PickLockFailed: no UseDone error (S2 sends 0)",
+]
+gdle = [
+  "Source/PhatSDK/GameEnums.h:1100-1105 WERROR_CHEST_ALREADY_UNLOCKED, WERROR_CHEST_WRONG_KEY, WERROR_CHEST_USED_TOO_RECENTLY, WERROR_DONT_KNOW_LOCKPICKING (GDLE internal enum; map by meaning to ACE wire codes)",
+]
+encoder = "exists: bace-wire weenie_error.rs 0x4AF LockAlreadyUnlocked, 0x4B0 YouCannotLockOrUnlockThat, 0x4B1 YouCannotLockWhatIsOpen, 0x4B2 KeyDoesntFitThisLock, 0x4B3 LockUsedTooRecently, 0x4B4 YouArentTrainedInLockpicking"
+durability = "none"
+oracle = "ACE table (above)"
+tests = [
+  "each ACE branch maps to exactly one WeenieError code",
+  "success and pick failure send UseDone(0) only via S2",
+]
+depends_on = ["S2", "K1"]
+
+[[card]]
+id = "K6"
+family = "Lock/Key"
+title = "Door key unlock is the GDLE door authority, not the container lock"
+owner = "bace-interactions"
+coordinator_owned = false
+kind = "simulation"
+files = [
+  { path = "crates/simulation/bace-simulation/src/doors.rs", status = "clean (door authority; read before editing)" },
+  { path = "crates/application/bace-runtime/src/game_runtime/doors.rs", status = "WIP-?? (untracked)" },
+]
+template = "door authority (doors.rs, bace-gameplay-api door.rs UseDoor and DoorChange::Locked)"
+ace = [
+  "Lock.cs:127-150 Door with empty LockCode -> 0x4B0 (never keyed)",
+  "Door.cs:100 (IsLocked check on Use)",
+]
+gdle = ["Source/Door.cpp:100 IsLocked; Door.cpp:23 m_bInitiallyLocked"]
+disagreement = "Lock/door state is gdle per authority policy. Use the GDLE door rules, not container rules."
+outbound = ["door motion and state per existing door card"]
+encoder = "exists (door encoders in bace-session/door.rs and replication)"
+durability = "depends on door authority persistence (not in this batch)"
+oracle = "GDLE Door.cpp table"
+tests = ["keyed door with empty LockCode refused", "locked door remains closed for a non-key Use"]
+depends_on = ["K2", "S6"]
+blocked_by = "door physics and authored door registration (type-19 only today)"
+
+# ---------------------------------------------------------------------------
+# Family 5: Lockpick (ACE Lock.cs lockpick path, LockHelper; GDLE Lockpick.cpp; bace-combat skill_chance)
+# ---------------------------------------------------------------------------
+
+[[card]]
+id = "L1"
+family = "Lockpick"
+title = "Effective skill, resist and pick chance (pure) with ACE and GDLE oracles"
+owner = "bace-character"
+coordinator_owned = false
+kind = "pure"
+files = [
+  { path = "crates/gameplay/bace-character/src/lockpick.rs", status = "new" },
+  { path = "crates/gameplay/bace-character/src/lib.rs", status = "WIP-M (mod/use lines)" },
+]
+template = "bace-combat skill.rs skill_chance (ACE SkillCheck.GetSkillChance, existing); bace-character proficiency.rs (pure formula with round_ties_even)"
+ace = [
+  "Lock.cs:99-117 GetEffectiveLockpickSkill: round(skill*multiplier + additive) clamped to >= 0; LockpickMod int and float on the unlocker",
+  "Lock.cs:218-237 GetResistLockpick: ResistLockpick + enchantment mod, min 0; null or >= 9999 unpickable (Lock.cs:203-216)",
+  "Lock.cs:282-294 pick chance: SkillCheck.GetSkillChance(skill, difficulty); roll >= chance -> PickLockFailed",
+]
+gdle = [
+  "Source/Lockpick.cpp (DoUseWithResponse) GenericSkillCheck(skillLevel + LOCKPICK_MOD_INT, resistLockpick)",
+  "Source/PhatSDK/Support/SkillChecks.cpp:68-80 GenericSkillCheck: roll <= GetSkillChance(offense, defense) -> success",
+]
+disagreement = "ACE: float multiplier plus int additive, rounded. GDLE: integer additive only. Roll boundary: ACE fails when roll >= chance, GDLE succeeds when roll <= chance (equal only at a measure-zero point). Lock state gdle; the chance formula is ace default unless the oracle shows a difference."
+outbound = ["none (pure)"]
+encoder = "n/a"
+oracle = { kind = "dotnet + g++", dotnet_script = "crates/gameplay/bace-character/oracle/lockpick_generate.py (ACE GetEffectiveLockpickSkill, GetResistLockpick, GetSkillChance)", gxx_script = "crates/gameplay/bace-character/oracle/lockpick_gdle_generate.py (verbatim SkillChecks.cpp GetSkillChance and GenericSkillCheck; pattern = age_generate.py, g++ harness; checkout must be 353cbab)", dotnet = "env BACE_DOTNET, default /home/jokerfactor/.dotnet/dotnet", output = "crates/gameplay/bace-character/tests/fixtures/lockpick.csv" }
+tests = [
+  "effective skill rounds ties correctly and clamps negative to 0",
+  "ResistLockpick absent or >= 9999 -> CannotBePicked",
+  "enchantment resist below zero clamps to 0",
+  "chance matches ACE and GDLE on the fixture sweep (both oracles)",
+  "invalid: non-finite multiplier rejected",
+]
+durability = "none"
+depends_on = ["K3"]
+
+[[card]]
+id = "L2"
+family = "Lockpick"
+title = "Trained or specialized Lockpicking gate"
+owner = "bace-character"
+coordinator_owned = false
+kind = "pure"
+files = [
+  { path = "crates/gameplay/bace-character/src/lockpick.rs", status = "new (L1 same file)" },
+]
+template = "bace-character skill advancement reads (skills.rs / skill_values.rs)"
+ace = [
+  "Lock.cs:124-131 Lockpick unlocker requires Trained or Specialized AdvancementClass; else UseDone YouArentTrainedInLockpicking (0x4B4)",
+]
+gdle = [
+  "Source/Lockpick.cpp (DoUseWithResponse): sac must be TRAINED or SPECIALIZED else 'You must be trained in Lockpicking.' and WERROR_DONT_KNOW_LOCKPICKING",
+]
+disagreement = "Message: ACE sends only the UseDone code; GDLE also sends text. Choose ACE wire behavior, keep GDLE text as optional chat only if owner wants it."
+outbound = ["UseDone 0x4B4 via S2/K5"]
+encoder = "exists: weenie_error.rs 0x4B4"
+oracle = "ACE table"
+tests = [
+  "untrained refused with 0x4B4, nothing consumed",
+  "trained and specialized accepted",
+]
+durability = "none"
+depends_on = []
+
+[[card]]
+id = "L3"
+family = "Lockpick"
+title = "Lockpick pick attempt (dice and outcome), keyed RNG"
+owner = "bace-simulation"
+coordinator_owned = false
+kind = "simulation"
+files = [
+  { path = "crates/simulation/bace-simulation/src/kernel/lockpick.rs", status = "new" },
+  { path = "crates/application/bace-runtime/src/game_runtime/locks.rs", status = "new (K2; lockpick branch)" },
+]
+template = "healing: simulation kernel/healing_kits.rs (skill contest with bace_combat::skill_chance, line ~514)"
+ace = [
+  "Lock.cs:282-294 pick roll: ThreadSafeRandom.Next(0,1) >= chance -> PickLockFailed",
+  "Lock.cs:156-180 success: Lockpicking sound by actor, Proficiency.OnSuccessUse, ConsumeUnlocker(success); fail: PicklockFail sound on target, ConsumeUnlocker(false)",
+]
+gdle = [
+  "Source/Lockpick.cpp success text 'You have successfully picked the lock!  It is now unlocked.'; failure text and sound Sound_PicklockFail",
+  "Source/Lockpick.cpp quest chest: owner set, _nextReset = now + 300",
+]
+disagreement = "Both consume the lockpick on every attempt. Dice source differs: ACE ThreadSafeRandom, GDLE Random::RollDice. BACE must use bace-random keyed domains with a persisted per-character ordinal (register character-rare-rng-isolation)."
+outbound = ["Sound Lockpicking (actor) and PicklockFail (target) via existing Sound encoder", "Structure update via K3", "Locked change via K4"]
+encoder = "exists for sound and property updates"
+durability = "item-receipt for Structure; GAP for Locked (S5). Dice ordinal persisted in the same receipt (register rule)."
+oracle = "ACE pick algorithm table; dice fixed by a seeded test vector (self-derived, labelled as such)"
+tests = [
+  "roll below chance succeeds, at or above fails (ACE boundary)",
+  "failure consumes the lockpick and keeps the chest locked",
+  "replay of a stored ordinal reproduces the same outcome",
+  "invalid: skill chance NaN rejected, not treated as success",
+]
+depends_on = ["K2", "L1", "L2", "K3", "K4", "S5"]
+
+[[card]]
+id = "L4"
+family = "Lockpick"
+title = "Proficiency award on successful pick (durable character progression)"
+owner = "bace-character"
+coordinator_owned = false
+kind = "pure"
+files = [
+  { path = "crates/gameplay/bace-character/src/proficiency.rs", status = "clean (ProficiencyUse exists)" },
+]
+template = "bace-character proficiency.rs (ProficiencyUse, pure) and the progression routine save (SAVE-01)"
+ace = [
+  "Lock.cs:162-165 Proficiency.OnSuccessUse(player, lockpickSkill, difficulty) on success only",
+]
+gdle = ["Source/Lockpick.cpp: no proficiency call found in the success branch (verify before implementing; the ACE call may have no GDLE twin)"]
+disagreement = "ACE awards proficiency; GDLE success branch shows no proficiency call. ACE is the gameplay default; record."
+outbound = ["Proficiency private update (existing skill output path)"]
+encoder = "exists (skill/progression output)"
+durability = "routine: character progression dirty revision (SAVE-01), receipt-linked to the lockpick placement where the same operation writes it"
+oracle = "ACE Proficiency arithmetic (existing oracle in bace-character proficiency fixtures)"
+tests = ["award only on success", "difficulty scaling matches the existing proficiency fixture"]
+depends_on = ["L3"]
+
+[[card]]
+id = "L5"
+family = "Lockpick"
+title = "Lockpick integration on real UDP with approved content"
+owner = "bace-runtime"
+coordinator_owned = false
+kind = "test"
+files = [
+  { path = "crates/application/bace-runtime/src/game_runtime/locks/tests.rs", status = "new" },
+]
+template = "healing kit ignored real UDP + PostgreSQL test (register healing-kit row)"
+oracle = "ACE table from L1-L4"
+tests = [
+  "ignored real UDP + PostgreSQL: untrained refused; trained picks; structure decrements; chest unlocks after receipt",
+  "reconnect after unlock keeps the chest unlocked",
+]
+durability = "as L3/K4"
+depends_on = ["L3", "L4", "K4"]
+
+# ---------------------------------------------------------------------------
+# Plan summary
+# ---------------------------------------------------------------------------
+
+[summary]
+cards_per_family = { Container = 5, Food = 5, Chest = 4, "Lock/Key" = 6, Lockpick = 5 }
+shared_cards = 6
+total_cards = 31
+coordinator_owned_shared = ["S1 (ingress.rs WIP)", "S2 (corpse output WIP; UseDone seam)", "S5 (durable world property change; persistence contract)", "S6 (bace-gameplay-api contracts)"]
+gdle_authority_cards = ["H1 (lock state window)", "H3 (reset interval)", "K1 (key match)", "K6 (door lock, gdle door authority)", "L1 (pick chance: ace default, gdle oracle)"]
+
+# Land order: shared first, then the simplest family first (Container reads, no durable state), then Food (durable item and vital),
+# then lock state (needs S5), then Lockpick (needs lock state, chance formula and dice).
+implementation_order = [
+  "S4 (use reach helper, clean corpse file)",
+  "S1 + S2 + S3 (dispatch seam, UseDone seam, NoLongerViewing handler) after the WIP owners land",
+  "S6 (gameplay-api Use types) before any runtime route card",
+  "C2 (container source read), C1 (state machine), C3 (route and ViewContents), C4 (close), C5 (tests)",
+  "F1 + F2 (gate and pure arithmetic in parallel), F3 (outbound), F4 (durable route), F5 (spell food stays Unsupported until magic)",
+  "K1 + K3 (pure key match and unlocker charge), S5 decision then H2 (durable lock state), H1 (gate), H3 (reset), H4 (chest route)",
+  "K2 (key route), K4 (unlock receipt), K5 (error codes), K6 (door key, after door authority)",
+  "L1 + L2 (pure chance and trained gate), L3 (pick attempt), L4 (proficiency), L5 (real UDP)",
+]
+
+# Findings to verify before implementation (not blockers for the cards above):
+#  1. deaths/access/output.rs:41-70 maps OutOfRange to 0x3D YouChargedTooFar. ACE does not send 0x3D for container reach
+#     (it moves the player). Verify before reusing the mapping in C3.
+#  2. Corpse Open/Close output emits no UseDone. ACE TryUseItem emits UseDone(0) after every activation (Player_Use.cs:223-240).
+#     Covered by S2.
+#  3. Chest reset interval disagreement: ACE 120 s vs GDLE 600 s (key) and 300 s (lockpick quest chest). Owner decision (H3).
+#  4. Reach: ACE default UseRadius 0.5 (after move) vs GDLE 1.0 use distance (Key.cpp:15-25). ACE is default; record.
+#  5. Magic key string '_bohemund's_magic_key_' exists in ACE only (Lock.cs:260-268). Owner decision (K1).
+#  6. Lockpick proficiency: ACE awards on success; no GDLE twin found in the success branch. Verify (L4).

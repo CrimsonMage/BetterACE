@@ -223,6 +223,24 @@ impl GameRuntime {
     pub(super) fn staff_ingress_blocked(&self, key: SessionKey) -> bool {
         self.staff.pending.as_ref().is_some_and(|p| p.key == key)
     }
+    pub(super) fn staff_pending_phase(&self, key: SessionKey) -> Option<&'static str> {
+        let pending = self.staff.pending.as_ref().filter(|p| p.key == key)?;
+        Some(match &pending.phase {
+            Phase::Command(_) => "command",
+            Phase::Native(_) => "native",
+            Phase::Awaiting => "awaiting simulation receipt",
+            Phase::Account(_) => "account",
+            Phase::Ban(_) => "ban",
+            Phase::GagLookup(_) => "gag lookup",
+            Phase::Capture(_) => "capture not submitted",
+            Phase::Capturing { .. } => "awaiting snapshot",
+            Phase::MapPrepare(_) => "map preparation not submitted",
+            Phase::MapPreparing(_) => "awaiting map preparation",
+            Phase::MapRegion { .. } => "map region",
+            Phase::Other { .. } => "other not submitted",
+            Phase::BootAudit { .. } => "boot audit",
+        })
+    }
     pub(super) fn forget_staff_session(&mut self, key: SessionKey) -> Result<(), String> {
         if self.staff_ingress_blocked(key) {
             return Err("staff action still owns session".into());
@@ -265,6 +283,18 @@ impl GameRuntime {
             unreachable!()
         };
         let request = request.clone();
+        if matches!(
+            &outcome.result,
+            Err(bace_simulation::CharacterRegistrationError::DurabilityPending)
+        ) {
+            // A complete read cannot cross another valuable operation's
+            // reservation. The capture has finished without mutating state;
+            // retain this query and submit a fresh read after that operation
+            // releases its fence.
+            p.phase = Phase::Capture(request);
+            self.staff.pending = Some(p);
+            return Ok(());
+        }
         let prepared = match outcome.result {
             Ok(snapshot)
                 if snapshot.binding().actor == p.context.actor

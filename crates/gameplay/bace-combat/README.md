@@ -81,6 +81,10 @@ disabled decrement in ACE's `Creature_Missile.UpdateAmmoAfterLaunch`.
 Prepared physical admission rejects nonfinite power/accuracy and values outside
 [0,1], including the adjacent float above 1 and the negative subnormal nearest
 zero. Impact resolution separately validates original power before any arithmetic.
+Nonattackable creatures with no body parts or maneuvers may carry a prepared
+physical profile with empty armor; the same empty armor remains invalid for
+attackable creatures. This admits ACE's inert event controllers without giving
+them a combat path.
 Raw wire decoding preserves the ACE float bits; authority rejection occurs on the
 single simulation owner. Connected raw-packet and prepared-world tests distinguish
 successful decoding from accepted damage.
@@ -149,3 +153,14 @@ write. GDLE `MeleeAttackEventData.cpp` 424–511, `Ammunition.cpp` 132–279 and
 `WeenieObject.cpp` 4745 establish this ordering. Existing independent scalar
 vectors still qualify the formulas; the contact/receipt tests qualify owner
 sequencing and do not establish stock-client playability.
+
+Player attack stamina now follows pinned ACE `StaminaTable.GetStaminaCost` and
+`Player.GetStaminaMod`: descending held-burden denominations, the same low/mid/high
+power or accuracy bands for melee and missile, linear base-Endurance discount, and
+ties-to-even final rounding. The simulation spends it once per accepted melee
+swing or missile launch. Pinned `Player.OnEvade` and `OnDamage` spend one for a
+combat-mode player defender, with the source Endurance chance to avoid the
+evasion cost for trained defense; noncombat players and creatures do not use that
+player-only debit. Source-specific scalar vectors and connected two-hook/launch
+tests cover the change. The exact stock-client stamina display and attack timing
+remain unqualified.

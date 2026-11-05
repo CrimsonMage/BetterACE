@@ -176,13 +176,15 @@ impl Kernel {
         };
         let stance_deadline = self.tick.checked_add(450).ok_or(E::Overflow)?;
         self.prepare_inventory_time()?;
+        if p.effects.actor != actor {
+            return Err(E::InvalidState);
+        }
         if self
             .characters
             .get(actor)
             .is_none_or(|c| c.revision() != p.effects.before_revision)
-            || p.effects.actor != actor
         {
-            return Err(E::InvalidState);
+            return Err(E::StaleSnapshot);
         }
         if matches!(
             p.request.request,
@@ -595,7 +597,12 @@ impl Kernel {
         )
         .map_err(|_| E::InvalidState)?;
         self.magic
-            .validate_equipment_profile(actor, &prepared.magic_damage, &values)
+            .validate_equipment_profile(
+                actor,
+                &prepared.magic_damage,
+                &values,
+                prepared.skills.shield.is_some(),
+            )
             .map_err(|_| E::InvalidState)?;
         let gear = prepared
             .vital_inputs

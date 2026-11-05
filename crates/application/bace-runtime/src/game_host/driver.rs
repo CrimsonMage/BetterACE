@@ -1,5 +1,6 @@
 //! Fixed retained production lifecycle, independent of authenticated host I/O.
 use super::*;
+use crate::startup_trace::StartupTrace;
 use crate::{
     game_bootstrap::{GameBootstrap, GameClock},
     game_runtime::{GameRuntime, GameRuntimeLimits, GameRuntimeShutdown, GameRuntimeStartup},
@@ -32,13 +33,17 @@ pub(super) async fn run(
             return;
         }
     };
-    let mut preparing: Option<Prepare> = Some(Box::pin(prepare(config.clone())));
+    let trace = StartupTrace::new(log.clone());
+    let mut preparing: Option<Prepare> = Some(Box::pin(prepare(config.clone(), trace.clone())));
     let mut startup: Option<GameRuntimeStartup> = None;
     let mut game: Option<Box<GameRuntime>> = None;
     let mut shutdown: Option<GameRuntimeShutdown> = None;
     let mut drain = None;
     let mut closed = false;
     let mut failure = None::<String>;
+    let mut logged_failure = None::<String>;
+    let mut running_after = None::<f64>;
+    let mut running_resources = None::<String>;
     let mut first = true;
     let mut ownership_check = tokio::time::Instant::now();
     let mut turns = tokio::time::interval(Duration::from_millis(5));
@@ -64,11 +69,23 @@ pub(super) async fn run(
             }
         }
         if let Some(owner) = startup.as_mut() {
+            let stage = owner.stage();
+            let _step = failure.is_none().then(|| trace.step(stage));
+            if failure.is_none() {
+                publish.send_replace(Status {
+                    ready: false,
+                    drained: false,
+                    detail: format!("Preparing: {stage}."),
+                });
+            }
             match owner.advance().await {
                 Ok(Some(mut runtime)) => {
+                    runtime.attach_diagnostic_log(log.clone());
                     failure = runtime.attach_staff_broadcast_log(log.clone()).err();
                     game = Some(runtime);
                     startup = None;
+                    running_after = Some(trace.elapsed_seconds());
+                    running_resources = Some(crate::startup_trace::resource_summary());
                 }
                 Ok(None) => {}
                 Err(error) => failure = Some(error),
@@ -117,6 +134,18 @@ pub(super) async fn run(
                 Err(error) => failure = Some(error),
             }
         }
+        if failure != logged_failure {
+            if let Some(error) = &failure {
+                let message: String = error
+                    .chars()
+                    .take(512)
+                    .map(|c| if c.is_control() { ' ' } else { c })
+                    .collect();
+                eprintln!("Game lifecycle blocked; retained owner: {message}");
+                log.record("error", "game.lifecycle_blocked", &message);
+            }
+            logged_failure = failure.clone();
+        }
         let ready = game.as_ref().is_some_and(|g| !g.status().quiescing) && failure.is_none();
         let detail = if let Some(error) = &failure {
             format!("Game lifecycle blocked; retained owner: {error}")
@@ -131,9 +160,15 @@ pub(super) async fn run(
                 None => "Draining final durable shutdown work.".into(),
             }
         } else if ready {
-            "Game services running. Stock-client playability remains unqualified.".into()
+            format!(
+                "Game services running after {:.3}s; {}. Stock-client playability remains unqualified.",
+                running_after.unwrap_or_else(|| trace.elapsed_seconds()),
+                running_resources
+                    .as_deref()
+                    .unwrap_or("resource counters pending")
+            )
         } else {
-            "Preparing accepted content and verified assets.".into()
+            format!("Preparing: {}.", trace.current())
         };
         if first
             || publish.borrow().detail != detail
@@ -179,7 +214,10 @@ fn log_shard(runtime: &mut GameRuntime, log: &bace_observability::LogStore) -> R
     }
     Ok(())
 }
-async fn prepare(config: bace_config::ServerConfig) -> Result<GameRuntimeStartup, String> {
+async fn prepare(
+    config: bace_config::ServerConfig,
+    trace: StartupTrace,
+) -> Result<GameRuntimeStartup, String> {
     let treasure_table_set_id = config.treasure_table_set_id;
     let limits = GameRuntimeLimits {
         sessions: config.max_sessions,
@@ -188,18 +226,25 @@ async fn prepare(config: bace_config::ServerConfig) -> Result<GameRuntimeStartup
         message_bytes: 64 * 1024 * 1024,
         work_per_poll: 64,
     };
-    let bootstrap = GameBootstrap::prepare(config).await?;
+    let mut bootstrap = GameBootstrap::prepare(config, &trace).await?;
     let manifest = bootstrap.assets.clone();
     let generation = bootstrap.pack.generation.clone();
+    let world_index = bootstrap.world_index.take();
+    let asset_trace = trace.clone();
     let mut assets = tokio::task::spawn_blocking(move || {
-        crate::region_activation::VerifiedRegionAssets::open(&manifest)?
-            .prepare_runtime_startup_assets(
-                &generation,
-                crate::startup_assets::StartupAssetPolicy {
-                    treasure_table_set_id,
-                    ..Default::default()
-                },
-            )
+        let _step = asset_trace.step("attach approved region DAT indexes");
+        let mut verified = crate::region_activation::VerifiedRegionAssets::open(&manifest)?;
+        drop(_step);
+        let _step = asset_trace.step("prepare spells, treasure and startup assets");
+        verified.prepare_runtime_startup_assets_traced(
+            &generation,
+            crate::startup_assets::StartupAssetPolicy {
+                treasure_table_set_id,
+                ..Default::default()
+            },
+            Some(&asset_trace),
+            world_index,
+        )
     })
     .await
     .map_err(|e| e.to_string())??;

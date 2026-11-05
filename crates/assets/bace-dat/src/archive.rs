@@ -3,8 +3,9 @@
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::Read;
 use std::path::Path;
+use std::sync::Arc;
 
 const HEADER_OFFSET: u64 = 0x140;
 const DIRECTORY_BYTES: usize = 62 * 4 + 4 + 61 * 24;
@@ -31,19 +32,30 @@ pub struct DatRecord {
     pub iteration: u32,
 }
 
+#[derive(Clone)]
 pub struct DatArchive {
-    file: File,
+    file: Arc<File>,
     header: DatHeader,
-    records: BTreeMap<u32, DatRecord>,
+    records: Arc<BTreeMap<u32, DatRecord>>,
+    approved: bool,
 }
 
 impl DatArchive {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, DatError> {
+        Self::open_file(File::open(path)?, false)
+    }
+    /// Hash the same descriptor that is retained for every later indexed read.
+    pub fn open_verified(path: impl AsRef<Path>, expected_sha256: &str) -> Result<Self, DatError> {
         let mut file = File::open(path)?;
+        if expected_sha256.len() != 64 || fingerprint_file(&mut file)? != expected_sha256 {
+            return Err(DatError::Format("unapproved DAT fingerprint"));
+        }
+        Self::open_file(file, true)
+    }
+    fn open_file(file: File, approved: bool) -> Result<Self, DatError> {
         let physical_size = file.metadata()?.len();
-        file.seek(SeekFrom::Start(HEADER_OFFSET))?;
         let mut raw = [0_u8; 80];
-        file.read_exact(&mut raw)?;
+        read_exact_at(&file, &mut raw, HEADER_OFFSET)?;
         if word(&raw, 0)? != 0x5442 {
             return Err(DatError::Format("unsupported DAT magic"));
         }
@@ -63,18 +75,14 @@ impl DatArchive {
         {
             return Err(DatError::Format("invalid DAT header dimensions or dataset"));
         }
-        let mut archive = Self {
-            file,
-            header,
-            records: BTreeMap::new(),
-        };
+        let mut records = BTreeMap::new();
         let mut stack = vec![header.root];
         let mut visited = BTreeSet::new();
         while let Some(offset) = stack.pop() {
             if !visited.insert(offset) || visited.len() > MAX_DIRECTORIES {
                 return Err(DatError::Format("directory cycle or limit"));
             }
-            let directory = archive.read_chain(offset, DIRECTORY_BYTES)?;
+            let directory = read_chain(&file, header, offset, DIRECTORY_BYTES)?;
             let count = word(&directory, 62 * 4)? as usize;
             if count > 61 {
                 return Err(DatError::Format("directory entry limit"));
@@ -92,15 +100,20 @@ impl DatArchive {
                     size: word(&directory, start + 12)?,
                     iteration: word(&directory, start + 20)?,
                 };
-                if record.size as usize > MAX_RECORD_BYTES || archive.records.len() >= MAX_RECORDS {
+                if record.size as usize > MAX_RECORD_BYTES || records.len() >= MAX_RECORDS {
                     return Err(DatError::Format("record allocation limit"));
                 }
-                if archive.records.insert(record.id, record).is_some() {
+                if records.insert(record.id, record).is_some() {
                     return Err(DatError::Format("duplicate record ID"));
                 }
             }
         }
-        Ok(archive)
+        Ok(Self {
+            file: Arc::new(file),
+            header,
+            records: Arc::new(records),
+            approved,
+        })
     }
     pub fn header(&self) -> DatHeader {
         self.header
@@ -108,41 +121,46 @@ impl DatArchive {
     pub fn records(&self) -> &BTreeMap<u32, DatRecord> {
         &self.records
     }
+    pub(crate) fn is_approved(&self) -> bool {
+        self.approved
+    }
     pub fn read(&mut self, id: u32) -> Result<Vec<u8>, DatError> {
         let record = *self.records.get(&id).ok_or(DatError::Missing(id))?;
-        self.read_chain(record.offset, record.size as usize)
+        read_chain(&self.file, self.header, record.offset, record.size as usize)
     }
-    fn read_chain(&mut self, mut offset: u32, size: usize) -> Result<Vec<u8>, DatError> {
-        if size > MAX_RECORD_BYTES {
-            return Err(DatError::Format("record allocation limit"));
-        }
-        let mut output = Vec::with_capacity(size);
-        let mut visited = BTreeSet::new();
-        while output.len() < size {
-            if offset == 0
-                || !offset.is_multiple_of(self.header.block_size)
-                || u64::from(offset) + u64::from(self.header.block_size)
-                    > u64::from(self.header.file_size)
-                || !visited.insert(offset)
-            {
-                return Err(DatError::Format("invalid or cyclic sector chain"));
-            }
-            self.file.seek(SeekFrom::Start(u64::from(offset)))?;
-            let mut next = [0_u8; 4];
-            self.file.read_exact(&mut next)?;
-            let count = (size - output.len()).min(self.header.block_size as usize - 4);
-            let start = output.len();
-            output.resize(start + count, 0);
-            self.file.read_exact(&mut output[start..])?;
-            offset = u32::from_le_bytes(next);
-        }
-        if size != 0 && offset != 0 {
-            return Err(DatError::Format(
-                "sector chain exceeds declared record length",
-            ));
-        }
-        Ok(output)
+}
+
+fn read_chain(
+    file: &File,
+    header: DatHeader,
+    mut offset: u32,
+    size: usize,
+) -> Result<Vec<u8>, DatError> {
+    if size > MAX_RECORD_BYTES {
+        return Err(DatError::Format("record allocation limit"));
     }
+    let mut output = Vec::with_capacity(size);
+    let mut visited = BTreeSet::new();
+    let mut sector = vec![0_u8; header.block_size as usize];
+    while output.len() < size {
+        if offset == 0
+            || !offset.is_multiple_of(header.block_size)
+            || u64::from(offset) + u64::from(header.block_size) > u64::from(header.file_size)
+            || !visited.insert(offset)
+        {
+            return Err(DatError::Format("invalid or cyclic sector chain"));
+        }
+        let count = (size - output.len()).min(header.block_size as usize - 4);
+        read_exact_at(file, &mut sector[..count + 4], u64::from(offset))?;
+        offset = u32::from_le_bytes(sector[..4].try_into().expect("four sector link bytes"));
+        output.extend_from_slice(&sector[4..count + 4]);
+    }
+    if size != 0 && offset != 0 {
+        return Err(DatError::Format(
+            "sector chain exceeds declared record length",
+        ));
+    }
+    Ok(output)
 }
 
 fn word(bytes: &[u8], offset: usize) -> Result<u32, DatError> {
@@ -156,6 +174,10 @@ fn word(bytes: &[u8], offset: usize) -> Result<u32, DatError> {
 
 pub fn fingerprint(path: impl AsRef<Path>) -> Result<String, DatError> {
     let mut file = File::open(path)?;
+    fingerprint_file(&mut file)
+}
+
+fn fingerprint_file(file: &mut File) -> Result<String, DatError> {
     let mut digest = Sha256::new();
     let mut buffer = [0_u8; 65536];
     loop {
@@ -166,6 +188,34 @@ pub fn fingerprint(path: impl AsRef<Path>) -> Result<String, DatError> {
         digest.update(&buffer[..count]);
     }
     Ok(format!("{:x}", digest.finalize()))
+}
+
+#[cfg(unix)]
+fn read_exact_at(file: &File, mut bytes: &mut [u8], mut offset: u64) -> std::io::Result<()> {
+    use std::os::unix::fs::FileExt;
+    while !bytes.is_empty() {
+        let count = file.read_at(bytes, offset)?;
+        if count == 0 {
+            return Err(std::io::ErrorKind::UnexpectedEof.into());
+        }
+        offset += count as u64;
+        bytes = &mut bytes[count..];
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn read_exact_at(file: &File, mut bytes: &mut [u8], mut offset: u64) -> std::io::Result<()> {
+    use std::os::windows::fs::FileExt;
+    while !bytes.is_empty() {
+        let count = file.seek_read(bytes, offset)?;
+        if count == 0 {
+            return Err(std::io::ErrorKind::UnexpectedEof.into());
+        }
+        offset += count as u64;
+        bytes = &mut bytes[count..];
+    }
+    Ok(())
 }
 
 #[derive(Debug, thiserror::Error)]

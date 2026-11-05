@@ -201,6 +201,11 @@ async fn admission_online_entry_and_owned_routine_save_use_one_accepted_owner() 
     service.install_login_receipt(key, receipt).unwrap();
     assert_eq!(online.state, OwnershipState::Online);
     assert_eq!(service.finish_online(key).await.unwrap(), online);
+    // ACE Session.InitSessionForWorldLogin starts the ordered UI event stream at 1.
+    assert_eq!(
+        service.replication(actor).unwrap().events.next_sequence(),
+        1
+    );
     let description = bace_wire::PlayerDescription::default();
     let titles = bace_wire::CharacterTitle {
         current: 0,
@@ -247,7 +252,7 @@ async fn admission_online_entry_and_owned_routine_save_use_one_accepted_owner() 
     );
     assert_eq!(
         service.replication(actor).unwrap().events.next_sequence(),
-        3
+        4
     );
     let NetworkCommand::SendOrderedBatch { messages, .. } = service.network.pop_front().unwrap()
     else {

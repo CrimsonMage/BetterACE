@@ -29,9 +29,18 @@ impl VisibilityService {
             })
         });
         let ids: Vec<_> = snapshot.candidates.iter().map(|c| c.entity).collect();
-        if let Err((_, snapshot)) = o.knowledge.stage(snapshot) {
+        if let Err((error, snapshot)) = o.knowledge.stage(snapshot) {
             o.buffer = snapshot.candidates;
-            return Err(VisibilityServiceError::Projection);
+            // A gameplay publication can advance the observer watermark while
+            // an older simulation read is in flight. That read owns no client
+            // knowledge or reliable output. Reuse its buffer and query again.
+            if error == bace_replication::SpatialVisibilityError::StaleSnapshot {
+                return Ok(());
+            }
+            return Err(VisibilityServiceError::ProjectionDetail {
+                object: o.binding.actor.0,
+                reason: format!("visibility knowledge stage: {error:?}"),
+            });
         }
         for id in &ids {
             if o.sent
@@ -41,9 +50,12 @@ impl VisibilityService {
                     sent.blueprint.incarnation != current.blueprint.incarnation
                 })
             {
-                o.knowledge
-                    .recreate_pending(*id)
-                    .map_err(|_| VisibilityServiceError::Projection)?;
+                o.knowledge.recreate_pending(*id).map_err(|error| {
+                    VisibilityServiceError::ProjectionDetail {
+                        object: id.0,
+                        reason: format!("visibility recreate pending: {error:?}"),
+                    }
+                })?;
             }
         }
         let delta = o.knowledge.pending().expect("staged");
@@ -92,11 +104,12 @@ impl VisibilityService {
         if p.messages.is_empty() {
             let p = o.publication.take().expect("present");
             self.retained_bytes -= p.bytes;
-            if let Some(snapshot) = o
-                .knowledge
-                .commit(p.ticket)
-                .map_err(|_| VisibilityServiceError::Projection)?
-            {
+            if let Some(snapshot) = o.knowledge.commit(p.ticket).map_err(|error| {
+                VisibilityServiceError::ProjectionDetail {
+                    object: o.binding.actor.0,
+                    reason: format!("reliable knowledge commit: {error:?}"),
+                }
+            })? {
                 o.buffer = snapshot.candidates;
             }
             for id in p.removes {
@@ -248,7 +261,10 @@ impl VisibilityService {
                     .expect("retained observer")
                     .knowledge
                     .discard_unpublished(delta.ticket)
-                    .map_err(|_| VisibilityServiceError::Projection)?;
+                    .map_err(|error| VisibilityServiceError::ProjectionDetail {
+                        object: id.0,
+                        reason: format!("retirement knowledge discard: {error:?}"),
+                    })?;
                 if error == VisibilityServiceError::Capacity {
                     Ok(())
                 } else {
@@ -299,11 +315,12 @@ impl VisibilityService {
         }
         let o = self.observers.get_mut(&key).expect("selected");
         if chunks.is_empty() {
-            if let Some(snapshot) = o
-                .knowledge
-                .commit(ticket)
-                .map_err(|_| VisibilityServiceError::Projection)?
-            {
+            if let Some(snapshot) = o.knowledge.commit(ticket).map_err(|error| {
+                VisibilityServiceError::ProjectionDetail {
+                    object: o.binding.actor.0,
+                    reason: format!("empty publication knowledge commit: {error:?}"),
+                }
+            })? {
                 o.buffer = snapshot.candidates;
             }
             for id in removes {

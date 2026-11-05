@@ -30,6 +30,15 @@ pub fn prepare_creature(
         return Err("GamePiece creature actor admission requires the chess owner".into());
     }
     let props = &template.properties;
+    // ACE Creature.IsNPC excludes nonattackable creatures with no targeting
+    // tactic from monster combat. Preserve their physical body/locomotion,
+    // without demanding attack or death animation data they never use.
+    let zero_vital_controller = props.secondary_attributes.iter().all(|p| p.id != 1)
+        && props.attributes.is_empty()
+        && props.body_parts.is_empty()
+        && props.bools.iter().any(|p| p.id == 19 && !p.value);
+    let stationary_npc = zero_vital_controller
+        || is_passive_npc(template) && (assets.physical.stationary || props.body_parts.is_empty());
     if !crate::generator_preparation::is_creature_template(template.weenie_type)
         || policy.corpse_template == 0
         || policy.think_interval == 0
@@ -46,14 +55,13 @@ pub fn prepare_creature(
             .iter()
             .any(|p| matches!(p.id, 32 | 33) && p.value != 0);
     let attr = |id| -> Result<u32, String> {
-        let a = props
+        props
             .attributes
             .iter()
             .find(|p| p.id == id)
-            .ok_or("missing creature attribute")?;
-        a.value
-            .init_level
-            .checked_add(a.value.level_from_cp)
+            .map_or(Some(0), |a| {
+                a.value.init_level.checked_add(a.value.level_from_cp)
+            })
             .ok_or_else(|| "attribute overflow".into())
     };
     let formula = |f: SkillFormula| -> Result<u32, String> {
@@ -82,7 +90,7 @@ pub fn prepare_creature(
         .map(|p| p.value.init_level.checked_add(p.value.level_from_cp))
         .unwrap_or(Some(0))
         .and_then(|base| base.checked_add(formula(assets.vitals.health).ok()?))
-        .filter(|v| *v > 0)
+        .filter(|v| *v > 0 || zero_vital_controller)
         .ok_or("invalid creature maximum health")?;
     let resource = |id, formula_value: SkillFormula| -> Result<bace_entity::VitalPool, String> {
         let initial = props
@@ -169,17 +177,21 @@ pub fn prepare_creature(
     }
     armor.sort_by_key(|b| b.part);
     attacks.sort_by_key(|b| b.part);
-    let maneuvers = match assets.maneuvers {
-        Some(table) => crate::world_admission::prepare_combat_maneuvers(
-            table,
-            assets.motions,
-            assets.animations,
-        )?,
-        None => crate::physical_assets::prepare_fallback_melee_motions(
-            assets.motions,
-            assets.animations,
-            0x8000003c,
-        )?,
+    let maneuvers = if stationary_npc {
+        Vec::new()
+    } else {
+        match assets.maneuvers {
+            Some(table) => crate::world_admission::prepare_combat_maneuvers(
+                table,
+                assets.motions,
+                assets.animations,
+            )?,
+            None => crate::physical_assets::prepare_fallback_melee_motions(
+                assets.motions,
+                assets.animations,
+                0x8000003c,
+            )?,
+        }
     };
     let mut missile_timings = Vec::new();
     let mut missile_timing_errors = Vec::new();
@@ -231,7 +243,7 @@ pub fn prepare_creature(
         .filter(|m| requires_equipment || m.style == 0x8000003c)
         .collect();
     let first = unarmed.first().copied();
-    if assets.maneuvers.is_some() && first.is_none() {
+    if !stationary_npc && assets.maneuvers.is_some() && first.is_none() {
         return Err("creature lacks unarmed CMT maneuvers".into());
     }
     let current = *assets
@@ -239,10 +251,17 @@ pub fn prepare_creature(
         .style_defaults
         .get(&0x8000003d)
         .ok_or("missing creature noncombat motion")?;
-    let death =
-        crate::world_admission::transition_data(assets.motions, 0x8000003d, current, 0x40000011)?;
-    let death =
-        crate::world_admission::prepare_motion(death, assets.animations)?.duration_seconds();
+    let death = if stationary_npc {
+        0.0
+    } else {
+        let motion = crate::world_admission::transition_data(
+            assets.motions,
+            0x8000003d,
+            current,
+            0x40000011,
+        )?;
+        crate::world_admission::prepare_motion(motion, assets.animations)?.duration_seconds()
+    };
     let float = |id, default| {
         props
             .floats
@@ -281,9 +300,13 @@ pub fn prepare_creature(
         exhausted: false,
     })
     .map_err(|e| format!("invalid creature run: {e:?}"))?;
-    let maximum_speed = (locomotion.profile.run.velocity * run_rate)
-        .length_squared()
-        .sqrt();
+    let maximum_speed = if stationary_npc {
+        0.0
+    } else {
+        (locomotion.profile.run.velocity * run_rate)
+            .length_squared()
+            .sqrt()
+    };
     let mut range = 0.0f32;
     for maneuver in &unarmed {
         let ready = *assets
@@ -363,7 +386,11 @@ pub fn prepare_creature(
         height: assets.physical.shape.height(),
         missile: None,
     };
-    let maximum_turn_rate = locomotion.profile.turn.omega.z.abs();
+    let maximum_turn_rate = if stationary_npc {
+        0.0
+    } else {
+        locomotion.profile.turn.omega.z.abs()
+    };
     let geometry = bace_simulation::PreparedNpcGeometry {
         shape: assets.physical.shape.clone(),
         locomotion,
@@ -401,33 +428,50 @@ pub fn prepare_creature(
         corpse_decay_ticks: policy.corpse_decay_ticks,
     };
     let profile = Arc::new(profile);
-    let combat_assets = Arc::new(crate::npc_combat_assets::prepare_npc_combat_assets(
-        Arc::new(template.clone()),
-        profile.clone(),
-        &[],
-        assets.skills,
-        assets.quality_filter,
-    )?);
-    let (physical_motions, locomotion_styles) = crate::physical_assets::prepare_npc_motion_assets(
-        &profile,
-        crate::physical_assets::PhysicalMotionAssets {
-            table: assets.motions,
-            animations: assets.animations,
-            current_motion: 0x41000003,
-            current_speed: 1.0,
-            scale: float(39, 1.0) as f32,
-            modifiers: &[],
-        },
-    )?;
-    Ok(bace_simulation::GeneratedNpcTemplate {
-        script: None,
-        combat_assets: Some(combat_assets),
-        death_motions: crate::physical_assets::prepare_death_motion_assets(
+    let (combat_assets, physical_motions, locomotion_styles, death_motions) = if stationary_npc {
+        (
+            None,
+            Vec::new(),
+            vec![geometry.locomotion.clone()],
+            Vec::new(),
+        )
+    } else {
+        let combat_assets = Arc::new(crate::npc_combat_assets::prepare_npc_combat_assets(
+            Arc::new(template.clone()),
+            profile.clone(),
+            &[],
+            assets.skills,
+            assets.quality_filter,
+        )?);
+        let (physical_motions, locomotion_styles) =
+            crate::physical_assets::prepare_npc_motion_assets(
+                &profile,
+                crate::physical_assets::PhysicalMotionAssets {
+                    table: assets.motions,
+                    animations: assets.animations,
+                    current_motion: 0x41000003,
+                    current_speed: 1.0,
+                    scale: float(39, 1.0) as f32,
+                    modifiers: &[],
+                },
+            )?;
+        let death_motions = crate::physical_assets::prepare_death_motion_assets(
             assets.motions,
             assets.animations,
             &locomotion_styles,
             float(39, 1.0) as f32,
-        )?,
+        )?;
+        (
+            Some(combat_assets),
+            physical_motions,
+            locomotion_styles,
+            death_motions,
+        )
+    };
+    Ok(bace_simulation::GeneratedNpcTemplate {
+        script: None,
+        combat_assets,
+        death_motions,
         physical_motions,
         locomotion_styles,
         requires_equipment,
@@ -436,9 +480,26 @@ pub fn prepare_creature(
         missile_timing_errors,
         blueprint,
         geometry,
+        // ACE retains a Creature's attribute/combat qualities even when it is
+        // nonattackable and stationary; generated inventory binding needs them.
         physical: Some(profile),
         loot: None,
         ace_loot: None,
     })
+}
+
+pub(crate) fn is_passive_npc(template: &WeenieTemplate) -> bool {
+    template
+        .properties
+        .bools
+        .iter()
+        .find(|property| property.id == 19)
+        .is_some_and(|property| !property.value)
+        && template
+            .properties
+            .ints
+            .iter()
+            .find(|property| property.id == 68)
+            .is_none_or(|property| property.value == 0)
 }
 use sha2::Digest;

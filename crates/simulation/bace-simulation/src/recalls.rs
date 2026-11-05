@@ -126,8 +126,17 @@ pub(crate) struct PendingBinding {
     pub action_started: bool,
     pub action_announced: bool,
 }
+pub(crate) struct PendingBindingApproach {
+    pub context: ActionContext,
+    pub object: EntityId,
+    pub animation_seconds: f64,
+    pub style: Option<Arc<bace_motion::PreparedMotionChain>>,
+    pub motion: Arc<bace_motion::PreparedMotionChain>,
+    pub movement: crate::kernel::world_use::WorldApproach,
+}
 pub(crate) struct Recalls {
     pub bindings: BTreeMap<EntityId, PreparedBindingObject>,
+    pub binding_approaches: BTreeMap<EntityId, PendingBindingApproach>,
     pub pending_bindings: BTreeMap<EntityId, PendingBinding>,
     pub pending: BTreeMap<EntityId, PendingRecall>,
     pub houses: BTreeMap<EntityId, PreparedRecallHouse>,
@@ -144,6 +153,7 @@ impl Recalls {
         let capacity = capacity.min(4096);
         Self {
             bindings: BTreeMap::new(),
+            binding_approaches: BTreeMap::new(),
             pending_bindings: BTreeMap::new(),
             pending: BTreeMap::new(),
             houses: BTreeMap::new(),
@@ -157,7 +167,10 @@ impl Recalls {
         }
     }
     pub fn has_state(&self) -> bool {
-        !self.pending.is_empty() || !self.pending_bindings.is_empty() || !self.events.is_empty()
+        !self.pending.is_empty()
+            || !self.pending_bindings.is_empty()
+            || !self.binding_approaches.is_empty()
+            || !self.events.is_empty()
     }
 }
 

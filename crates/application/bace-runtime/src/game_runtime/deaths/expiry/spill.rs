@@ -131,6 +131,7 @@ mod tests {
             portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4"
                 .into(),
             cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+            store: None,
         };
         let mut assets = crate::region_activation::VerifiedRegionAssets::open(&manifest).unwrap();
         let geometry = assets.prepare_geometry(0x8602).unwrap();

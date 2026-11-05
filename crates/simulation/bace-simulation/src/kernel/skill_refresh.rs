@@ -310,7 +310,12 @@ impl Kernel {
                         current(43)?,
                     ],
                     current(15)?,
-                    current(16)?,
+                    crate::magic::trained_mana_conversion(
+                        *values
+                            .iter()
+                            .find(|v| v.skill == 16)
+                            .ok_or(SkillRefreshError::MissingSkill)?,
+                    ),
                 )
                 .map_err(|_| SkillRefreshError::Busy)?;
         }

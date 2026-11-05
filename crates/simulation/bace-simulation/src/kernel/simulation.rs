@@ -153,6 +153,9 @@ impl Kernel {
     pub fn door_physics(&self, id: EntityId) -> Option<bace_interactions::DoorPhysics> {
         self.doors.physics(id)
     }
+    pub fn cancel_door_approach(&mut self, actor: EntityId) {
+        self.doors.cancel_approach(actor, &mut self.world);
+    }
     pub fn has_pve_state(&self) -> bool {
         self.population.has_state()
             || !self.pve_service_outcomes.is_empty()
@@ -205,6 +208,8 @@ impl Kernel {
             || matches!(&command, Command::Inventory(c) if !c.valid_bounds())
             || matches!(&command,Command::SkillDevice(c) if !c.valid_bounds())
             || matches!(&command,Command::AttributeTransfer(c) if !c.valid_bounds())
+            || matches!(&command,Command::HealingKit(c) if !c.valid_bounds())
+            || matches!(&command,Command::ManaStone(c) if !c.valid_bounds())
             || matches!(&command,Command::PortalResolution(c) if !c.valid_bounds())
             || matches!(&command, Command::Generator(c) if !c.valid_bounds())
             || matches!(&command, Command::Vendor(c) if !c.valid_bounds())
@@ -229,6 +234,8 @@ impl Kernel {
             || matches!(&command, Command::Inventory(c) if !c.valid_bounds())
             || matches!(&command,Command::SkillDevice(c) if !c.valid_bounds())
             || matches!(&command,Command::AttributeTransfer(c) if !c.valid_bounds())
+            || matches!(&command,Command::HealingKit(c) if !c.valid_bounds())
+            || matches!(&command,Command::ManaStone(c) if !c.valid_bounds())
             || matches!(&command,Command::PortalResolution(c) if !c.valid_bounds())
             || matches!(&command, Command::DetachPlayer(c) if !c.valid_bounds())
             || matches!(&command,Command::Generator(c) if !c.valid_bounds())
@@ -391,6 +398,11 @@ impl Kernel {
             {
                 break;
             }
+            if matches!(self.commands.front(), Some(Command::ItemManaQuery(_)))
+                && self.item_mana_query_outcomes.len() >= self.outcome_capacity
+            {
+                break;
+            }
             if matches!(self.commands.front(), Some(Command::PveService(_)))
                 && self.pve_service_outcomes.len() >= self.outcome_capacity
             {
@@ -483,6 +495,16 @@ impl Kernel {
             }
             if matches!(self.commands.front(), Some(Command::AttributeTransfer(_)))
                 && self.attribute_transfer_outcomes.len() == self.outcome_capacity
+            {
+                break;
+            }
+            if matches!(self.commands.front(), Some(Command::HealingKit(_)))
+                && self.healing_kits.outcomes.len() == self.healing_kits.capacity
+            {
+                break;
+            }
+            if matches!(self.commands.front(), Some(Command::ManaStone(_)))
+                && self.mana_stones.outcomes.len() == self.mana_stones.capacity
             {
                 break;
             }
@@ -603,6 +625,10 @@ impl Kernel {
                     self.handle_player_snapshot(request);
                     Ok(())
                 }
+                Command::ItemManaQuery(request) => {
+                    self.handle_item_mana_query(request);
+                    Ok(())
+                }
                 Command::PveService(command) => {
                     self.handle_pve_service(command);
                     Ok(())
@@ -692,6 +718,16 @@ impl Kernel {
                     self.attribute_transfer_outcomes.push_back(result);
                     Ok(())
                 }
+                Command::HealingKit(command) => {
+                    let result = self.apply_healing_kit_command(command);
+                    self.healing_kits.outcomes.push_back(result);
+                    Ok(())
+                }
+                Command::ManaStone(command) => {
+                    let result = self.apply_mana_stone_command(command);
+                    self.mana_stones.outcomes.push_back(result);
+                    Ok(())
+                }
                 Command::Ui { context, request } => {
                     let result = self.apply_ui(context, request);
                     self.ui_outcomes.push_back(ActionResult { context, result });
@@ -742,10 +778,19 @@ impl Kernel {
                         })
                         .and_then(|()| {
                             self.doors
-                                .apply(context.actor, request.door, &self.world, self.tick)
+                                .begin_use(context, request.door, &mut self.world, self.tick)
                         });
-                    self.door_outcomes
-                        .push_back(ActionResult { context, result });
+                    match result {
+                        Ok(None) => {}
+                        Ok(Some(change)) => self.door_outcomes.push_back(ActionResult {
+                            context,
+                            result: Ok(change),
+                        }),
+                        Err(error) => self.door_outcomes.push_back(ActionResult {
+                            context,
+                            result: Err(error),
+                        }),
+                    }
                     Ok(())
                 }
                 Command::Cast { context, request } => {
@@ -951,6 +996,12 @@ impl Kernel {
             rejected.push(format!("NPC {}: {error:?}", actor.0));
         }
         self.doors.step(&mut self.world, self.tick);
+        while self.door_outcomes.len() < self.outcome_capacity {
+            let Some(outcome) = self.doors.take_completion() else {
+                break;
+            };
+            self.door_outcomes.push_back(outcome);
+        }
         self.stage_pve_shared_rewards()
             .map_err(|_| SimulationError::SkillRefresh)?;
         self.stage_npc_shared_rewards()
@@ -979,6 +1030,7 @@ impl Kernel {
         self.step_inventory_live();
         self.step_inventory_equipment_stances();
         self.step_crafting()?;
+        self.step_healing_kits()?;
         self.doors.npc_contacts(&self.world, next_tick);
         self.service_physical_procs()?;
         self.combat.step_with_equipment(

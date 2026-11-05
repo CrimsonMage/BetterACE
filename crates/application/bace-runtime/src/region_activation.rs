@@ -6,6 +6,8 @@ mod bindings;
 pub(crate) use bindings::prepare_binding_objects;
 mod crafting;
 mod deaths;
+mod doors;
+mod healing;
 mod physical;
 mod recalls;
 pub use recalls::PreparedRecallMotion;
@@ -16,7 +18,7 @@ mod materials;
 mod npc_recovery;
 mod projectile_visibility;
 mod restoration;
-mod startup;
+pub(crate) mod startup;
 mod visibility;
 use bace_dat::{
     Animation, CollisionSetup, DatArchive, EnvCell, Environment, GraphicsObject, Landblock,
@@ -39,6 +41,26 @@ pub struct RegionAssetManifest {
     pub cell: PathBuf,
     pub portal_sha256: String,
     pub cell_sha256: String,
+    /// Production startup installs one already approved, retained DAT set.
+    pub store: Option<Arc<bace_dat::DatStore>>,
+}
+impl RegionAssetManifest {
+    pub(crate) fn portal_archive(&self) -> Result<DatArchive, String> {
+        match &self.store {
+            Some(store) => Ok(store.portal()),
+            None => DatArchive::open_verified(&self.portal, &self.portal_sha256)
+                .map_err(|e| e.to_string()),
+        }
+    }
+
+    pub(crate) fn cell_archive(&self) -> Result<DatArchive, String> {
+        match &self.store {
+            Some(store) => Ok(store.cell()),
+            None => {
+                DatArchive::open_verified(&self.cell, &self.cell_sha256).map_err(|e| e.to_string())
+            }
+        }
+    }
 }
 #[derive(Clone)]
 pub struct RegionActivationRequest {
@@ -63,6 +85,7 @@ pub struct PreparedPhysicalTemplate {
     pub shape: Arc<CollisionShape>,
     /// Unsupported animation data is retained as an observable held admission.
     pub locomotion: Result<Arc<bace_motion::AnimatedLocomotion>, String>,
+    pub stationary: bool,
 }
 pub struct PreparedRegionActivation {
     pub source_manifest: [u8; 32],
@@ -73,7 +96,7 @@ pub struct PreparedRegionActivation {
     pub visibility: Vec<bace_world::PreparedCellVisibility>,
     pub fence: RegionActivationFence,
     pub content: crate::world_content::PreparedRegion,
-    pub catalog: crate::generator_catalog::PreparedGeneratorCatalog,
+    pub catalog: Arc<crate::generator_catalog::PreparedGeneratorCatalog>,
     pub item_spells: Result<crate::generator_spell_assets::PreparedGeneratorSpellAssets, String>,
     pub geometry: Arc<GeometryRegion>,
     pub physical: BTreeMap<u32, Result<PreparedPhysicalTemplate, String>>,
@@ -148,26 +171,107 @@ pub struct VerifiedRegionAssets {
     portal: DatArchive,
     cell: DatArchive,
     land: RegionLand,
+    skills: Option<bace_dat::SkillTable>,
+    vitals: Option<bace_dat::VitalTable>,
+    quality_filter: Option<bace_dat::QualityFilter>,
+    setups: BTreeMap<u32, Arc<CollisionSetup>>,
+    motions: BTreeMap<u32, Arc<MotionTable>>,
+    animations: BTreeMap<u32, Arc<Animation>>,
+    cached_record_bytes: usize,
 }
 impl VerifiedRegionAssets {
     pub fn open(manifest: &RegionAssetManifest) -> Result<Self, String> {
-        for (path, hash) in [
-            (&manifest.portal, &manifest.portal_sha256),
-            (&manifest.cell, &manifest.cell_sha256),
-        ] {
-            if hash.len() != 64 || bace_dat::fingerprint(path).map_err(|e| e.to_string())? != *hash
-            {
-                return Err("unapproved region DAT fingerprint".into());
-            }
-        }
-        let mut portal = DatArchive::open(&manifest.portal).map_err(|e| e.to_string())?;
-        let cell = DatArchive::open(&manifest.cell).map_err(|e| e.to_string())?;
+        let mut portal = manifest.portal_archive()?;
+        let cell = manifest.cell_archive()?;
         if portal.header().dataset != 1 || cell.header().dataset != 2 {
             return Err("incorrect region DAT datasets".into());
         }
         let land = RegionLand::decode_prefix(&portal.read(0x13000000).map_err(|e| e.to_string())?)
             .map_err(|e| e.to_string())?;
-        Ok(Self { portal, cell, land })
+        Ok(Self {
+            portal,
+            cell,
+            land,
+            skills: None,
+            vitals: None,
+            quality_filter: None,
+            setups: BTreeMap::new(),
+            motions: BTreeMap::new(),
+            animations: BTreeMap::new(),
+            cached_record_bytes: 0,
+        })
+    }
+    fn cache_record(&mut self, size: usize) -> bool {
+        // The worker owns these immutable decoded records; never grow a process
+        // cache in proportion to the number of landblocks visited by players.
+        let Some(next) = self.cached_record_bytes.checked_add(size) else {
+            return false;
+        };
+        if next > 32 * 1024 * 1024
+            || self.setups.len() + self.motions.len() + self.animations.len() >= 2048
+        {
+            return false;
+        }
+        self.cached_record_bytes = next;
+        true
+    }
+    fn record_size(&self, id: u32) -> Result<usize, String> {
+        self.portal
+            .records()
+            .get(&id)
+            .map(|record| record.size as usize)
+            .ok_or_else(|| format!("missing DAT record {id:08x}"))
+    }
+    fn cached_setup(&mut self, id: u32, budget: &mut usize) -> Result<Arc<CollisionSetup>, String> {
+        if let Some(value) = self.setups.get(&id) {
+            *budget = budget
+                .checked_sub(self.record_size(id)?)
+                .ok_or("region asset byte budget")?;
+            return Ok(value.clone());
+        }
+        let size = self.record_size(id)?;
+        let value = Arc::new(
+            CollisionSetup::decode(&read(&mut self.portal, id, budget)?)
+                .map_err(|error| error.to_string())?,
+        );
+        if self.cache_record(size) {
+            self.setups.insert(id, value.clone());
+        }
+        Ok(value)
+    }
+    fn cached_motion(&mut self, id: u32, budget: &mut usize) -> Result<Arc<MotionTable>, String> {
+        if let Some(value) = self.motions.get(&id) {
+            *budget = budget
+                .checked_sub(self.record_size(id)?)
+                .ok_or("region asset byte budget")?;
+            return Ok(value.clone());
+        }
+        let size = self.record_size(id)?;
+        let value = Arc::new(
+            MotionTable::decode(&read(&mut self.portal, id, budget)?)
+                .map_err(|error| error.to_string())?,
+        );
+        if self.cache_record(size) {
+            self.motions.insert(id, value.clone());
+        }
+        Ok(value)
+    }
+    fn cached_animation(&mut self, id: u32, budget: &mut usize) -> Result<Arc<Animation>, String> {
+        if let Some(value) = self.animations.get(&id) {
+            *budget = budget
+                .checked_sub(self.record_size(id)?)
+                .ok_or("region asset byte budget")?;
+            return Ok(value.clone());
+        }
+        let size = self.record_size(id)?;
+        let value = Arc::new(
+            Animation::decode(&read(&mut self.portal, id, budget)?)
+                .map_err(|error| error.to_string())?,
+        );
+        if self.cache_record(size) {
+            self.animations.insert(id, value.clone());
+        }
+        Ok(value)
     }
     pub fn prepare(
         &mut self,
@@ -176,8 +280,10 @@ impl VerifiedRegionAssets {
         if request.token == 0 || request.activation_epoch == 0 {
             return Err("invalid activation fence".into());
         }
+        let started = std::time::Instant::now();
         let mut content = crate::world_content::prepare(&request.generation, request.landblock)?;
-        let catalog = crate::generator_catalog::prepare_generator_catalog(
+        let content_at = std::time::Instant::now();
+        let catalog = Arc::new(crate::generator_catalog::prepare_generator_catalog(
             &request.generation,
             &content.templates,
             request
@@ -185,18 +291,22 @@ impl VerifiedRegionAssets {
                 .clone()
                 .unwrap_or_else(|| Arc::new(bace_loot::TreasureAssets::default())),
             request.aetheria_drop_rate,
-        )?;
+        )?);
         content.templates = catalog.templates.clone();
+        let catalog_at = std::time::Instant::now();
         let item_spells = crate::generator_spell_assets::prepare_generator_spell_assets(
             &request.generation,
             &mut self.portal,
             &content.templates,
         );
+        let spells_at = std::time::Instant::now();
         let (geometry, visibility) = self.prepare_geometry_with_visibility(request.landblock)?;
+        let geometry_at = std::time::Instant::now();
         let mut physical = BTreeMap::new();
         for (&id, template) in &content.templates {
             physical.insert(id, self.prepare_template(template));
         }
+        let physical_at = std::time::Instant::now();
         let mut creatures = BTreeMap::new();
         for (&id, template) in &content.templates {
             if crate::generator_preparation::is_creature_template(template.weenie_type) {
@@ -219,6 +329,19 @@ impl VerifiedRegionAssets {
                 creatures.insert(id, creature);
             }
         }
+        let creature_at = std::time::Instant::now();
+        eprintln!(
+            "region {:04x} asset work: content {:.3}s, catalog {:.3}s, spells {:.3}s, geometry {:.3}s, physical {:.3}s, creatures {:.3}s; {} templates, {} creatures",
+            request.landblock,
+            (content_at - started).as_secs_f64(),
+            (catalog_at - content_at).as_secs_f64(),
+            (spells_at - catalog_at).as_secs_f64(),
+            (geometry_at - spells_at).as_secs_f64(),
+            (physical_at - geometry_at).as_secs_f64(),
+            (creature_at - physical_at).as_secs_f64(),
+            content.templates.len(),
+            creatures.len(),
+        );
         Ok(PreparedRegionActivation {
             source_manifest: request.content_hash,
             npc_recovery: BTreeMap::new(),
@@ -381,8 +504,7 @@ impl VerifiedRegionAssets {
                 })
         };
         let mut budget = 32 * 1024 * 1024usize;
-        let motions = MotionTable::decode(&read(&mut self.portal, did(2)?, &mut budget)?)
-            .map_err(|e| e.to_string())?;
+        let motions = self.cached_motion(did(2)?, &mut budget)?;
         let cmt = template
             .properties
             .data_ids
@@ -397,18 +519,28 @@ impl VerifiedRegionAssets {
                 .map_err(|error| error.to_string())
             })
             .transpose()?;
-        let skills =
-            bace_dat::SkillTable::decode(&read(&mut self.portal, 0x0e000004, &mut budget)?)
-                .map_err(|e| e.to_string())?;
-        let vitals =
-            bace_dat::VitalTable::decode(&read(&mut self.portal, 0x0e000003, &mut budget)?)
-                .map_err(|e| e.to_string())?;
-        let quality_filter = bace_dat::QualityFilter::decode(&read(
-            &mut self.portal,
-            bace_dat::QualityFilter::RECORD_ID,
-            &mut budget,
-        )?)
-        .map_err(|e| e.to_string())?;
+        if self.skills.is_none() {
+            self.skills = Some(
+                bace_dat::SkillTable::decode(&read(&mut self.portal, 0x0e000004, &mut budget)?)
+                    .map_err(|e| e.to_string())?,
+            );
+        }
+        if self.vitals.is_none() {
+            self.vitals = Some(
+                bace_dat::VitalTable::decode(&read(&mut self.portal, 0x0e000003, &mut budget)?)
+                    .map_err(|e| e.to_string())?,
+            );
+        }
+        if self.quality_filter.is_none() {
+            self.quality_filter = Some(
+                bace_dat::QualityFilter::decode(&read(
+                    &mut self.portal,
+                    bace_dat::QualityFilter::RECORD_ID,
+                    &mut budget,
+                )?)
+                .map_err(|e| e.to_string())?,
+            );
+        }
         let mut animations = BTreeMap::new();
         for data in motions
             .cycles
@@ -421,12 +553,7 @@ impl VerifiedRegionAssets {
                     animations.entry(segment.animation_id)
                 {
                     entry.insert(
-                        Animation::decode(&read(
-                            &mut self.portal,
-                            segment.animation_id,
-                            &mut budget,
-                        )?)
-                        .map_err(|e| e.to_string())?,
+                        (*self.cached_animation(segment.animation_id, &mut budget)?).clone(),
                     );
                 }
             }
@@ -437,9 +564,12 @@ impl VerifiedRegionAssets {
                 motions: &motions,
                 maneuvers: cmt.as_ref(),
                 animations: &animations,
-                skills: &skills,
-                quality_filter: &quality_filter,
-                vitals: &vitals,
+                skills: self.skills.as_ref().expect("prepared skill table"),
+                quality_filter: self
+                    .quality_filter
+                    .as_ref()
+                    .expect("prepared quality filter"),
+                vitals: self.vitals.as_ref().expect("prepared vital table"),
                 physical,
             },
             policy,
@@ -459,8 +589,7 @@ impl VerifiedRegionAssets {
         };
         let mut budget = 16 * 1024 * 1024usize;
         let setup_id = did(1).ok_or("template has no collision setup")?;
-        let setup = CollisionSetup::decode(&read(&mut self.portal, setup_id, &mut budget)?)
-            .map_err(|e| e.to_string())?;
+        let setup = self.cached_setup(setup_id, &mut budget)?;
         let scale = template
             .properties
             .floats
@@ -468,10 +597,9 @@ impl VerifiedRegionAssets {
             .find(|p| p.id == 39)
             .map_or(1.0, |p| p.value) as f32;
         let shape = crate::world_admission::prepare_collision_shape(&setup, scale)?;
-        let locomotion = (|| {
+        let (locomotion, stationary) = (|| {
             let id = did(2).unwrap_or(setup.default_motion_table);
-            let table = MotionTable::decode(&read(&mut self.portal, id, &mut budget)?)
-                .map_err(|e| e.to_string())?;
+            let table = self.cached_motion(id, &mut budget)?;
             let mut animations = BTreeMap::new();
             for data in table.cycles.values() {
                 for segment in &data.animations {
@@ -479,24 +607,39 @@ impl VerifiedRegionAssets {
                         animations.entry(segment.animation_id)
                     {
                         entry.insert(
-                            Animation::decode(&read(
-                                &mut self.portal,
-                                segment.animation_id,
-                                &mut budget,
-                            )?)
-                            .map_err(|e| e.to_string())?,
+                            (*self.cached_animation(segment.animation_id, &mut budget)?).clone(),
                         );
                     }
                 }
             }
-            crate::world_admission::prepare_animated_locomotion(
+            let normal = crate::world_admission::prepare_animated_locomotion(
                 &table,
                 table.default_style,
                 &animations,
                 scale,
-            )
-        })();
-        Ok(PreparedPhysicalTemplate { shape, locomotion })
+            );
+            match normal {
+                Ok(locomotion) => Ok((locomotion, false)),
+                Err(_) if crate::generator_preparation::is_passive_npc(template) => {
+                    crate::world_admission::prepare_stationary_locomotion(
+                        &table,
+                        &animations,
+                        scale,
+                    )
+                    .map(|locomotion| (locomotion, true))
+                }
+                Err(error) => Err(error),
+            }
+        })()
+        .map_or_else(
+            |error| (Err(error), false),
+            |(locomotion, stationary)| (Ok(locomotion), stationary),
+        );
+        Ok(PreparedPhysicalTemplate {
+            shape,
+            locomotion,
+            stationary,
+        })
     }
 }
 fn read(archive: &mut DatArchive, id: u32, budget: &mut usize) -> Result<Vec<u8>, String> {

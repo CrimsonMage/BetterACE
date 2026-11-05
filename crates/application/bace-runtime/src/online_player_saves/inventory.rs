@@ -103,6 +103,11 @@ impl OnlinePlayerSaveService {
             .filter(|item| item.owner == actor)
             .map(|item| &item.saved)
     }
+    /// Resolve a visible item without scanning every entered character. The
+    /// caller must enforce the requesting session's visibility fence.
+    pub fn item_baseline(&self, id: u32) -> Option<(u32, &ItemSaveV4)> {
+        self.items.get(&id).map(|item| (item.owner, &item.saved))
+    }
     pub fn inventory_source_destination(&self, actor: u32, id: u32) -> Option<u8> {
         self.items
             .get(&id)

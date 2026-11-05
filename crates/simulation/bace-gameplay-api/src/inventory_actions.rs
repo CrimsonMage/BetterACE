@@ -60,6 +60,8 @@ pub enum InventoryRejection {
     Requirements,
     UniqueItem,
     Quest,
+    /// A cold equipment calculation no longer matches the live player revision.
+    StaleSnapshot,
     InvalidState,
     Overflow,
     DurabilityPending,

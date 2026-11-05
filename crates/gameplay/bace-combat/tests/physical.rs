@@ -1,5 +1,67 @@
 use bace_combat::physical::*;
 use bace_gameplay_api::weapon_combat::*;
+
+#[test]
+fn ace_player_stamina_table_and_endurance_costs() {
+    // Literal pinned ACE StaminaTable.cs denominations, Player_Melee/Missile
+    // 0.33/0.66 bands, and Player_Combat.GetStaminaMod. These differ from the
+    // GDLE quadratic/burden-divisor implementation previously used here.
+    for (power, burden, endurance, expected) in [
+        (0.00, 699, 50, 1),
+        (0.00, 1600, 50, 2),
+        (0.00, 2300, 50, 2),
+        (0.33, 1200, 50, 2),
+        (0.66, 1200, 50, 4),
+        (1.00, 1600, 50, 6),
+        (1.00, 1600, 290, 3),
+        (1.00, 1200, 170, 3),
+    ] {
+        for kind in [PhysicalKind::Melee, PhysicalKind::Missile] {
+            assert_eq!(
+                attack_stamina(AttackStaminaInput {
+                    kind,
+                    player: true,
+                    base_endurance: endurance,
+                    weapon_burden: burden,
+                    shield_burden: 0,
+                    shield_placement: false,
+                    power,
+                    roll: 0.5,
+                })
+                .unwrap(),
+                expected,
+                "power {power}, burden {burden}, endurance {endurance}"
+            );
+        }
+    }
+    assert_eq!(
+        attack_stamina(AttackStaminaInput {
+            kind: PhysicalKind::Melee,
+            player: false,
+            base_endurance: 50,
+            weapon_burden: 1600,
+            shield_burden: 0,
+            shield_placement: false,
+            power: 1.0,
+            roll: 0.5,
+        })
+        .unwrap(),
+        0
+    );
+}
+
+#[test]
+fn ace_player_defense_stamina_respects_combat_mode_and_evasion() {
+    // Player_Combat.OnEvade/OnDamage spend one only in combat. Trained evade
+    // uses the pinned quadratic chance capped at 0.75; a hit always spends one.
+    assert_eq!(defense_stamina(true, false, false, 0, 50, 0.5), Ok(0));
+    assert_eq!(defense_stamina(true, false, true, 2, 300, 0.9), Ok(0));
+    assert_eq!(defense_stamina(false, true, false, 0, 50, 0.5), Ok(0));
+    assert_eq!(defense_stamina(true, true, true, 0, 300, 0.1), Ok(1));
+    assert_eq!(defense_stamina(true, true, false, 2, 300, 0.1), Ok(1));
+    assert_eq!(defense_stamina(true, true, true, 2, 300, 0.74), Ok(0));
+    assert_eq!(defense_stamina(true, true, true, 2, 300, 0.75), Ok(1));
+}
 fn prepared(player: bool) -> PhysicalCombatProfile {
     let weapon = PhysicalWeapon {
         entity: if player { 100 } else { 200 },
@@ -246,6 +308,21 @@ fn physical_pk_matrix_and_invalid_preparation_fail_closed() {
     let mut p = prepared(true);
     p.maneuvers[0].hooks[0].seconds = f64::NAN;
     assert!(validate_physical_profile(&p).is_err());
+}
+#[test]
+fn nonattackable_bodyless_creature_has_no_required_armor() {
+    let mut profile = prepared(false);
+    profile.attackable = false;
+    profile.armor.clear();
+    profile.maneuvers.clear();
+    profile.range = 0.0;
+    assert!(validate_physical_profile(&profile).is_ok());
+    profile.attackable = true;
+    assert!(validate_physical_profile(&profile).is_err());
+    profile.attackable = false;
+    profile.maneuvers = prepared(false).maneuvers;
+    profile.range = 1.0;
+    assert!(validate_physical_profile(&profile).is_err());
 }
 fn rolls() -> PhysicalRolls {
     PhysicalRolls {

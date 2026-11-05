@@ -2,7 +2,6 @@
 //! stays on the cold asset worker; this adapter only routes retained packets.
 use super::*;
 use crate::dat_distribution::{DatPreparationWorker, DatSubmissionReason};
-use bace_dat::DatArchive;
 use bace_dat_service::{DddCatalog, DddError, DddLimits, DddSession, DddStart};
 use bace_wire::opcode::GameMessageOpcode;
 use bace_wire::{
@@ -48,15 +47,13 @@ enum AdmissionKind {
 }
 
 impl DatRuntime {
-    /// Fingerprint admission is repeated against the files actually opened for
-    /// distribution, closing the gap between world admission and DAT startup.
+    /// Uses the exact approved descriptors and indexes retained by bootstrap.
     pub(super) async fn prepare(bootstrap: &GameBootstrap) -> Result<Self, String> {
-        let directory = bootstrap
-            .config
-            .dat_directory
+        let store = bootstrap
+            .assets
+            .store
             .clone()
-            .ok_or("DAT distribution requires an approved DAT directory")?;
-        let manifest = bootstrap.assets.clone();
+            .ok_or("DAT distribution requires an approved DAT store")?;
         let enabled = bootstrap.config.dat_distribution.enabled;
         let limits = if enabled {
             DddLimits::stock_patch()
@@ -68,21 +65,10 @@ impl DatRuntime {
             if enabled { "enabled" } else { "disabled" }
         );
         let (catalog, worker) = tokio::task::spawn_blocking(move || {
-            crate::game_bootstrap::verify_assets(&manifest, &directory)?;
             let mut archives = vec![
-                (
-                    DddDatabase::Portal,
-                    DatArchive::open(&manifest.portal).map_err(|e| e.to_string())?,
-                ),
-                (
-                    DddDatabase::Language,
-                    DatArchive::open(directory.join("client_local_English.dat"))
-                        .map_err(|e| e.to_string())?,
-                ),
-                (
-                    DddDatabase::Cell,
-                    DatArchive::open(&manifest.cell).map_err(|e| e.to_string())?,
-                ),
+                (DddDatabase::Portal, store.portal()),
+                (DddDatabase::Language, store.language()),
+                (DddDatabase::Cell, store.cell()),
             ];
             let catalog = if enabled {
                 DddCatalog::from_archives(&mut archives, limits)
@@ -188,18 +174,18 @@ impl DatRuntime {
 
     pub(super) fn shutdown(
         mut self,
-    ) -> Result<(), (Self, Option<crate::dat_distribution::DatPreparationDrain>)> {
+    ) -> Result<(), Box<(Self, Option<crate::dat_distribution::DatPreparationDrain>)>> {
         if !self.sessions.is_empty()
             || !self.patch_sessions.is_empty()
             || !self.interrogations.is_empty()
             || !self.admissions.is_empty()
         {
-            return Err((self, None));
+            return Err(Box::new((self, None)));
         }
         if let Some(worker) = self.worker.take() {
             let drained = worker.shutdown();
             if drained.panicked || !drained.unrecovered_jobs.is_empty() {
-                return Err((self, Some(drained)));
+                return Err(Box::new((self, Some(drained))));
             }
         }
         Ok(())
@@ -309,9 +295,6 @@ impl GameRuntime {
         if opcode != response && opcode != end && opcode != request {
             return Ok(DddIngress::Unsupported);
         }
-        if message.queue != 5 {
-            return self.reject_ddd(key, "Invalid DAT message queue");
-        }
         let Some(dat) = self.dat.as_mut() else {
             return self.reject_ddd(key, "DAT negotiation unavailable");
         };
@@ -409,7 +392,10 @@ impl GameRuntime {
                     self.publish_ddd(key, vec![(5, bytes)], AdmissionKind::End)?;
                     eprintln!("DDD session {}: patch completed; end queued", key.id);
                 }
-                Ok(None) => return self.reject_ddd(key, "Unexpected DAT completion"),
+                // Pinned ACE ignores a client's EndDDD when it did not send
+                // BeginDDD. Stock clients can still echo EndDDD after the
+                // up-to-date interrogation path; no second reply is needed.
+                Ok(None) => {}
                 Err(_) => return Ok(DddIngress::Blocked),
             }
             return Ok(DddIngress::Accepted);
@@ -454,6 +440,13 @@ impl GameRuntime {
                 bytes,
             });
         eprintln!("DDD session {}: {}", key.id, reason);
+        if let Some(log) = &self.diagnostic_log {
+            log.record(
+                "error",
+                "game.dat_rejected",
+                &format!("session {} generation {}: {reason}", key.id, key.generation),
+            );
+        }
         if let Some(session) = self.sessions.get_mut(&key) {
             session.closing = true;
         }

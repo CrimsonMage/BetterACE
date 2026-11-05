@@ -275,10 +275,8 @@ impl GameRuntime {
             return Ok(false);
         }
         let chargen = self
-            .sessions
-            .get(&key)
-            .and_then(|s| s.loading.as_ref())
-            .and_then(|l| l.character_assets.as_ref())
+            .character_assets
+            .as_ref()
             .ok_or("equipped death chargen absent")?;
         let model = crate::player_entry::prepare_player_model(
             &player.player.entity.state,

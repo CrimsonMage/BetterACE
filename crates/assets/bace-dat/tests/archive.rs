@@ -1,4 +1,4 @@
-use bace_dat::{DatArchive, Landblock};
+use bace_dat::{DatArchive, DatStore, Landblock, fingerprint};
 use std::io::Write;
 
 fn image() -> Vec<u8> {
@@ -53,6 +53,65 @@ fn directory_cycles_and_bad_counts_are_rejected() {
     let fixture = file(&bytes);
     let mut dat = DatArchive::open(fixture.path()).unwrap();
     assert!(dat.read(0x1234ffff).is_err());
+}
+
+#[test]
+fn multi_sector_record_preserves_payload_and_rejects_extra_link() {
+    let mut bytes = image();
+    bytes.resize(5120, 0);
+    bytes[0x148..0x14c].copy_from_slice(&5120_u32.to_le_bytes());
+    bytes[1292..1296].copy_from_slice(&1021_u32.to_le_bytes());
+    bytes[3072..3076].copy_from_slice(&4096_u32.to_le_bytes());
+    for (index, byte) in bytes[3076..4096].iter_mut().enumerate() {
+        *byte = index as u8;
+    }
+    bytes[4100] = 0xa5;
+    let fixture = file(&bytes);
+    let mut dat = DatArchive::open(fixture.path()).unwrap();
+    let record = dat.read(0x1234ffff).unwrap();
+    assert_eq!(record.len(), 1021);
+    assert_eq!(&record[..1020], &bytes[3076..4096]);
+    assert_eq!(record[1020], 0xa5);
+
+    bytes[4096..4100].copy_from_slice(&3072_u32.to_le_bytes());
+    let fixture = file(&bytes);
+    let mut dat = DatArchive::open(fixture.path()).unwrap();
+    assert!(dat.read(0x1234ffff).is_err());
+}
+
+#[test]
+fn verified_archive_clones_read_concurrently_and_reject_wrong_hash() {
+    let fixture = file(&image());
+    let expected = fingerprint(fixture.path()).unwrap();
+    assert!(DatArchive::open_verified(fixture.path(), &"0".repeat(64)).is_err());
+    let archive = DatArchive::open_verified(fixture.path(), &expected).unwrap();
+    std::thread::scope(|scope| {
+        let workers: Vec<_> = (0..4)
+            .map(|_| {
+                let mut reader = archive.clone();
+                scope.spawn(move || {
+                    for _ in 0..100 {
+                        let bytes = reader.read(0x1234ffff).unwrap();
+                        assert_eq!(bytes.len(), 252);
+                        assert_eq!(Landblock::decode(&bytes).unwrap().id, 0x1234ffff);
+                    }
+                })
+            })
+            .collect();
+        for worker in workers {
+            worker.join().unwrap();
+        }
+    });
+}
+
+#[test]
+fn store_rejects_crossed_datasets() {
+    let fixture = file(&image());
+    let raw = DatArchive::open(fixture.path()).unwrap();
+    assert!(DatStore::new(raw.clone(), raw.clone(), raw).is_err());
+    let archive =
+        DatArchive::open_verified(fixture.path(), &fingerprint(fixture.path()).unwrap()).unwrap();
+    assert!(DatStore::new(archive.clone(), archive.clone(), archive).is_err());
 }
 
 #[test]

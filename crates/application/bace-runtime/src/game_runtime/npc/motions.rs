@@ -3,6 +3,10 @@
 use super::effects::{Owner, Phase};
 use super::*;
 use crate::npc_motion_assets::{NpcMotionWork, NpcMotionWorker};
+use crate::npc_persistence::{NpcServiceCompletionInput, freeze_service_completion};
+use crate::npc_service::NpcDurableAdoption;
+const MAX_MOTION_START_ATTEMPTS: u16 = 120;
+const MAX_STALE_MOTION_REPREPARES: u16 = 3;
 pub(super) enum Motion {
     Inspect,
     Inspecting,
@@ -14,10 +18,23 @@ pub(super) enum Motion {
         work: Arc<NpcMotionWork>,
         chain: Arc<bace_motion::PreparedMotionChain>,
     },
-    Starting,
+    Starting {
+        work: Arc<NpcMotionWork>,
+        chain: Arc<bace_motion::PreparedMotionChain>,
+    },
     Running,
     Polling,
+    Skip,
+    SkipPreview,
+    SkipReady,
+    SkipSaving,
     Held(String),
+}
+pub(super) fn awaiting_command(state: &Motion) -> bool {
+    matches!(
+        state,
+        Motion::Inspecting | Motion::Starting { .. } | Motion::Polling | Motion::SkipPreview
+    )
 }
 pub(super) fn accept(
     npc: &mut NpcRuntime,
@@ -88,7 +105,26 @@ pub(super) fn accept(
                 submitted: false,
             };
         }
-        Ok(R::MotionStarted(_)) if matches!(state, Motion::Starting) => *state = Motion::Running,
+        Ok(R::MotionStarted(_)) if matches!(state, Motion::Starting { .. }) => {
+            work.motion_retries = 0;
+            *state = Motion::Running;
+        }
+        Ok(R::MotionBusy) if matches!(state, Motion::Starting { .. }) => {
+            work.motion_retries = work.motion_retries.saturating_add(1);
+            if work.motion_retries >= MAX_MOTION_START_ATTEMPTS {
+                *state = Motion::Skip;
+            } else if let Motion::Starting { work, chain } = state {
+                *state = Motion::Ready {
+                    work: work.clone(),
+                    chain: chain.clone(),
+                };
+            }
+        }
+        Ok(R::Checkpoint(checkpoint)) if matches!(state, Motion::SkipPreview) => {
+            work.checkpoint = Some(checkpoint.clone());
+            work.phase = Phase::Ready;
+            *state = Motion::SkipReady;
+        }
         Ok(R::MotionProgress(event)) if matches!(state, Motion::Polling) => {
             if let Some(event) = event
                 && matches!(
@@ -104,8 +140,28 @@ pub(super) fn accept(
                 *state = Motion::Running;
             }
         }
+        Err(bace_gameplay_api::NpcFailure::Conflict)
+            if matches!(state, Motion::Inspecting | Motion::Starting { .. }) =>
+        {
+            work.motion_retries = work.motion_retries.saturating_add(1);
+            *state = if work.motion_retries >= MAX_STALE_MOTION_REPREPARES {
+                Motion::Skip
+            } else {
+                Motion::Inspect
+            };
+        }
         Err(error) => {
-            let message = format!("NPC motion owner held: {error:?}");
+            let phase = match state {
+                Motion::Inspecting => "inspect",
+                Motion::Starting { .. } => "start",
+                Motion::Polling => "poll",
+                Motion::SkipPreview => "skip preview",
+                _ => "unexpected",
+            };
+            let message = format!(
+                "NPC motion owner held: {error:?}; phase {phase}, source {:#010x}, target {:?}, ticket {}",
+                source.0, work.proposal.context.target, work.proposal.ticket
+            );
             *state = Motion::Held(message.clone());
             npc.failure = Some(message);
         }
@@ -206,7 +262,71 @@ impl GameRuntime {
                         },
                     )
                     .map_err(|_| "NPC motion begin pressure")?;
-                *state = Motion::Starting;
+                *state = Motion::Starting {
+                    work: request.clone(),
+                    chain: chain.clone(),
+                };
+            }
+            Motion::Skip => {
+                let ticket = work.proposal.ticket;
+                let retries = work.motion_retries;
+                self.npc
+                    .coordinator
+                    .enqueue(
+                        source,
+                        A::PreviewSkippedMotion {
+                            proposal: work.proposal.clone(),
+                        },
+                    )
+                    .map_err(|_| "NPC motion skip preview pressure")?;
+                *state = Motion::SkipPreview;
+                self.diagnostic(
+                    "warn",
+                    "game.npc_motion_skipped",
+                    &format!(
+                        "source {:#010x}, ticket {}, failed starts {}; advancing ACE-conditional motion through durable stage",
+                        source.0, ticket, retries
+                    ),
+                );
+            }
+            Motion::SkipReady => {
+                let (binding, workflow_version) = self
+                    .npc
+                    .coordinator
+                    .binding(source)
+                    .ok_or("NPC motion skip binding missing")?;
+                let leases = work
+                    .proposal
+                    .context
+                    .target
+                    .and_then(|actor| {
+                        self.online_saves
+                            .baseline(actor.0)
+                            .map(|(_, _, lease)| lease)
+                    })
+                    .into_iter()
+                    .collect();
+                let pending = freeze_service_completion(NpcServiceCompletionInput {
+                    binding,
+                    workflow_version,
+                    world_epoch: self.bootstrap.world_owner.epoch(),
+                    proposal: work.proposal.clone(),
+                    checkpoint: work
+                        .checkpoint
+                        .as_ref()
+                        .ok_or("NPC motion skip checkpoint missing")?
+                        .clone(),
+                    leases,
+                })
+                .map_err(|e| e.to_string())?;
+                work.frozen = Some((
+                    pending,
+                    NpcDurableAdoption::SkippedMotion {
+                        proposal: work.proposal.clone(),
+                    },
+                ));
+                work.phase = Phase::Saving;
+                *state = Motion::SkipSaving;
             }
             Motion::Running => {
                 self.npc
@@ -224,5 +344,54 @@ impl GameRuntime {
             _ => {}
         }
         Ok(())
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bace_gameplay_api::NpcContext;
+    use tokio::time::Instant;
+
+    #[test]
+    fn transient_start_conflicts_reinspect_then_skip_without_lifecycle_hold() {
+        let source = EntityId(0x8000_0001);
+        let proposal = NpcProposal {
+            ticket: 7,
+            context: NpcContext {
+                source,
+                target: None,
+                operation: 1,
+            },
+            effect: NpcEffect::Service(NpcOperation::Motion {
+                target: false,
+                motion: 0x1300_00aa,
+                extent: 1.0,
+                style: None,
+                substyle: None,
+            }),
+        };
+        let mut npc = NpcRuntime::new();
+        let mut work = super::super::effects::Work::new(proposal);
+        work.motion = Some(Motion::Inspecting);
+        npc.work.insert(source, work);
+        let online =
+            crate::online_player_saves::OnlinePlayerSaveService::new(1, 1024, Instant::now())
+                .unwrap();
+        let conflict = bace_simulation::NpcServiceOutcome {
+            correlation: 1,
+            result: Err(bace_gameplay_api::NpcFailure::Conflict),
+        };
+        for attempt in 1..=MAX_STALE_MOTION_REPREPARES {
+            accept(&mut npc, source, &conflict, &online).unwrap();
+            let work = npc.work.get_mut(&source).unwrap();
+            assert_eq!(work.motion_retries, attempt);
+            if attempt == MAX_STALE_MOTION_REPREPARES {
+                assert!(matches!(work.motion, Some(Motion::Skip)));
+            } else {
+                assert!(matches!(work.motion, Some(Motion::Inspect)));
+                work.motion = Some(Motion::Inspecting);
+            }
+            assert!(npc.failure.is_none());
+        }
     }
 }

@@ -116,7 +116,7 @@ impl GameRuntime {
             // expiry can proceed. Do not silently acknowledge its Open.
             return Err("corpse access viewer disconnected before output".into());
         }
-        let loading = session
+        session
             .loading
             .as_ref()
             .ok_or("corpse access output character missing")?;
@@ -214,7 +214,7 @@ impl GameRuntime {
                         .appearance
                         .as_ref()
                         .ok_or("corpse child DAT closure missing")?;
-                    let character = loading
+                    let character = self
                         .character_assets
                         .as_ref()
                         .ok_or("corpse child chargen metadata missing")?;

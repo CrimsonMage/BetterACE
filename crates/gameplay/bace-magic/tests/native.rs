@@ -213,6 +213,73 @@ fn native_skill_quality_join_distinguishes_sneak_deception_and_unrelated_skills(
     );
     assert_eq!((result.base_strength, result.base_endurance), (40, 50));
 }
+
+#[test]
+fn ace_mana_conversion_prefers_weapon_and_keeps_held_wand_spell_cost() {
+    use bace_content::Property;
+    let actor = bace_content::WeenieV1 {
+        schema_version: 1,
+        weenie_id: 1,
+        class_name: "actor".into(),
+        weenie_type: 10,
+        last_modified: None,
+        properties: Default::default(),
+    };
+    let make_item = |id, modifier: f64| {
+        let mut item = actor.clone();
+        item.weenie_id = id;
+        item.properties.floats.push(Property {
+            id: 144,
+            value: modifier,
+        });
+        item
+    };
+    let melee = make_item(2, 0.2);
+    let missile = make_item(3, 0.3);
+    let mut wand = make_item(4, 0.4);
+    wand.properties
+        .data_ids
+        .push(Property { id: 28, value: 123 });
+    wand.properties.ints.push(Property { id: 117, value: 7 });
+    let equipped = [
+        MagicDamageEquipment {
+            entity: 4,
+            revision: 1,
+            location: 0x01000000,
+            level: None,
+            weenie: &wand,
+        },
+        MagicDamageEquipment {
+            entity: 3,
+            revision: 1,
+            location: 0x00400000,
+            level: None,
+            weenie: &missile,
+        },
+        MagicDamageEquipment {
+            entity: 2,
+            revision: 1,
+            location: 0x00100000,
+            level: None,
+            weenie: &melee,
+        },
+    ];
+    let profile = prepare_magic_damage_profile(MagicDamagePreparation {
+        player: true,
+        weenie: &actor,
+        equipment: &equipped,
+        skills: &[],
+        base_attributes: [0; 6],
+        base_shield_skill: 0,
+    })
+    .unwrap();
+    assert_eq!(profile.mana_conversion_weapon.unwrap().entity, 2);
+    assert_eq!(
+        profile.mana_conversion_weapon.unwrap().base_modifier,
+        0.2f32
+    );
+    assert_eq!(profile.wand_spell_cost, Some((123, 7)));
+}
 #[test]
 fn raw_native_school_ids_do_not_reuse_internal_skill_array_discriminants() {
     let mut row = row();

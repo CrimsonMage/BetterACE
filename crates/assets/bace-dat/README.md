@@ -4,6 +4,8 @@ Status: foundation with bounded archive, terrain and character-table readers.
 
 `DatArchive` reads DAT headers, B-tree records and checked sector chains. `Landblock` decodes outdoor terrain. Authoritative setup/collision, motion and dungeon geometry decoding remain incomplete; missing collision/motion assets still block world entry.
 
+`DatArchive::open_verified` hashes the file descriptor retained for later reads, then builds its checked record index once. Clones share that descriptor and index; positioned reads allow cold workers to read independently without a shared seek offset. Sector chains use one bounded positioned read per sector, including the link and payload. `DatStore` groups one approved Portal, Cell and Language archive with checked dataset identities. This caches index metadata, not decoded records or world regions; payload pages are managed by the operating system. The server owns its store independently of Vitaeum4. Its existing bounded preparation workers still control concurrent decoding and the simulation owner does no DAT I/O. Capacity for 1,000 players has not been measured.
+
 Character/progression resources now decode the complete pinned ACE layouts:
 
 - `XpTable` (`0x0E000018`): inclusive attribute/vital/trained/specialized rank tables, 64-bit character level XP and level skill credits.
@@ -150,5 +152,5 @@ component-only decoding remains fenced to `0x27000002`. The material record
 `0x27000000` uses the same bounded source layout. Independent original C# fixtures
 in `tests/fixtures/materials_mapper.*` include provenance for DualDidMapper and
 RecipeManager.GetMaterialName; tests reject mismatched identities, other record
-classes, every truncation and trailing bytes. Fingerprint admission remains the
-cold adapter's responsibility.
+classes, every truncation and trailing bytes. Production fingerprint approval
+occurs in `DatArchive::open_verified` before the server constructs its store.

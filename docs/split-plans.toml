@@ -4,10 +4,21 @@
 # destinations = ["module/one.rs", "module/two.rs"]
 # rationale = "Describe the responsibility boundary."
 [[plans]]
+path = "crates/simulation/bace-simulation/src/combat/missile.rs"
+owner = "bace-simulation"
+destinations = ["crates/simulation/bace-simulation/src/combat/missile/launch.rs", "crates/simulation/bace-simulation/src/combat/missile/flight.rs", "crates/simulation/bace-simulation/src/combat/missile/impact.rs"]
+rationale = "Keep the pending missile ticket and Combat owner in the parent; move ammunition and durable launch preflight/adoption into launch.rs, bounded flight preparation and authoritative trajectory checks into flight.rs, and impact, defense stamina and damage completion into impact.rs. Preserve one simulation-thread owner and exact launch/impact reservation order. Split before further growth."
+
+[[plans]]
 path = "crates/application/bace-runtime/src/game_runtime/deaths/output/completed.rs"
 owner = "bace-runtime"
 destinations = ["crates/application/bace-runtime/src/game_runtime/deaths/output/completed/no_corpse.rs", "crates/application/bace-runtime/src/game_runtime/deaths/output/completed/ordinary.rs", "crates/application/bace-runtime/src/game_runtime/deaths/output/completed/tests.rs"]
 rationale = "Keep retained Completed dispatch and exact delivery state in the parent; move receipt-gated NoCorpse world-root, sibling-slot and burden projection into no_corpse.rs, ordinary corpse inventory/coin output into ordinary.rs, and source packet and invalid-receipt regressions into tests.rs. Preserve one death delivery owner and split before further growth."
+[[plans]]
+path = "crates/application/bace-runtime/src/game_runtime/tests/entered.rs"
+owner = "bace-runtime"
+destinations = ["crates/application/bace-runtime/src/game_runtime/tests/entered/fixture.rs", "crates/application/bace-runtime/src/game_runtime/tests/entered/lifecycle.rs", "crates/application/bace-runtime/src/game_runtime/tests/entered/multiplayer.rs"]
+rationale = "Keep the real UDP test entry and shared test-client module in entered.rs; move accepted pack, DAT, database and session fixture construction into fixture.rs, one-character creation and entry assertions into lifecycle.rs, and two-client visibility, save and reconnect scenarios into multiplayer.rs. Preserve the single fixture and split before further test growth."
 [[plans]]
 path = "crates/application/bace-content-studio/src/offline_workspace_ui.rs"
 owner = "bace-content-studio"

@@ -61,6 +61,7 @@ impl PgStore {
         });
         let mut slots = std::collections::BTreeSet::new();
         for (item, item_slot) in items {
+            let _ = creation_equipped(item, player.entity.object_id)?;
             if !slots.insert(*item_slot) || !(0x8000_0000..=0xffff_fffe).contains(&item.object_id) {
                 return Err(StoreError::Invalid("starting item ID or duplicate slot"));
             }
@@ -129,11 +130,30 @@ impl PgStore {
         sqlx::query("INSERT INTO players(object_id,account_id,name,canonical_name,slot) VALUES($1,$2,$3,$4,$5)")
             .bind(i64::from(player.entity.object_id)).bind(player.account_id as i64)
             .bind(&player.name).bind(player.name.to_lowercase()).bind(slot as i16).execute(&mut *tx).await?;
-        for (item, item_slot) in items {
-            sqlx::query("INSERT INTO item_ownership(item_id,container_id,slot) VALUES($1,$2,$3)")
+        let mut main_slot = 0u32;
+        let mut pack_slot = 0u32;
+        for (item, _) in items {
+            let equipped = creation_equipped(item, player.entity.object_id)?;
+            let pack = equipped == 0 && creation_pack_slot(item);
+            let slot = if pack {
+                let slot = pack_slot;
+                pack_slot = pack_slot
+                    .checked_add(1)
+                    .ok_or(StoreError::Invalid("starting pack slots"))?;
+                slot
+            } else {
+                let slot = main_slot;
+                main_slot = main_slot
+                    .checked_add(1)
+                    .ok_or(StoreError::Invalid("starting inventory slots"))?;
+                slot
+            };
+            sqlx::query("INSERT INTO item_ownership(item_id,container_id,slot,pack_slot,equipped) VALUES($1,$2,$3,$4,$5)")
                 .bind(i64::from(item.object_id))
                 .bind(i64::from(player.entity.object_id))
-                .bind(i64::from(*item_slot))
+                .bind(i64::from(slot))
+                .bind(pack)
+                .bind(i64::from(equipped))
                 .execute(&mut *tx)
                 .await?;
         }
@@ -180,6 +200,47 @@ impl PgStore {
         .bind(i64::from(character_id))
         .fetch_one(&self.pool)
         .await?)
+    }
+}
+
+/// ACE WeenieExtensions.RequiresBackpackSlotOrIsContainer: containers occupy
+/// the side pack, as do items with PropertyBool.RequiresBackpackSlot (81).
+pub(crate) fn creation_pack_slot(item: &EntitySaveV1) -> bool {
+    item.state.weenie_type == 21
+        || item
+            .state
+            .properties
+            .bools
+            .iter()
+            .any(|property| property.id == 81 && property.value)
+}
+
+/// Creation snapshots are frozen V1 items. Only an explicit player Wielder
+/// identity makes an item equipped; template ValidLocations alone never does.
+pub(crate) fn creation_equipped(item: &EntitySaveV1, player: u32) -> Result<u32, StoreError> {
+    let holder = item
+        .state
+        .properties
+        .instance_ids
+        .iter()
+        .find(|p| p.id == 3);
+    let container = item
+        .state
+        .properties
+        .instance_ids
+        .iter()
+        .find(|p| p.id == 2);
+    let location = item.state.properties.ints.iter().find(|p| p.id == 10);
+    match holder {
+        Some(holder) if holder.value == player && container.is_none() => {
+            let value = location
+                .and_then(|p| u32::try_from(p.value).ok())
+                .filter(|value| *value != 0)
+                .ok_or(StoreError::Invalid("starting equipment location"))?;
+            Ok(value)
+        }
+        Some(_) => Err(StoreError::Invalid("starting equipment owner")),
+        None => Ok(0),
     }
 }
 

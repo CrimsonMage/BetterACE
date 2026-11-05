@@ -14,7 +14,6 @@ impl VerifiedRegionAssets {
             .iter()
             .flat_map(|r| std::iter::once(r.source).chain(r.equipment.iter().map(|(_, s, _)| *s)))
             .collect();
-        let appearance = self.prepare_entry_appearance(&sources)?;
         let chargen = bace_dat::CharGen::decode(
             &self
                 .portal
@@ -22,6 +21,18 @@ impl VerifiedRegionAssets {
                 .map_err(|e| e.to_string())?,
         )
         .map_err(|e| e.to_string())?;
+        let additional_palettes: Vec<_> = rows
+            .iter()
+            .filter(|row| {
+                crate::generator_preparation::is_creature_template(row.source.weenie_type)
+            })
+            .flat_map(|row| crate::npc_appearance::palette_sets(row.source, &chargen))
+            .collect();
+        let appearance = crate::player_entry::PreparedEntryAppearanceAssets::prepare_with_palettes(
+            &mut self.portal,
+            &sources,
+            &additional_palettes,
+        )?;
         let assets = appearance.borrowed(&chargen);
         rows.into_iter()
             .map(|row| prepare_visibility_object(row, &assets))

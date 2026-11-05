@@ -65,6 +65,20 @@ impl GameRuntime {
             return Ok(());
         };
         if pending.rejected {
+            let rejection = self
+                .inventory
+                .failures
+                .get(&pending.key)
+                .map(String::as_str)
+                .unwrap_or("inventory request rejected without a retained cause");
+            self.diagnostic(
+                "warn",
+                "game.inventory_rejected",
+                &format!(
+                    "session {} generation {} item {:#010x}: {rejection}",
+                    pending.key.id, pending.key.generation, pending.item.0
+                ),
+            );
             let replica = self
                 .players
                 .replication(pending.binding.actor)
@@ -111,8 +125,7 @@ impl GameRuntime {
         }
         let key = pending.key;
         let binding = pending.binding;
-        let loading = self
-            .sessions
+        self.sessions
             .get(&key)
             .and_then(|s| s.loading.as_ref())
             .ok_or("inventory output session metadata missing")?;
@@ -160,7 +173,7 @@ impl GameRuntime {
                 .as_ref()
                 .and_then(|p| p.appearance.as_ref())
                 .ok_or("fresh split appearance closure missing")?;
-            let character = loading
+            let character = self
                 .character_assets
                 .as_ref()
                 .ok_or("entry chargen metadata missing")?;

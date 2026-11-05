@@ -11,6 +11,7 @@ pub use read_snapshot::CharacterReadSnapshot;
 mod admission;
 mod death;
 mod gags;
+mod healing_kits;
 mod npc_services;
 mod skills;
 mod social_rewards;
@@ -57,6 +58,7 @@ struct OwnedCharacter {
     staff_spell: Option<bace_gameplay_api::staff::StaffSpellTicket>,
     death: Option<u64>,
     crafting: Option<u64>,
+    healing_kit: Option<u64>,
     equipment: Option<u64>,
     vendor_buy: Option<u64>,
     rare: Option<bace_gameplay_api::CharacterRareState>,
@@ -90,6 +92,7 @@ impl Characters {
             || entry.rare_pending.is_some()
             || entry.skill.is_some()
             || entry.attribute_transfer.is_some()
+            || entry.healing_kit.is_some()
         {
             return Err(());
         }
@@ -133,6 +136,7 @@ impl Characters {
             || entry.rare_pending.is_some()
             || entry.skill.is_some()
             || entry.attribute_transfer.is_some()
+            || entry.healing_kit.is_some()
         {
             return Err(CharacterRegistrationError::DurabilityPending);
         }
@@ -192,6 +196,7 @@ impl Characters {
                 staff_spell: None,
                 death: None,
                 crafting: None,
+                healing_kit: None,
                 equipment: None,
                 vendor_buy: None,
                 rare: None,
@@ -216,6 +221,7 @@ impl Characters {
                     || entry.rare_pending.is_some()
                     || entry.skill.is_some())
                 || entry.attribute_transfer.is_some()
+                || entry.healing_kit.is_some()
         }) {
             return Err(CharacterRegistrationError::DurabilityPending);
         }
@@ -256,6 +262,7 @@ impl Characters {
     ) -> Result<(), ()> {
         let entry = self.entries.get_mut(&actor).ok_or(())?;
         if entry.attribute_transfer.is_some()
+            || entry.healing_kit.is_some()
             || (entry.portal.is_some() || entry.staff_spell.is_some())
             || entry.reward.is_some()
             || (entry.social_reward.is_some() || entry.gag.is_some())
@@ -277,6 +284,7 @@ impl Characters {
     ) -> Result<(), ()> {
         let entry = self.entries.get_mut(&actor).ok_or(())?;
         if entry.attribute_transfer.is_some()
+            || entry.healing_kit.is_some()
             || (entry.portal.is_some() || entry.staff_spell.is_some())
             || entry.reward.is_some()
             || (entry.social_reward.is_some() || entry.gag.is_some())
@@ -298,6 +306,7 @@ impl Characters {
                 || e.rare_pending.is_some()
                 || e.skill.is_some()
                 || e.attribute_transfer.is_some()
+                || e.healing_kit.is_some()
         })
     }
     pub(crate) fn prepare_rewards(
@@ -317,6 +326,7 @@ impl Characters {
                     || entry.rare_pending.is_some()
                     || entry.skill.is_some()
                     || entry.attribute_transfer.is_some()
+                    || entry.healing_kit.is_some()
                 {
                     return None;
                 }
@@ -434,6 +444,28 @@ impl Characters {
         // Consume authenticated attempts, even rejected expenditures, so the
         // same rejected request cannot become effective after state changes.
         entry.last_sequence = Some(context.sequence);
+        Ok(())
+    }
+
+    /// Locomotion has a separate replay cursor on the authoritative Body.
+    /// Authenticate its binding here without advancing the gameplay-action
+    /// cursor: a queued earlier item/NPC/query action may reach this owner
+    /// after a later high-rate control packet.
+    pub(crate) fn authorize_locomotion(
+        &self,
+        context: ActionContext,
+        actor_exists: bool,
+    ) -> Result<(), ProgressionActionRejection> {
+        let entry = self
+            .entries
+            .get(&context.actor)
+            .ok_or(ProgressionActionRejection::NotBound)?;
+        if entry.binding.account != context.account || entry.binding.session != context.session {
+            return Err(ProgressionActionRejection::OwnershipMismatch);
+        }
+        if !actor_exists {
+            return Err(ProgressionActionRejection::MissingActor);
+        }
         Ok(())
     }
 }

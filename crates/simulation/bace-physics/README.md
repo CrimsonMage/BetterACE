@@ -134,3 +134,16 @@ jumps and failed teleports. These tests are not evidence of complete ACE/GDLE
 transition parity. Whole-region static/setup composition, multi-portal traversal,
 restrictions, remaining physics-state collision flags, full root-animation integration and
 stock-client trajectory acceptance remain required before gameplay readiness.
+
+Source-authored stationary outdoor portals may intersect the terrain supporting
+their model. `Body::spawn_authored_static_geometry` keeps the verified collision
+shape and requires an admitted cell, primary sphere membership, terrain height
+within 0.25 units of the model origin, and zero movement capabilities. Mobile
+actors retain full initial collision validation. The synthetic boundary test
+rejects missing cells, buried placements and nonstationary use; the approved
+e74e DAT replay covers the authored terrain-embedded portal. This is an
+explicit placement exception, not a change to movement collision.
+The body retains this authored terrain-embedded mode so world admission and future
+geometry replacement apply the same placement bound. Other source-placed
+noncreature roots use a separate stationary mode with full terrain validation.
+Both reject movement capabilities and cannot be stepped as mobile bodies.

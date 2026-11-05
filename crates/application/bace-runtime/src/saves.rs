@@ -727,7 +727,6 @@ async fn run<B: SaveBackend>(
                                 .map(WriteOutcome::Allegiance);
                         }
                         GameplayWrite::Inventory(operation) => backend.inventory(operation).await,
-                        GameplayWrite::NpcStage(operation) => backend.npc_stage(operation).await,
                         GameplayWrite::Placement(operation) => backend.placement(operation).await,
                         GameplayWrite::WorldPlacement(operation) => {
                             backend.world_placement(operation).await

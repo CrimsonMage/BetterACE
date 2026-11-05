@@ -48,7 +48,9 @@ pub mod progression_saves;
 
 pub mod crafting_saves;
 pub mod crafting_service;
+mod healing_kit_service;
 pub mod inventory_service;
+mod mana_stone_service;
 
 pub mod game_random;
 
@@ -76,6 +78,7 @@ pub mod native_magic_assets;
 
 pub mod native_player;
 
+mod npc_appearance;
 pub mod npc_persistence;
 
 pub mod portal_preparation;
@@ -157,6 +160,7 @@ pub mod gameplay_dispatch;
 pub mod social_service;
 
 pub mod game_bootstrap;
+mod startup_trace;
 
 pub mod player_service;
 

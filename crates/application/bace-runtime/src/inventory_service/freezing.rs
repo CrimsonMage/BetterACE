@@ -174,6 +174,16 @@ pub(super) fn freeze(
             vital.value.current_level = vitals.after[index];
         }
     }
+    if player.player.entity.mutation_revision == baseline.player.entity.mutation_revision {
+        // Capturing a valuable item move can age recovery clocks without a
+        // player mutation. The item transaction must not rewrite that player
+        // row at the same revision: DirtySaves requires a strictly newer
+        // revision for every changed committed aggregate.
+        crate::player_saves::validate_final_revision(baseline, &mut player)
+            .map_err(|e| e.to_string())?;
+        player.physical_recovery = baseline.physical_recovery;
+        player.combat_recovery = baseline.combat_recovery;
+    }
     let mut extra = online.operation_inventory_changes(snapshot)?;
     extra.retain(|row| {
         !p.ticket

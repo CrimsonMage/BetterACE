@@ -111,6 +111,100 @@ fn generated_blueprint_create_and_retirement_wait_for_observer_receipts() {
     );
     assert!(!service.knows(key(1), generated));
 }
+#[test]
+fn incomplete_server_motion_discards_unpublished_snapshot_without_advancing_other_objects() {
+    let mut service = VisibilityService::new(limits()).unwrap();
+    let observer = key(1);
+    service.bind(observer, binding(1)).unwrap();
+    for id in [1, 2] {
+        service
+            .register_object(1, 1, 0, description(id), vec![])
+            .unwrap();
+    }
+    stage(&mut service, observer, 1, &[2], 1.);
+    acknowledge(&mut service, observer);
+    let first_version = service.objects[&EntityId(1)].version;
+    let first_position = service.objects[&EntityId(1)]
+        .sequences
+        .current(bace_replication::SequenceKind::ObjectPosition, 0);
+
+    let correlation = service.next().unwrap();
+    service.observers.get_mut(&observer).unwrap().query = Some(correlation);
+    service
+        .accept_visibility(VisibilityOutcome {
+            correlation,
+            result: Ok(VisibilitySnapshot {
+                binding: binding(1),
+                observer_epoch: 0,
+                tick: 2,
+                candidates: [2]
+                    .map(|id| VisibilityCandidate {
+                        entity: EntityId(id),
+                        distance_squared: 1.,
+                    })
+                    .to_vec(),
+            }),
+        })
+        .unwrap();
+    let request = service
+        .observers
+        .get_mut(&observer)
+        .unwrap()
+        .view_request
+        .take()
+        .unwrap();
+    service.observers.get_mut(&observer).unwrap().view_query = Some(request.correlation);
+    let views = request
+        .entities
+        .iter()
+        .map(|id| {
+            (
+                *id,
+                Ok(AcceptedObjectView {
+                    entity: *id,
+                    cell: 0x1010_0001,
+                    position: [2., 0., 0.],
+                    velocity: [0.; 3],
+                    heading_radians: 0.,
+                    grounded: true,
+                    epoch: 0,
+                    held: false,
+                    motion: if id.0 == 2 {
+                        Err(ObjectViewRejection::MissingMotion)
+                    } else {
+                        Ok(None)
+                    },
+                }),
+            )
+        })
+        .collect();
+    service
+        .accept_views_inner(
+            &ObjectViewOutcome {
+                correlation: request.correlation,
+                result: Ok(ObjectViewSnapshot {
+                    binding: binding(1),
+                    observer_epoch: 0,
+                    tick: 2,
+                    views,
+                }),
+            },
+            None,
+        )
+        .unwrap();
+    assert!(service.observers[&observer].knowledge.pending().is_none());
+    assert_eq!(service.objects[&EntityId(1)].version, first_version);
+    assert_eq!(
+        service.objects[&EntityId(1)]
+            .sequences
+            .current(bace_replication::SequenceKind::ObjectPosition, 0),
+        first_position
+    );
+    stage(&mut service, observer, 3, &[2], 3.);
+    acknowledge(&mut service, observer);
+    assert!(service.observers[&observer].self_sent.is_some());
+    assert!(service.knows(observer, EntityId(2)));
+}
 fn stage(service: &mut VisibilityService, key: SessionKey, tick: u64, ids: &[u32], x: f32) {
     let correlation = service.next().unwrap();
     let o = service.observers.get_mut(&key).unwrap();
@@ -192,6 +286,50 @@ fn acknowledge(service: &mut VisibilityService, key: SessionKey) -> Vec<Vec<u8>>
         assert!(service.reliable_admission(key, correlation, true).unwrap());
     }
     output
+}
+#[test]
+fn late_visibility_read_after_newer_publication_is_discarded_without_reset() {
+    let mut service = VisibilityService::new(limits()).unwrap();
+    let observer = key(1);
+    service.bind(observer, binding(1)).unwrap();
+    service
+        .register_object(1, 1, 0, description(2), vec![])
+        .unwrap();
+    stage(&mut service, observer, 10, &[2], 1.);
+    acknowledge(&mut service, observer);
+    assert!(service.knows(observer, EntityId(2)));
+
+    let correlation = service.next().unwrap();
+    service.observers.get_mut(&observer).unwrap().query = Some(correlation);
+    service
+        .accept_visibility(VisibilityOutcome {
+            correlation,
+            result: Ok(VisibilitySnapshot {
+                binding: binding(1),
+                observer_epoch: 0,
+                tick: 9,
+                candidates: vec![VisibilityCandidate {
+                    entity: EntityId(2),
+                    distance_squared: 1.,
+                }],
+            }),
+        })
+        .unwrap();
+    let retained = &service.observers[&observer];
+    assert!(retained.query.is_none());
+    assert!(retained.view_request.is_none());
+    assert!(retained.publication.is_none());
+    assert!(retained.knowledge.pending().is_none());
+    assert_eq!(retained.buffer.len(), 1);
+    assert!(service.knows(observer, EntityId(2)));
+
+    stage(&mut service, observer, 11, &[2], 2.);
+    assert!(service.knows(observer, EntityId(2)));
+    assert!(
+        acknowledge(&mut service, observer)
+            .iter()
+            .all(|bytes| bytes.get(..4) != Some(&0xf745u32.to_le_bytes()))
+    );
 }
 #[test]
 fn reliable_receipts_gate_both_observers_and_position_uses_one_counter_owner() {

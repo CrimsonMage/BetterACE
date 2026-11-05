@@ -23,6 +23,13 @@ impl PreparedEntryAppearanceAssets {
         verified_portal: &mut DatArchive,
         sources: &[&WeenieV1],
     ) -> Result<Self, String> {
+        Self::prepare_with_palettes(verified_portal, sources, &[])
+    }
+    pub fn prepare_with_palettes(
+        verified_portal: &mut DatArchive,
+        sources: &[&WeenieV1],
+        additional_palettes: &[u32],
+    ) -> Result<Self, String> {
         if sources.len() > 4096 {
             return Err("entry appearance source capacity".into());
         }
@@ -30,6 +37,7 @@ impl PreparedEntryAppearanceAssets {
         let mut setups = BTreeSet::new();
         let mut clothing = BTreeSet::new();
         let mut palettes = BTreeSet::new();
+        palettes.extend(additional_palettes.iter().copied());
         let mut budget = 64 * 1024 * 1024usize;
         for source in sources {
             let p = Properties(source);

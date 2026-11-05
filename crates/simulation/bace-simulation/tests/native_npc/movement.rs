@@ -1,4 +1,134 @@
 use super::*;
+#[test]
+fn later_locomotion_does_not_stale_earlier_npc_use() {
+    // Queue 3 carries both F61C movement and 0x36 Use. The live retail trace
+    // showed movement sequence 31 reaching the owner before staff sequence 30.
+    // Movement has its own Body replay cursor, so it must not consume the
+    // character action cursor before a previously received NPC Use is applied.
+    let program = Arc::new(
+        NativeProgram::prepare(
+            vec![set(
+                7,
+                None,
+                vec![EmoteAction {
+                    r#type: 8,
+                    message: Some("used".into()),
+                    ..Default::default()
+                }],
+            )],
+            NativeLimits::default(),
+        )
+        .unwrap(),
+    );
+    let context = |sequence| bace_gameplay_api::ActionContext {
+        actor: EntityId(1),
+        account: AccountId(1),
+        session: SessionId(1),
+        sequence,
+    };
+    let mut ordered = kernel(8);
+    ordered
+        .register_native_npc(EntityId(2), program.clone(), 0.6)
+        .unwrap();
+    assert_eq!(
+        ordered.use_native_npc(context(55), EntityId(2), [1; 16], 1),
+        Ok(true)
+    );
+
+    let mut reordered = kernel(8);
+    reordered
+        .register_native_npc(EntityId(2), program, 0.6)
+        .unwrap();
+    // This synthetic fixture is not entered and has no DAT-backed motion
+    // shape. Its admission still exercises the independent authorization
+    // boundary before the later NPC Use reaches the owner.
+    let outcome = reordered.apply_locomotion(bace_gameplay_api::locomotion::LocomotionCommand {
+        correlation: 56,
+        context: context(56),
+        teleport: 0,
+        request: bace_gameplay_api::locomotion::LocomotionRequest::ObservePosition,
+    });
+    assert_eq!(
+        outcome.result,
+        Err(bace_gameplay_api::locomotion::LocomotionRejection::NotBound)
+    );
+    assert_eq!(
+        reordered.use_native_npc(context(55), EntityId(2), [2; 16], 2),
+        Ok(true)
+    );
+}
+#[test]
+fn player_npc_use_approaches_before_source_activation() {
+    // ACE Player.HandleActionUseItem/CreateMoveToChain starts the player's
+    // MoveToObject and invokes TryUseItem only after accepted arrival.
+    let mut k = kernel_with_npc_x(16, false, 3.0, 5.0);
+    k.register_native_npc(
+        EntityId(2),
+        Arc::new(
+            NativeProgram::prepare(
+                vec![set(
+                    7,
+                    None,
+                    vec![EmoteAction {
+                        r#type: 8,
+                        message: Some("used".into()),
+                        ..Default::default()
+                    }],
+                )],
+                NativeLimits::default(),
+            )
+            .unwrap(),
+        ),
+        0.6,
+    )
+    .unwrap();
+    let context = bace_gameplay_api::ActionContext {
+        actor: EntityId(1),
+        account: AccountId(1),
+        session: SessionId(1),
+        sequence: 1,
+    };
+    let initial = k.dispatch_npc_service(bace_simulation::NpcServiceCommand {
+        correlation: 1,
+        action: bace_simulation::NpcServiceAction::Use {
+            context,
+            source: EntityId(2),
+            event: [1; 16],
+            operation: 1,
+        },
+    });
+    assert!(matches!(
+        &initial.result,
+        Ok(bace_simulation::NpcServiceResult::MovementProgress(false))
+    ));
+    assert!(k.world().body(EntityId(1)).unwrap().server_move().is_some());
+    assert!(k.take_npc_proposal().is_none());
+    let mut arrived = false;
+    for _ in 0..300 {
+        k.step().unwrap();
+        let result = k.dispatch_npc_service(bace_simulation::NpcServiceCommand {
+            correlation: k.ticks() + 2,
+            action: bace_simulation::NpcServiceAction::PollUse {
+                source: EntityId(2),
+                actor: EntityId(1),
+            },
+        });
+        if matches!(
+            &result.result,
+            Ok(bace_simulation::NpcServiceResult::Started(true))
+        ) {
+            arrived = true;
+            break;
+        }
+        assert!(matches!(
+            &result.result,
+            Ok(bace_simulation::NpcServiceResult::MovementProgress(false))
+        ));
+    }
+    assert!(arrived);
+    assert!(k.world().body(EntityId(1)).unwrap().server_move().is_none());
+    assert!(k.world().body(EntityId(1)).unwrap().accepted().position().x > 3.0);
+}
 fn movement_kernel(x: f32, cell: u32) -> (Kernel, bace_simulation::NpcProposal) {
     let mut k = kernel_with_turn_rate(16, false, 3.0);
     install(
@@ -191,7 +321,8 @@ fn animation_completion_comes_from_the_exact_world_callback() {
     );
     k.step().unwrap();
     let proposal = k.take_npc_proposal().unwrap();
-    let token = k.begin_npc_motion(&proposal, chain).unwrap();
+    let token = k.begin_npc_motion(&proposal, chain).unwrap().unwrap();
+    assert!(k.preview_skipped_npc_motion(&proposal).is_err());
     assert!(k.poll_npc_motion(&proposal).unwrap().is_none());
     let fake = bace_world::WorldMotionEvent {
         actor: EntityId(2),
@@ -221,6 +352,47 @@ fn animation_completion_comes_from_the_exact_world_callback() {
     assert_eq!(event.token, token);
     k.adopt_npc_motion_completion(&proposal, event).unwrap();
     assert!(k.adopt_npc_motion_completion(&proposal, event).is_err());
+}
+
+#[test]
+fn source_motion_skip_requires_exact_preview_and_advances_only_on_commit() {
+    // ACE EmoteManager Motion can skip a moving source. The runtime bounds
+    // retries before taking this durable source-row path.
+    let mut k = kernel(16);
+    install(
+        &mut k,
+        vec![set(
+            7,
+            None,
+            vec![
+                EmoteAction {
+                    r#type: 5,
+                    motion: Some(0x130000aa),
+                    extent: 1.0,
+                    ..Default::default()
+                },
+                EmoteAction {
+                    r#type: 8,
+                    message: Some("after motion".into()),
+                    ..Default::default()
+                },
+            ],
+        )],
+    );
+    k.step().unwrap();
+    let proposal = k.take_npc_proposal().unwrap();
+    let preview = k.preview_skipped_npc_motion(&proposal).unwrap();
+    assert!(preview.pending.iter().any(|pending| {
+        pending.proposal == proposal
+            && pending.adopted
+            && pending.completion == bace_gameplay_api::NpcCompletion::Applied { post_delay: 0.0 }
+    }));
+    assert_eq!(k.npc_pending_service(proposal.ticket), Some(&proposal));
+    k.commit_skipped_npc_motion(&proposal).unwrap();
+    assert!(k.npc_pending_service(proposal.ticket).is_none());
+    assert!(k.preview_skipped_npc_motion(&proposal).is_err());
+    k.step().unwrap();
+    assert!(k.take_npc_notification().is_some());
 }
 
 #[test]

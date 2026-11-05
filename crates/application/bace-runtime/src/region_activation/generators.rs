@@ -1,7 +1,7 @@
 //! Cold source-root adaptation. Failed geometry/profile prerequisites remain
 //! explicit held roots; the valid immutable batch is admitted by one owner command.
 use super::*;
-use bace_gameplay_api::{GeneratorIdentity, GeneratorLocation};
+use bace_gameplay_api::{GeneratorIdentity, GeneratorLink, GeneratorLocation};
 use bace_simulation::{PreparedGeneratorRegion, PreparedGeneratorRoot};
 use bace_types::EntityId;
 use sha2::{Digest, Sha256};
@@ -11,6 +11,45 @@ pub struct PreparedGeneratorActivation {
     pub held: Vec<(u32, String)>,
 }
 impl PreparedRegionActivation {
+    /// Linked child rows can carry the landblock header as an outdoor cell
+    /// hint, just like standalone source roots. Resolve it with the prepared
+    /// target's primary collision sphere before installing the definition.
+    pub(crate) fn normalized_generator_links(
+        &self,
+        parent: u32,
+    ) -> Result<Vec<GeneratorLink>, String> {
+        let mut links =
+            crate::generator_preparation::region_generator_links(&self.content, parent)?;
+        for link in &mut links {
+            if link.location.cell & 0xffff != 0 {
+                continue;
+            }
+            let physical = self
+                .physical
+                .get(&link.weenie_class_id)
+                .ok_or("linked child physical template absent")?
+                .as_ref()
+                .map_err(Clone::clone)?;
+            let center = physical
+                .shape
+                .spheres()
+                .first()
+                .ok_or("linked child collision shape has no primary sphere")?
+                .center;
+            let position = bace_geometry::Vec3::new(
+                link.location.origin[0],
+                link.location.origin[1],
+                link.location.origin[2],
+            ) + center;
+            let (cell, _) =
+                crate::region_geometry::normalize_outdoor(link.location.cell | 0xffff, position)?;
+            if cell >> 16 != link.location.cell >> 16 || self.geometry.cell(cell).is_none() {
+                return Err("linked child outdoor cell is outside prepared region".into());
+            }
+            link.location.cell = cell;
+        }
+        Ok(links)
+    }
     /// Encounter IDs are allocated durably before preparation; row IDs are not
     /// object GUIDs. Retry supplies the same map and activation fence.
     pub fn prepare_generator_admission(
@@ -64,9 +103,11 @@ impl PreparedRegionActivation {
             }
         }
         for (&id, creature) in &self.creatures {
-            match creature {
-                Ok(c) => admission.creatures.push((id, c.clone())),
-                Err(e) => held.push((id, e.clone())),
+            // The content closure also includes future generator targets.
+            // A failed target remains unavailable; its spawn will report
+            // the preparation error, while placed roots are checked below.
+            if let Ok(c) = creature {
+                admission.creatures.push((id, c.clone()));
             }
         }
         for instance in self
@@ -86,8 +127,7 @@ impl PreparedRegionActivation {
                     source.angles_w,
                 ],
             };
-            let links =
-                crate::generator_preparation::region_generator_links(&self.content, source.guid)?;
+            let links = self.normalized_generator_links(source.guid)?;
             let owner = self
                 .npc_recovery
                 .get(&EntityId(source.guid))
@@ -163,7 +203,7 @@ impl PreparedRegionActivation {
                     .get(&template.weenie_id)
                     .ok_or("static creature template absent")?
                     .as_ref()
-                    .map_err(Clone::clone)?
+                    .map_err(|error| format!("creature {}: {error}", template.weenie_id))?
                     .clone(),
             )
         } else {
@@ -186,6 +226,28 @@ impl PreparedRegionActivation {
             return Err("unsupported root collision orientation".into());
         }
         let mut location = location;
+        if location.cell & 0xffff == 0 {
+            // Complete-world rows can use the landblock header as an outdoor
+            // cell hint. Resolve it from the source primary collision sphere;
+            // actual shape/terrain admission still follows below.
+            let center = physical
+                .shape
+                .spheres()
+                .first()
+                .ok_or("root collision shape has no primary sphere")?
+                .center;
+            let position = bace_geometry::Vec3::new(
+                location.origin[0],
+                location.origin[1],
+                location.origin[2],
+            ) + center;
+            let (cell, _) =
+                crate::region_geometry::normalize_outdoor(location.cell | 0xffff, position)?;
+            if cell >> 16 != location.cell >> 16 {
+                return Err("outdoor root crosses region boundary".into());
+            }
+            location.cell = cell;
+        }
         let visible: Vec<_> = self
             .visibility
             .iter()
@@ -205,19 +267,25 @@ impl PreparedRegionActivation {
                 &visible,
             )
             .map_err(|error| format!("root {:#x} cell {:#x}: {error}", entity.0, location.cell))?;
-        self.geometry
-            .validate_placement(
+        let position =
+            bace_geometry::Vec3::new(location.origin[0], location.origin[1], location.origin[2]);
+        let authored_static = template.weenie_type == 7;
+        if authored_static {
+            self.geometry.validate_authored_static_placement(
                 location.cell,
-                bace_geometry::Vec3::new(
-                    location.origin[0],
-                    location.origin[1],
-                    location.origin[2],
-                ),
+                position,
+                &physical.shape,
+            )
+        } else {
+            self.geometry.validate_placement(
+                location.cell,
+                position,
                 &physical.shape,
                 &[],
                 entity.0,
             )
-            .map_err(|e| e.to_string())?;
+        }
+        .map_err(|e| e.to_string())?;
         let definition = if template.properties.generators.is_empty() && template.weenie_type != 12
         {
             None
@@ -242,13 +310,21 @@ impl PreparedRegionActivation {
             && loadout.is_none()
         {
             let capacity = int(6).unwrap_or(0);
+            let pack_capacity = int(7).unwrap_or(0);
             Some(bace_inventory::InventoryContainer {
                 id: entity,
                 revision: 1,
                 root_owner: None,
-                slots: u32::try_from(capacity).map_err(|_| "negative root capacity")?,
-                pack_slots: u32::try_from(int(7).unwrap_or(0))
-                    .map_err(|_| "negative pack capacity")?,
+                slots: if capacity == -1 {
+                    0
+                } else {
+                    u32::try_from(capacity).map_err(|_| "negative root capacity")?
+                },
+                pack_slots: if pack_capacity == -1 {
+                    0
+                } else {
+                    u32::try_from(pack_capacity).map_err(|_| "negative pack capacity")?
+                },
                 burden_limit: u64::try_from(int(96).unwrap_or(i32::MAX))
                     .map_err(|_| "negative burden limit")?,
                 accessible: true,
@@ -263,6 +339,7 @@ impl PreparedRegionActivation {
             entity,
             location,
             shape: physical.shape.clone(),
+            authored_static,
             creature,
             loadout: loadout.cloned(),
         });

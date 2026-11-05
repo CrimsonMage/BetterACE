@@ -153,9 +153,6 @@ impl PendingNpcStage {
         &self.operation
     }
     pub fn submit(&mut self, saves: &SaveHandle) -> Result<(), SaveSubmitError> {
-        if !super::source_inventory::joined(&self.operation) {
-            return Err(SaveSubmitError::Invalid);
-        }
         if self.terminal || self.receiver.is_some() {
             return Err(SaveSubmitError::Invalid);
         }

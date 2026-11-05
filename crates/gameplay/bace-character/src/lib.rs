@@ -22,6 +22,9 @@ pub use reward::{ExperienceCredit, RewardCreditError};
 pub use tables::{ProgressionTables, RankTable, RankTableError};
 pub use training_rules::{SkillCosts, SkillRulesError, SkillTrainingRules, TrainingSetupError};
 
+mod age;
+pub use age::age_text;
+
 mod aetheria;
 mod attribute_transfer;
 pub use attribute_transfer::{AttributeTransferError, AttributeTransferProposal};

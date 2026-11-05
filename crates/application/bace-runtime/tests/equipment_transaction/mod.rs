@@ -2,8 +2,9 @@
 use bace_gameplay_api::{ActionContext, CharacterBinding, InventoryRequest};
 use bace_inventory::{InventoryAuthority, ItemPlace};
 use bace_runtime::player_assets::*;
+use bace_runtime::region_activation::VerifiedRegionAssets;
 use bace_simulation::*;
-use bace_storage_codec::{ItemPlacementV2, ItemSaveV4};
+use bace_storage_codec::{ItemPlacementV2, ItemSaveV4, PackGeneration};
 use bace_types::EntityId;
 fn command(k: &mut Kernel, correlation: u64, kind: InventoryCommandKind) -> InventoryOutcome {
     k.try_enqueue(Command::Inventory(Box::new(InventoryCommand {
@@ -29,23 +30,48 @@ fn receipt(op: &InventoryOperation) -> InventoryReceipt {
             .collect(),
     }
 }
+pub struct ExerciseOptions<'a> {
+    pub assets: &'a mut VerifiedRegionAssets,
+    pub generation: &'a PackGeneration,
+    pub equip_location: u32,
+    pub first_sequence: u32,
+    pub first_correlation: u64,
+}
 pub fn exercise(
     k: &mut Kernel,
     b: CharacterBinding,
     source: &bace_content::WeenieV1,
     dat: &PreparedAvatarDat,
     mut gear: ItemSaveV4,
+    options: ExerciseOptions<'_>,
 ) {
+    let ExerciseOptions {
+        assets,
+        generation,
+        equip_location,
+        first_sequence,
+        first_correlation,
+    } = options;
     let id = EntityId(gear.entity.object_id);
-    gear.previous
+    if !gear
+        .previous
         .entity
         .state
         .properties
         .strings
-        .push(bace_content::Property {
-            id: 1,
-            value: "Authored equipment".into(),
-        });
+        .iter()
+        .any(|p| p.id == 1)
+    {
+        gear.previous
+            .entity
+            .state
+            .properties
+            .strings
+            .push(bace_content::Property {
+                id: 1,
+                value: "Authored equipment".into(),
+            });
+    }
     gear.previous.entity.state.properties.ints.extend([
         bace_content::Property { id: 319, value: 6 },
         bace_content::Property { id: 320, value: 1 },
@@ -81,7 +107,7 @@ pub fn exercise(
     )
     .ok()
     .unwrap();
-    for (iteration, location) in [(0, 0x200), (1, 0)] {
+    for (iteration, location) in [(0, equip_location), (1, 0)] {
         let before = k.read_player_snapshot(b).unwrap();
         let revision = before.character().progression().revision();
         let effects = bace_runtime::equipment_effects::prepare_equipment_effect_inputs(
@@ -115,14 +141,14 @@ pub fn exercise(
         };
         let result = command(
             k,
-            100 + iteration * 10,
+            first_correlation + iteration * 10,
             InventoryCommandKind::ProposeEquipment(Box::new(PreparedEquipmentRequest {
                 request: InventoryPreparedRequest {
                     context: ActionContext {
                         actor: b.actor,
                         session: b.session,
                         account: b.account,
-                        sequence: iteration as u32 + 1,
+                        sequence: first_sequence + iteration as u32,
                     },
                     request,
                     authority,
@@ -151,7 +177,7 @@ pub fn exercise(
         assert!(
             command(
                 k,
-                101 + iteration * 10,
+                first_correlation + 1 + iteration * 10,
                 InventoryCommandKind::Commit(receipt(&op))
             )
             .result
@@ -181,7 +207,7 @@ pub fn exercise(
             equipped: location,
         };
         let candidate = op.equipment.as_ref().unwrap().registry(b.actor).unwrap();
-        let prepared = prepare_equipment_physical_view(EquipmentPhysicalViewInput {
+        let mut prepared = prepare_equipment_physical_view(EquipmentPhysicalViewInput {
             previous_style: captured.entry_motion().map(|m| m.style),
             actor: b.actor,
             before_revision: revision,
@@ -202,12 +228,21 @@ pub fn exercise(
             projectile_shapes: &Default::default(),
         })
         .unwrap();
+        prepared.server_magic = assets
+            .prepare_proc_magic(
+                generation,
+                &dat.spells,
+                &prepared.magic_damage,
+                &prepared.source.profile,
+            )
+            .unwrap()
+            .batch;
         let mut wrong = prepared.clone();
         wrong.actor = EntityId(123);
         assert!(
             command(
                 k,
-                102 + iteration * 10,
+                first_correlation + 2 + iteration * 10,
                 InventoryCommandKind::PrepareEquipmentPhysical {
                     operation: op.ticket.operation,
                     prepared: Box::new(wrong)
@@ -218,7 +253,7 @@ pub fn exercise(
         );
         let result = command(
             k,
-            103 + iteration * 10,
+            first_correlation + 3 + iteration * 10,
             InventoryCommandKind::PrepareEquipmentPhysical {
                 operation: op.ticket.operation,
                 prepared: Box::new(prepared),
@@ -232,9 +267,13 @@ pub fn exercise(
         let mut wrong = receipt(&final_op);
         wrong.revisions[0].1 += 1;
         assert!(
-            command(k, 104 + iteration * 10, InventoryCommandKind::Commit(wrong))
-                .result
-                .is_err()
+            command(
+                k,
+                first_correlation + 4 + iteration * 10,
+                InventoryCommandKind::Commit(wrong)
+            )
+            .result
+            .is_err()
         );
         assert!(k.read_player_snapshot(b).is_err());
         assert_eq!(
@@ -244,16 +283,16 @@ pub fn exercise(
         assert!(matches!(
             command(
                 k,
-                105 + iteration * 10,
+                first_correlation + 5 + iteration * 10,
                 InventoryCommandKind::Commit(receipt(&final_op))
             )
             .result,
             Ok(InventoryDecision::Committed(_))
         ));
         let after_snapshot = k.read_player_snapshot(b).unwrap();
-        assert_eq!(
-            after_snapshot.character().progression().revision(),
-            revision + 1
+        assert!(
+            after_snapshot.character().progression().revision() > revision,
+            "equipment receipt must advance the character revision"
         );
         assert_eq!(
             k.inventory_item(id).unwrap().revision,

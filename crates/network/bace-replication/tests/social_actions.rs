@@ -198,3 +198,30 @@ fn source_mana_depletion_notice_is_one_bounded_message_then_sound_batch() {
     );
     assert_eq!(events.next_sequence(), 12);
 }
+
+#[test]
+fn accented_text_limit_uses_windows_1252_bytes_not_utf8_bytes() {
+    let b = binding();
+    // 256 accented chars are 256 Windows-1252 wire bytes (the limit) but 512 UTF-8 bytes.
+    let at_limit = SocialEvent::Transient {
+        recipient: b.actor,
+        text: "\u{e9}".repeat(256),
+    };
+    let mut events = EventSequencer::new(b, 1);
+    let mut seq = Sequences::new(8).unwrap();
+    let batch = events
+        .project_social_event(b, &at_limit, &mut seq, limits())
+        .expect("256 wire bytes are at the limit");
+    assert_eq!(batch.messages.len(), 1);
+
+    let over = SocialEvent::Transient {
+        recipient: b.actor,
+        text: "\u{e9}".repeat(257),
+    };
+    let mut events = EventSequencer::new(b, 1);
+    assert!(
+        events
+            .project_social_event(b, &over, &mut seq, limits())
+            .is_err()
+    );
+}

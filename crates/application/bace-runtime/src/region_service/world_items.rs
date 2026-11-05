@@ -351,44 +351,19 @@ fn static_shop_forest_ids(
                 {
                     continue;
                 }
-                let pin = prepared
-                    .npc_recovery
-                    .get(&EntityId(id))
-                    .ok_or("durable static Shop has no pinned NPC source")?;
-                let baseline = pin
-                    .registration
-                    .baseline
-                    .as_ref()
-                    .ok_or("durable static Shop has no NPC baseline")?;
                 let source = prepared
                     .content
                     .instances
                     .iter()
-                    .find(|instance| instance.source.guid == id)
-                    .ok_or("durable static Shop has no admitted source")?;
-                let ItemPlacementV2::World(position) = &decoded.item.placement else {
-                    return Err("durable static Shop world placement".into());
-                };
-                let (sin, cos) = (pin.location.heading * 0.5).sin_cos();
-                if baseline != &snapshot.aggregate
-                    || source.source.is_link_child
-                    || source.template.weenie_id != decoded.item.entity.state.weenie_id
-                    || pin.registration.source.template != source.template.weenie_id
-                    || pin.registration.source.authored.weenie_type != 12
-                    || decoded.item.entity.template_revision
-                        != pin.registration.generation.revision()
-                    || position.obj_cell_id != pin.location.cell.0
-                    || position.position_x != pin.location.position.x
-                    || position.position_y != pin.location.position.y
-                    || position.position_z != pin.location.position.z
-                    || position.rotation_w != cos
-                    || position.rotation_x != 0.0
-                    || position.rotation_y != 0.0
-                    || position.rotation_z != sin
-                {
-                    return Err("durable static Shop NPC/source fence".into());
+                    .find(|instance| instance.source.guid == id);
+                if source.is_some_and(|source| {
+                    !source.source.is_link_child && source.template.weenie_type == 12
+                }) {
+                    // A pre-ephemeral runtime may have left a Shop root and
+                    // stock in PostgreSQL. The accepted authored actor wins;
+                    // this obsolete tree is never restored into the region.
+                    roots.insert(id);
                 }
-                roots.insert(id);
             }
             DurableItemPlace::Contained { container, .. } => {
                 children.entry(container).or_default().push(id);

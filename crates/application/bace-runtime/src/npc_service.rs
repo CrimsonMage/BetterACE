@@ -33,6 +33,9 @@ pub enum NpcDurableAdoption {
         proposal: NpcProposal,
         event: bace_world::WorldMotionEvent,
     },
+    SkippedMotion {
+        proposal: NpcProposal,
+    },
     Player,
     Inventory {
         ticket: NpcInventoryTicket,
@@ -54,7 +57,9 @@ impl NpcDurableAdoption {
     fn proposal(&self) -> Option<&NpcProposal> {
         match self {
             Self::Player => None,
-            Self::Cast { proposal, .. } | Self::Motion { proposal, .. } => Some(proposal),
+            Self::Cast { proposal, .. }
+            | Self::Motion { proposal, .. }
+            | Self::SkippedMotion { proposal } => Some(proposal),
             Self::Inventory { ticket, .. } => Some(&ticket.npc),
             Self::Spellbook(t) => Some(&t.npc),
             Self::Credits(t) => Some(&t.npc),
@@ -89,6 +94,7 @@ impl NpcDurableAdoption {
                 proposal,
                 event: *event,
             },
+            Self::SkippedMotion { .. } => A::CommitSkippedMotion { proposal },
             Self::Inventory { ticket, receipt } => A::CommitInventory {
                 ticket: ticket.clone(),
                 receipt: receipt.clone(),
@@ -123,7 +129,9 @@ impl NpcDurableAdoption {
     }
     fn reject(&self, proposal: &NpcProposal) -> Option<A> {
         Some(match self {
-            Self::Cast { proposal, .. } | Self::Motion { proposal, .. } => A::ReleaseJournal {
+            Self::Cast { proposal, .. }
+            | Self::Motion { proposal, .. }
+            | Self::SkippedMotion { proposal } => A::ReleaseJournal {
                 proposal: proposal.clone(),
             },
             Self::Player => A::ReleaseJournal {

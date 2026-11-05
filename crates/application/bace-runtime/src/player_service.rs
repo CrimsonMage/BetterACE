@@ -100,7 +100,8 @@ impl PlayerService {
         session.replication = Some(SessionReplication {
             key,
             binding,
-            events: EventSequencer::new(binding, 0),
+            // ACE Session.InitSessionForWorldLogin starts GameEventSequence at 1.
+            events: EventSequencer::new(binding, 1),
             properties: Sequences::new(65536)
                 .map_err(|error| format!("test actor sequence: {error:?}"))?,
             item_properties,
@@ -484,7 +485,8 @@ impl PlayerService {
             vital_revisions: [None; 3],
             key,
             binding,
-            events: EventSequencer::new(binding, 0),
+            // The retail UI queue expects the first ordered event stamp to be 1.
+            events: EventSequencer::new(binding, 1),
             properties: Sequences::new(65536).map_err(|e| format!("sequence capacity: {e:?}"))?,
             item_properties,
         });

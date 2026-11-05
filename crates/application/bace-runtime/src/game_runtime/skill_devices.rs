@@ -474,10 +474,8 @@ impl GameRuntime {
             | PreparedSkillDevice::Augment { skill: s, .. } => s,
         };
         let assets = self
-            .sessions
-            .get(&p.key)
-            .and_then(|s| s.loading.as_ref())
-            .and_then(|l| l.character_assets.as_ref())
+            .character_assets
+            .as_ref()
             .ok_or("skill device DAT definitions missing")?;
         let definition = assets
             .skill_table()

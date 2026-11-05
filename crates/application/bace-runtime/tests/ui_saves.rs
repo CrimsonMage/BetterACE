@@ -180,3 +180,43 @@ fn older_ui_save_acknowledgment_cannot_clear_a_newer_edit() {
     assert!(!dirty.is_clean());
     assert_eq!(dirty.drain_ready()[0].bytes, due[0].bytes);
 }
+
+#[test]
+fn shortcut_actions_survive_general_options_and_frozen_player_save() {
+    let saved = player();
+    let mut state = restore_ui(&saved).unwrap();
+    let shortcut = UiShortcut {
+        index: 2,
+        object: 0x8002_40f0,
+        spell: 0,
+        layer: 0,
+    };
+    bace_character::ui::apply(
+        &mut state,
+        bace_gameplay_api::UiRequest::AddShortcut(shortcut.clone()),
+        true,
+        &[],
+        &[],
+    )
+    .unwrap();
+    bace_character::ui::apply(
+        &mut state,
+        bace_gameplay_api::UiRequest::Options {
+            options1: 1,
+            options2: None,
+            filters: 0x3fff,
+            shortcuts: Some(Vec::new()),
+            bars: Vec::new(),
+            components: None,
+            gameplay: None,
+        },
+        true,
+        &[],
+        &[],
+    )
+    .unwrap();
+    let persisted = freeze_ui(&saved, &state, 6).unwrap();
+    let decoded = PlayerSaveV6::decode(&persisted.encode().unwrap()).unwrap();
+    assert_eq!(decoded.ui.shortcuts[0].object_id, shortcut.object);
+    assert_eq!(restore_ui(&decoded).unwrap().shortcuts, [shortcut]);
+}

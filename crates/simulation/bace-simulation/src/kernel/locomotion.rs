@@ -25,7 +25,7 @@ impl Kernel {
             return Err(E::Invalid);
         }
         self.characters
-            .authorize(context, self.world.body(actor).is_ok())
+            .authorize_locomotion(context, self.world.body(actor).is_ok())
             .map_err(|_| E::NotBound)?;
         if !self.characters.entered(actor) {
             return Err(E::NotBound);
@@ -83,6 +83,12 @@ impl Kernel {
                         run,
                     )
                     .map_err(physics_error)?;
+                // Pinned ACE GameActionMoveToState stops a pending MoveToObject
+                // use chain when the player resumes manual movement. The body
+                // has already superseded that controller; release its visible
+                // goal and retain one successful UseDone for PollUse.
+                self.cancel_player_npc_approach(actor);
+                self.doors.cancel_approach(actor, &mut self.world);
             }
             LocomotionRequest::Jump { extent } => {
                 if !extent.is_finite() {

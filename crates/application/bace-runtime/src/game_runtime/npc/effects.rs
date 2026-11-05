@@ -37,6 +37,7 @@ pub(super) struct Work {
     pub(super) cast: Option<super::casting::Cast>,
     pub(super) gift: Option<super::giving::Gift>,
     pub(super) motion: Option<super::motions::Motion>,
+    pub(super) motion_retries: u16,
     pub(super) checkpoint: Option<NpcSourceCheckpoint>,
     pub(super) capture: Option<u64>,
     pub(super) snapshot: Option<(Arc<PlayerReadSnapshot>, u64)>,
@@ -71,6 +72,7 @@ impl Work {
             cast: None,
             gift: None,
             motion: None,
+            motion_retries: 0,
             checkpoint: None,
             capture: None,
             snapshot: None,
@@ -135,6 +137,11 @@ pub(super) fn accept(
     if let Some(used) = npc.uses.get_mut(&source)
         && let NpcCoordinatorEvent::Command { outcome, .. } = &event
     {
+        if matches!(outcome.result, Ok(R::MovementProgress(false))) {
+            used.approaching = true;
+            return Ok(());
+        }
+        used.failure = outcome.result.as_ref().err().copied();
         used.result = Some(match outcome.result {
             Ok(R::Started(_)) => 0,
             Err(bace_gameplay_api::NpcFailure::DurabilityPending) => 0x001d,
@@ -172,8 +179,11 @@ pub(super) fn accept(
         Ok(false) => {}
         Err(error) => return Err((error, event)),
     }
-    if npc.work.get(&source).is_some_and(|w| w.motion.is_some())
-        && let NpcCoordinatorEvent::Command { outcome, .. } = &event
+    if npc.work.get(&source).is_some_and(|w| {
+        w.motion
+            .as_ref()
+            .is_some_and(super::motions::awaiting_command)
+    }) && let NpcCoordinatorEvent::Command { outcome, .. } = &event
     {
         return super::motions::accept(npc, source, outcome, online)
             .map_err(|error| (error, event));
@@ -385,6 +395,7 @@ impl GameRuntime {
                         w.proposal.effect,
                         NpcEffect::Service(NpcOperation::Motion { .. })
                     ) && matches!(w.owner, Owner::Player)
+                        && !matches!(w.motion, Some(super::motions::Motion::SkipSaving))
                 }) {
                     self.poll_npc_motion(source)?;
                     return Ok(());

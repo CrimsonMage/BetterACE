@@ -29,7 +29,8 @@ pub fn decode_crafting(
     } = request.action
         && confirmation_type != 5
     {
-        return Err(DispatchError::InvalidTarget(confirmation_type));
+        // Other confirmation kinds belong to later ingress owners.
+        return Err(DispatchError::UnsupportedAction(envelope.action.0));
     }
     binding.sequence = envelope.sequence;
     Ok(DispatchedCrafting {

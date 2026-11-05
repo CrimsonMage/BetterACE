@@ -22,8 +22,7 @@ impl VerifiedRegionAssets {
             .find(|p| p.id == 39)
             .map_or(1.0, |p| p.value) as f32;
         let mut budget = 32 * 1024 * 1024;
-        let table = MotionTable::decode(&read(&mut self.portal, id, &mut budget)?)
-            .map_err(|e| e.to_string())?;
+        let table = self.cached_motion(id, &mut budget)?;
         let mut animations = BTreeMap::new();
         for data in table
             .cycles
@@ -36,33 +35,47 @@ impl VerifiedRegionAssets {
                     animations.entry(segment.animation_id)
                 {
                     entry.insert(
-                        Animation::decode(&read(
-                            &mut self.portal,
-                            segment.animation_id,
-                            &mut budget,
-                        )?)
-                        .map_err(|e| e.to_string())?,
+                        (*self.cached_animation(segment.animation_id, &mut budget)?).clone(),
                     );
                 }
             }
         }
-        let (motions, styles) = crate::physical_assets::prepare_npc_motion_assets(
-            &loadout.profile,
-            crate::physical_assets::PhysicalMotionAssets {
-                table: &table,
-                animations: &animations,
-                current_motion: 0x41000003,
-                current_speed: 1.0,
+        let inert = !loadout.profile.attackable && loadout.profile.maneuvers.is_empty();
+        let (motions, styles) = if inert {
+            // The generated inventory refresh must keep this Creature's
+            // physical qualities, but a noncombat sign has only Ready in its
+            // authored motion table. Do not demand walk, attack or death links.
+            (
+                Vec::new(),
+                vec![crate::world_admission::prepare_stationary_locomotion(
+                    &table,
+                    &animations,
+                    scale,
+                )?],
+            )
+        } else {
+            crate::physical_assets::prepare_npc_motion_assets(
+                &loadout.profile,
+                crate::physical_assets::PhysicalMotionAssets {
+                    table: &table,
+                    animations: &animations,
+                    current_motion: 0x41000003,
+                    current_speed: 1.0,
+                    scale,
+                    modifiers: &[],
+                },
+            )?
+        };
+        loadout.death_motions = if inert {
+            Vec::new()
+        } else {
+            crate::physical_assets::prepare_death_motion_assets(
+                &table,
+                &animations,
+                &styles,
                 scale,
-                modifiers: &[],
-            },
-        )?;
-        loadout.death_motions = crate::physical_assets::prepare_death_motion_assets(
-            &table,
-            &animations,
-            &styles,
-            scale,
-        )?;
+            )?
+        };
         let skills = bace_dat::SkillTable::decode(&read(
             &mut self.portal,
             bace_dat::SkillTable::RECORD_ID,

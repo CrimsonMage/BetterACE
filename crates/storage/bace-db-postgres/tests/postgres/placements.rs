@@ -540,6 +540,57 @@ async fn corpse_tree_reload_preserves_receipt_and_cannot_delete_nonempty_content
     assert_eq!(tree.len(), 2);
     assert_eq!(tree[0].depth, 0);
     assert_eq!(tree[1].depth, 1);
+    let second_cell = 0x12340002;
+    let mut second_position = position();
+    second_position.obj_cell_id = second_cell;
+    let second_root =
+        ItemSaveV2::migrate_v1(entity(0x80000002), ItemPlacementV2::World(second_position))
+            .unwrap();
+    store
+        .placement_operation(&PlacementOperation {
+            operation_id: "second-cell-root".into(),
+            snapshots: vec![snapshot(
+                &second_root.entity,
+                0,
+                second_root.encode().unwrap(),
+            )],
+            participants: vec![second_root.entity.object_id],
+            leases: vec![],
+            changes: vec![PlacementChange {
+                item: second_root.entity.object_id,
+                expected: None,
+                destination: DurableItemPlace::World { cell: second_cell },
+            }],
+            storage_views: vec![],
+        })
+        .await
+        .unwrap();
+    let regional = store
+        .load_world_item_trees(
+            &[position().obj_cell_id, second_cell],
+            InventoryLoadLimits::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(regional.len(), tree.len() + 1);
+    for expected in &tree {
+        let actual = regional
+            .iter()
+            .find(|row| row.aggregate.object_id == expected.aggregate.object_id)
+            .unwrap();
+        assert_eq!(actual.aggregate.object_id, expected.aggregate.object_id);
+        assert_eq!(actual.aggregate.bytes, expected.aggregate.bytes);
+        assert_eq!(actual.placement, expected.placement);
+        assert_eq!(actual.depth, expected.depth);
+    }
+    let loaded_second = regional
+        .iter()
+        .find(|row| row.aggregate.object_id == second_root.entity.object_id)
+        .unwrap();
+    assert_eq!(
+        loaded_second.placement,
+        DurableItemPlace::World { cell: second_cell }
+    );
     assert_eq!(
         CorpseSaveV2::decode(&tree[0].aggregate.bytes)
             .unwrap()

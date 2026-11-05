@@ -9,7 +9,10 @@ use bace_gameplay_api::{
 use bace_gameplay_api::{DoorChange, DoorRejection, UseDoor};
 use bace_geometry::{Aabb, Vec3};
 use bace_motion::Capabilities;
-use bace_physics::{Body, SyntheticScene};
+use bace_physics::{
+    Body, CollisionFace, CollisionPlane, CollisionShape, CollisionSphere, GdlePolygon,
+    GeometryCell, GeometryRegion, GeometrySpawn, SyntheticScene,
+};
 use bace_simulation::{Command, Kernel};
 use bace_types::{AccountId, CellId, EntityId};
 use bace_world::World;
@@ -110,6 +113,7 @@ use bace_simulation::{PreparedDoor, PreparedDoorAnimation, PreparedDoorHook};
 use bace_world::DoorCollider;
 fn door() -> PreparedDoor {
     PreparedDoor {
+        style: 0x3d,
         collider: DoorCollider {
             cell: CellId(1),
             position: Vec3::new(3.1, 0.0, 0.5),
@@ -217,6 +221,150 @@ fn bounded_door_outputs_retain_auth_sequence_and_reject_replay() {
     assert_eq!(
         kernel.take_door_outcome().unwrap().result,
         Err(DoorRejection::StaleSequence)
+    );
+}
+fn authored_kernel() -> Kernel {
+    let cell = CellId(1);
+    let geometry = Arc::new(
+        GeometryRegion::prepare(vec![GeometryCell {
+            id: cell.0,
+            terrain: true,
+            restriction: None,
+            solids: vec![],
+            static_primitives: vec![],
+            boundary: vec![
+                CollisionPlane {
+                    normal: Vec3::new(1., 0., 0.),
+                    distance: 0.,
+                },
+                CollisionPlane {
+                    normal: Vec3::new(-1., 0., 0.),
+                    distance: 24.,
+                },
+                CollisionPlane {
+                    normal: Vec3::new(0., 1., 0.),
+                    distance: 0.,
+                },
+                CollisionPlane {
+                    normal: Vec3::new(0., -1., 0.),
+                    distance: 24.,
+                },
+            ],
+            faces: vec![CollisionFace {
+                polygon: GdlePolygon::prepare(vec![
+                    Vec3::new(0., 0., 0.),
+                    Vec3::new(24., 0., 0.),
+                    Vec3::new(24., 24., 0.),
+                    Vec3::new(0., 24., 0.),
+                ])
+                .unwrap(),
+                two_sided: false,
+                object: None,
+            }],
+            portals: vec![],
+        }])
+        .unwrap(),
+    );
+    let shape = Arc::new(
+        CollisionShape::prepare(
+            vec![CollisionSphere {
+                center: Vec3::ZERO,
+                radius: 0.5,
+            }],
+            0.,
+            0.,
+        )
+        .unwrap(),
+    );
+    let spawn = |x, speed| GeometrySpawn {
+        cell: cell.0,
+        position: Vec3::new(x, 7., 0.5),
+        shape: shape.clone(),
+        capabilities: Capabilities {
+            speed,
+            jump_impulse: 0.,
+        },
+        heading: 0.,
+        maximum_turn_rate: if speed > 0. { 3. } else { 0. },
+    };
+    let player = Actor {
+        id: EntityId(1),
+        cell,
+        body: Body::spawn_geometry(&geometry, spawn(3., 5.)).unwrap(),
+    };
+    let authored_door = Actor {
+        id: EntityId(10),
+        cell,
+        body: Body::spawn_authored_stationary_geometry(&geometry, spawn(8., 0.)).unwrap(),
+    };
+    let door_position = authored_door.body.accepted().position();
+    let mut world = World::default();
+    world
+        .install_geometry_and_actors(geometry, vec![player, authored_door])
+        .unwrap();
+    let mut kernel = Kernel::with_gameplay_limits(world, 16, 2, 16).unwrap();
+    kernel.register_character(binding(), character()).unwrap();
+    let mut prepared = door();
+    prepared.use_radius = 0.5;
+    prepared.collider.cell = cell;
+    prepared.collider.position = door_position;
+    prepared.collider.bounds = Aabb::new(
+        door_position + Vec3::new(-0.5, -0.5, -0.5),
+        door_position + Vec3::new(0.5, 0.5, 1.5),
+    )
+    .unwrap();
+    kernel.register_door(EntityId(10), prepared).unwrap();
+    kernel
+}
+#[test]
+fn out_of_range_use_approaches_before_activation_and_defers_receipt() {
+    let mut kernel = authored_kernel();
+    kernel.enqueue(use_door(1)).unwrap();
+    tick(&mut kernel);
+    assert_eq!(kernel.take_door_outcome(), None);
+    let mut result = None;
+    for _ in 0..100 {
+        tick(&mut kernel);
+        if let Some(outcome) = kernel.take_door_outcome() {
+            result = Some(outcome.result);
+            break;
+        }
+    }
+    assert!(matches!(
+        result,
+        Some(Ok(DoorChange::Motion { open: true, .. }))
+    ));
+    assert!(
+        kernel
+            .world()
+            .body(EntityId(1))
+            .unwrap()
+            .accepted()
+            .position()
+            .x
+            > 3.0
+    );
+}
+#[test]
+fn cancelled_door_approach_finishes_use_without_activating() {
+    let mut kernel = authored_kernel();
+    kernel.enqueue(use_door(1)).unwrap();
+    tick(&mut kernel);
+    assert!(kernel.take_door_outcome().is_none());
+    kernel.cancel_door_approach(EntityId(1));
+    tick(&mut kernel);
+    assert_eq!(
+        kernel.take_door_outcome().unwrap().result,
+        Ok(DoorChange::Unchanged)
+    );
+    assert!(kernel.world().door(EntityId(10)).unwrap().solid);
+    assert!(
+        kernel
+            .world()
+            .body(EntityId(1))
+            .unwrap()
+            .server_move()
+            .is_none()
     );
 }
 #[test]

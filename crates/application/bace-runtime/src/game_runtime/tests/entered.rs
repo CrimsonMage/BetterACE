@@ -8,7 +8,15 @@ use bace_auth::{
 use bace_gameplay_api::CharacterBinding;
 use bace_types::EntityId;
 use std::{path::PathBuf, sync::atomic::AtomicBool};
+#[path = "entered/appraisal.rs"]
+mod appraisal;
 mod client;
+#[path = "entered/healing.rs"]
+mod healing;
+#[path = "entered/inventory.rs"]
+mod inventory;
+#[path = "entered/quickslots.rs"]
+mod quickslots;
 pub(in crate::game_runtime) struct EnteredFixture {
     pub runtime: Box<GameRuntime>,
     pub key: SessionKey,
@@ -24,6 +32,21 @@ pub(in crate::game_runtime) async fn fixture() -> EnteredFixture {
 pub(in crate::game_runtime) async fn fixture_with_start_area(
     records: Vec<bace_storage_codec::PackRecord>,
     start_area: u32,
+) -> EnteredFixture {
+    fixture_with_early_action(records, start_area, false, false, false).await
+}
+pub(in crate::game_runtime) async fn fixture_with_healer() -> EnteredFixture {
+    fixture_with_early_action(Vec::new(), 0, false, true, false).await
+}
+pub(in crate::game_runtime) async fn fixture_with_twohanded() -> EnteredFixture {
+    fixture_with_early_action(Vec::new(), 0, false, false, true).await
+}
+async fn fixture_with_early_action(
+    mut records: Vec<bace_storage_codec::PackRecord>,
+    start_area: u32,
+    early_login_complete: bool,
+    starter_healer: bool,
+    twohanded: bool,
 ) -> EnteredFixture {
     eprintln!(
         "entry fixture: runtime={} startup={}",
@@ -93,6 +116,41 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
         bace_storage_codec::write_manifest(directory.path(), &manifest, Default::default())
             .unwrap();
     }
+    if starter_healer {
+        let key = bace_storage_codec::PackKey {
+            namespace: 1,
+            id: 12748,
+        };
+        let bace_storage_codec::PackLookup::Record(record) = source.lookup(key).unwrap() else {
+            panic!("starter wand template missing");
+        };
+        let mut template: bace_content::WeenieV1 =
+            bace_content_tools::decode(record.bytes()).unwrap();
+        template.weenie_type = 28;
+        for (id, value) in [(19, 90), (89, 1), (90, 20), (91, 3), (92, 3)] {
+            if let Some(property) = template.properties.ints.iter_mut().find(|p| p.id == id) {
+                property.value = value;
+            } else {
+                template
+                    .properties
+                    .ints
+                    .push(bace_content::Property { id, value });
+            }
+        }
+        if let Some(property) = template.properties.floats.iter_mut().find(|p| p.id == 100) {
+            property.value = 1.0;
+        } else {
+            template.properties.floats.push(bace_content::Property {
+                id: 100,
+                value: 1.0,
+            });
+        }
+        records.push(bace_storage_codec::PackRecord {
+            key,
+            schema: 1,
+            value: Some(bace_content_tools::compile_template(&template).unwrap()),
+        });
+    }
     drop(source);
     if !records.is_empty() {
         assert!(records.len() <= 64, "bounded private test delta");
@@ -154,12 +212,24 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
         .unwrap();
     let dat =
         PathBuf::from(std::env::var_os("BACE_DAT_DIRECTORY").expect("approved DAT directory"));
-    let assets = crate::region_activation::RegionAssetManifest {
+    let mut assets = crate::region_activation::RegionAssetManifest {
         portal: dat.join("client_portal.dat"),
         cell: dat.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     };
+    let portal =
+        bace_dat::DatArchive::open_verified(&assets.portal, &assets.portal_sha256).unwrap();
+    let cell = bace_dat::DatArchive::open_verified(&assets.cell, &assets.cell_sha256).unwrap();
+    let language = bace_dat::DatArchive::open_verified(
+        dat.join("client_local_English.dat"),
+        "e85c820280c88fac7df6c8043f5e24596e9c8774193af4123d756546f78fb2bb",
+    )
+    .unwrap();
+    assets.store = Some(Arc::new(
+        bace_dat::DatStore::new(portal, cell, language).unwrap(),
+    ));
     let mut verified = crate::region_activation::VerifiedRegionAssets::open(&assets).unwrap();
     eprintln!("entry fixture: preparing startup assets");
     let startup_assets = verified
@@ -195,6 +265,7 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
             manifest,
             generation,
         },
+        world_index: None,
         pack_io: Some(
             crate::pack_io::PackIoWorker::start(directory.path().to_owned(), 2, pressure.clone())
                 .unwrap(),
@@ -222,6 +293,10 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
             break runtime;
         }
     };
+    let diagnostics = Arc::new(
+        bace_observability::LogStore::open(&directory.path().join("game-diagnostics")).unwrap(),
+    );
+    runtime.attach_diagnostic_log(diagnostics.clone());
     let CreateAccountOutcome::Created(account) = runtime
         .bootstrap
         .store
@@ -317,12 +392,34 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
         runtime.dat.as_ref().unwrap().ready_for_world(key)
     })
     .await;
+    // A stock client may echo EndDDD even when no BeginDDD/patch was sent.
+    // The pinned ACE handler ignores it and keeps the authenticated session.
+    // ACE dispatches DDD_EndDDD by opcode and state, independent of the
+    // fragment's queue group. A stock client can echo it after a match.
+    for queue in 0..12 {
+        client.send_message_on_queue(&runtime, key, queue, &bace_wire::DddControl::End.encode());
+    }
+    for _ in 0..10 {
+        let _ = runtime.poll(runtime.clock.monotonic.elapsed());
+        client.drain(&runtime);
+        tokio::time::sleep(Duration::from_millis(2)).await;
+    }
+    assert!(runtime.sessions.get(&key).is_some_and(|s| !s.closing));
+    assert!(!client.messages.iter().any(|message| {
+        message.bytes.starts_with(
+            &bace_wire::opcode::GameMessageOpcode::AccountBoot
+                .0
+                .to_le_bytes(),
+        )
+    }));
     eprintln!("entry fixture: creating character");
     let create = creation_message_with_start_area(
         runtime.sessions[&key].account.name.as_str(),
         color,
         "Entryprobe",
         start_area,
+        twohanded,
+        starter_healer,
     );
     client.send_message(&runtime, key, &create);
     poll_until(&mut runtime, &mut client, |_, client| {
@@ -347,7 +444,70 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
         "real durable creation must precede selection"
     );
     let actor = EntityId(roster[0].object_id);
+    if starter_healer {
+        let stored = runtime
+            .bootstrap
+            .store
+            .load(actor.0)
+            .await
+            .unwrap()
+            .unwrap();
+        let mut saved = bace_storage_codec::PlayerSaveV6::decode_or_migrate(&stored.bytes).unwrap();
+        let health = saved
+            .player
+            .entity
+            .state
+            .properties
+            .secondary_attributes
+            .iter_mut()
+            .find(|p| p.id == 1)
+            .expect("starter current health");
+        assert!(health.value.current_level > 1);
+        health.value.current_level -= 1;
+        saved.player.entity.mutation_revision += 1;
+        let lease = runtime
+            .bootstrap
+            .store
+            .character_lease(actor.0)
+            .await
+            .unwrap()
+            .unwrap();
+        runtime
+            .bootstrap
+            .store
+            .save_offline(
+                lease,
+                &bace_persistence::SaveSnapshot {
+                    object_id: actor.0,
+                    mutation_revision: saved.player.entity.mutation_revision,
+                    expected_version: stored.persisted_version,
+                    bytes: saved.encode().unwrap(),
+                },
+            )
+            .await
+            .unwrap();
+    }
     eprintln!("entry fixture: entering {actor:?}");
+    // ACE's character selection handshake asks whether the world server is
+    // ready before sending the selected character and account name.
+    let ready_start = client.messages.len();
+    client.send_message(
+        &runtime,
+        key,
+        &bace_wire::opcode::GameMessageOpcode::CharacterEnterWorldRequest
+            .0
+            .to_le_bytes(),
+    );
+    poll_until(&mut runtime, &mut client, |_, client| {
+        client.messages.iter().skip(ready_start).any(|message| {
+            message.queue == 9
+                && message.bytes
+                    == bace_wire::opcode::GameMessageOpcode::CharacterEnterWorldServerReady
+                        .0
+                        .to_le_bytes()
+        })
+    })
+    .await;
     let entry_start = client.messages.len();
     let mut request = bace_wire::Writer::new();
     request.u32(bace_wire::opcode::GameMessageOpcode::CharacterEnterWorld.0);
@@ -356,6 +516,28 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
         .string16(runtime.sessions[&key].account.name.as_str())
         .unwrap();
     client.send_message(&runtime, key, &request.into_bytes());
+    if early_login_complete {
+        poll_until(&mut runtime, &mut client, |runtime, _| {
+            runtime.entry_pending.contains(&key)
+        })
+        .await;
+        let action = bace_wire::GameActionEnvelope {
+            sequence: 1,
+            action: bace_wire::opcode::GameActionType::LoginComplete,
+            payload: &[],
+        }
+        .encode(1024)
+        .unwrap();
+        client.send_message_on_queue(&runtime, key, 3, &action);
+        let allegiance = bace_wire::GameActionEnvelope {
+            sequence: 2,
+            action: bace_wire::opcode::GameActionType::AllegianceUpdateRequest,
+            payload: &0u32.to_le_bytes(),
+        }
+        .encode(1024)
+        .unwrap();
+        client.send_message_on_queue(&runtime, key, 3, &allegiance);
+    }
     poll_until(&mut runtime, &mut client, |runtime, _| {
         runtime.players.entered(actor)
             && runtime
@@ -378,6 +560,65 @@ pub(in crate::game_runtime) async fn fixture_with_start_area(
     })
     .await;
     client.assert_entry_order(actor.0, entry_start);
+    if early_login_complete {
+        assert!(!runtime.sessions[&key].terminated);
+        poll_until(&mut runtime, &mut client, |_, client| {
+            client.messages.iter().skip(entry_start).any(|message| {
+                message.queue == 9
+                    && message.bytes.get(..4)
+                        == Some(
+                            &bace_wire::opcode::GameMessageOpcode::GameEvent
+                                .0
+                                .to_le_bytes(),
+                        )
+                    && message.bytes.get(12..16)
+                        == Some(
+                            &bace_wire::opcode::GameEventType::AllegianceAllegianceUpdateDone
+                                .0
+                                .to_le_bytes(),
+                        )
+            })
+        })
+        .await;
+        poll_until(&mut runtime, &mut client, |runtime, _| {
+            !runtime.entry_pending.contains(&key) && runtime.input.is_empty()
+        })
+        .await;
+        assert!(!runtime.sessions[&key].terminated);
+        assert!(
+            diagnostics
+                .recent(0)
+                .records
+                .iter()
+                .any(|record| record.event == "game.entry_action_deferred")
+        );
+    }
+    tokio::time::timeout(Duration::from_secs(2), async {
+        loop {
+            let events: Vec<_> = diagnostics
+                .recent(0)
+                .records
+                .into_iter()
+                .map(|record| record.event)
+                .collect();
+            if [
+                "game.character_create_request",
+                "game.character_created",
+                "game.world_server_ready",
+                "game.enter_world_request",
+                "game.character_loaded",
+                "game.world_entered",
+            ]
+            .into_iter()
+            .all(|event| events.iter().any(|recorded| recorded == event))
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .expect("creation and entry milestones reached the game diagnostic log");
     EnteredFixture {
         runtime,
         key,
@@ -430,13 +671,16 @@ pub(in crate::game_runtime) async fn poll_until(
             // hold must not end this real UDP entry replay early.
             if let Err(error) = runtime.poll(runtime.clock.monotonic.elapsed()) {
                 degraded_polls += 1;
+                if degraded_polls == 1 {
+                    eprintln!("entry fixture first degraded poll: {error}");
+                }
                 last_degraded = Some(error.to_string());
             }
             client.drain(runtime);
             if !diagnosed && started.elapsed() > Duration::from_secs(10) {
                 diagnosed = true;
                 eprintln!(
-                    "entry wait: messages={:?}, retained={}, dat_admissions={}",
+                    "entry wait: messages={:?}, retained={}, dat_admissions={}, staff_phase={:?}, staff_failure={:?}, world_job={}, world_pending={}, sim_finished={}, drain_reason={}, healing_pending={}, sessions={}, logout={}, request_regions={}",
                     client
                         .messages
                         .iter()
@@ -454,6 +698,16 @@ pub(in crate::game_runtime) async fn poll_until(
                         .dat
                         .as_ref()
                         .map_or(0, ddd::DatRuntime::pending_admissions),
+                    runtime.staff_pending_phase(runtime.sessions.keys().next().copied().unwrap()),
+                    runtime.staff_failure(),
+                    runtime.world_job.is_some(),
+                    runtime.world.as_ref().is_some_and(|world| world.pending.is_some()),
+                    runtime.simulation.is_finished(),
+                    runtime.pending_drain_reason(),
+                    runtime.healing_kits.has_pending(),
+                    runtime.sessions.len(),
+                    runtime.logout.len(),
+                    runtime.request_regions.len(),
                 );
             }
             if let Some((key, failure)) = runtime
@@ -499,13 +753,15 @@ pub(in crate::game_runtime) async fn poll_until(
     }
 }
 fn creation_message(account: &str, color: u32, name: &str) -> Vec<u8> {
-    creation_message_with_start_area(account, color, name, 0)
+    creation_message_with_start_area(account, color, name, 0, false, false)
 }
 fn creation_message_with_start_area(
     account: &str,
     color: u32,
     name: &str,
     start_area: u32,
+    twohanded: bool,
+    starter_healer: bool,
 ) -> Vec<u8> {
     let mut w = bace_wire::Writer::new();
     w.u32(0xf656);
@@ -543,7 +799,11 @@ fn creation_message_with_start_area(
     }
     for id in 0..55 {
         w.u32(
-            if bace_character::is_locked_skill(id) || [16, 33].contains(&id) {
+            if bace_character::is_locked_skill(id)
+                || [16, 33].contains(&id)
+                || twohanded && id == 41
+                || starter_healer && id == 21
+            {
                 2
             } else if [15, 22, 24, 31, 32, 34, 43, 44].contains(&id) {
                 // The avatar admission model requires these ordinary skills,
@@ -569,6 +829,14 @@ async fn native_character_creation_and_login_reach_real_entered_owner() {
         !fixture.client.messages.is_empty(),
         "actual reliable UDP delivered entry output"
     );
+    fixture.shutdown().await;
+}
+
+#[tokio::test]
+#[ignore = "requires approved DATs, accepted full native pack and PostgreSQL binaries"]
+async fn early_retail_login_complete_waits_for_world_entry() {
+    let fixture = Box::pin(fixture_with_early_action(Vec::new(), 0, true, false, false)).await;
+    assert!(fixture.runtime.players.entered(fixture.binding.actor));
     fixture.shutdown().await;
 }
 
@@ -633,6 +901,45 @@ async fn poll_until_pair(
     if degraded_polls != 0 {
         eprintln!("two-player replay: {degraded_polls} degraded polls; last {last_degraded:?}");
     }
+}
+
+#[tokio::test]
+#[ignore = "requires approved DATs, accepted full native pack and PostgreSQL binaries"]
+async fn disconnected_failed_session_saves_and_releases_online_lease() {
+    let mut fixture = Box::pin(fixture()).await;
+    let key = fixture.key;
+    let actor = fixture.binding.actor.0;
+    fixture.runtime.sessions.get_mut(&key).unwrap().failure =
+        Some("retained visibility projection".into());
+    fixture.runtime.input.push_back(NetworkEvent::Terminated {
+        key,
+        reason: crate::network::NetworkStopReason::PeerDisconnected,
+    });
+    tokio::time::timeout(Duration::from_secs(60), async {
+        loop {
+            let _ = fixture
+                .runtime
+                .poll(fixture.runtime.clock.monotonic.elapsed());
+            fixture.client.drain(&fixture.runtime);
+            let lease = fixture
+                .runtime
+                .bootstrap
+                .store
+                .character_lease(actor)
+                .await
+                .unwrap();
+            if !fixture.runtime.sessions.contains_key(&key)
+                && lease
+                    .is_some_and(|lease| lease.state == bace_persistence::OwnershipState::Offline)
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(2)).await;
+        }
+    })
+    .await
+    .expect("failed disconnected session must release its durable lease");
+    fixture.shutdown().await;
 }
 
 #[tokio::test]

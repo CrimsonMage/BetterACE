@@ -85,6 +85,8 @@ impl GameRuntime {
                     {
                         return Err("staff outcome correlation".into());
                     }
+                    let key = pending.key;
+                    let sequence = pending.context.sequence;
                     let gag_receipt = self.staff.gag.is_some();
                     if !self.finish_staff_spell(*token, *result)?
                         || !self.finish_staff_gag(*token, *result)?
@@ -100,7 +102,18 @@ impl GameRuntime {
                     if let Err(error) = result
                         && !gag_receipt
                     {
-                        self.staff.failure = Some(format!("staff action rejected: {error:?}"));
+                        if *error == bace_gameplay_api::staff::StaffError::Stale {
+                            self.diagnostic(
+                                "warn",
+                                "game.staff_action_stale",
+                                &format!(
+                                    "session {} generation {} message sequence {}: {error:?}",
+                                    key.id, key.generation, sequence
+                                ),
+                            );
+                        } else {
+                            self.staff.failure = Some(format!("staff action rejected: {error:?}"));
+                        }
                     }
                 }
                 StaffEvent::SpellProposal(ticket) => {

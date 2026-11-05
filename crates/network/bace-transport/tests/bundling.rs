@@ -58,3 +58,23 @@ fn rotating_queue_service_and_message_sequence_assignment() {
     let second = bundle.next_fragments();
     assert_eq!((second[0].header.queue, second[0].header.sequence), (9, 1));
 }
+
+#[test]
+fn every_pinned_ace_queue_is_emitted_with_its_own_group_id() {
+    // GameMessageGroup.cs defines twelve wire groups, 0 through 11. The
+    // shared fragment sequence must advance across groups, not restart in one.
+    let mut bundle = Bundler::new(12, 48, 4);
+    for queue in 0..12u16 {
+        bundle.enqueue(queue, vec![queue as u8; 4]).unwrap();
+    }
+    for queue in 0..12u16 {
+        assert!(bundle.start_bundle().unwrap());
+        let fragments = bundle.next_fragments();
+        assert_eq!(fragments.len(), 1);
+        assert_eq!(fragments[0].header.queue, queue);
+        assert_eq!(fragments[0].header.sequence, u32::from(queue));
+        assert_eq!(fragments[0].data, vec![queue as u8; 4]);
+    }
+    assert!(!bundle.start_bundle().unwrap());
+    assert!(bundle.enqueue(12, vec![0; 4]).is_err());
+}

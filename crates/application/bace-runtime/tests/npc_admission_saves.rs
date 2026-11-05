@@ -104,6 +104,266 @@ fn queue_admission_persists_detached_continuation_without_mutating_a_player_snap
     assert!(!checkpoint.completed);
 }
 #[test]
+fn skipped_motion_freezes_exact_applied_checkpoint_without_claiming_an_animation() {
+    use bace_gameplay_api::NpcOperation;
+    use bace_runtime::npc_persistence::{NpcServiceCompletionInput, freeze_service_completion};
+    let mut fixture = input();
+    let proposal = NpcProposal {
+        ticket: fixture.proposal.ticket,
+        context: fixture.proposal.context,
+        effect: NpcEffect::Service(NpcOperation::Motion {
+            target: false,
+            motion: 0x1300_00aa,
+            extent: 1.0,
+            style: None,
+            substyle: None,
+        }),
+    };
+    fixture.committed_checkpoint.pending[0].proposal = proposal.clone();
+    fixture.committed_checkpoint.pending[0].adopted = true;
+    fixture.committed_checkpoint.pending[0].detached = false;
+    fixture.committed_checkpoint.vm.detached.clear();
+    fixture
+        .committed_checkpoint
+        .vm
+        .pending
+        .push(bace_emotes::NativePendingRow {
+            ticket: proposal.ticket,
+            row: bace_emotes::NativeScheduledRow {
+                inline: true,
+                depth: 0,
+                set: 0,
+                action: 0,
+                due: 3.0,
+                order: 1,
+                context: proposal.context,
+            },
+        });
+    let pending = freeze_service_completion(NpcServiceCompletionInput {
+        binding: fixture.binding,
+        workflow_version: 0,
+        world_epoch: 5,
+        proposal,
+        checkpoint: fixture.committed_checkpoint,
+        leases: vec![fixture.lease],
+    })
+    .unwrap();
+    let operation = pending.operation();
+    assert!(operation.inventory.snapshots.is_empty());
+    assert!(operation.inventory.changes.is_empty());
+    let restored =
+        bace_storage_codec::NpcWorkflowSaveV3::decode(&operation.workflow.checkpoint).unwrap();
+    assert!(restored.effects[0].adopted);
+    assert!(!restored.effects[0].detached);
+    let resumed =
+        bace_runtime::npc_persistence::restore_checkpoint(fixture.binding, restored.previous)
+            .unwrap();
+    assert!(resumed.pending[0].adopted);
+    assert!(matches!(
+        resumed.pending[0].proposal.effect,
+        NpcEffect::Service(_)
+    ));
+}
+
+#[tokio::test]
+async fn skipped_motion_advances_only_after_exact_coordinator_receipt() {
+    use bace_content::{Emote, EmoteAction};
+    use bace_emotes::{NativeLimits, NativeProgram, NativeTrigger};
+    use bace_entity::{Actor, EntityProperties};
+    use bace_gameplay_api::NpcOperation;
+    use bace_geometry::{Aabb, Vec3};
+    use bace_motion::Capabilities;
+    use bace_physics::{Body, SyntheticScene};
+    use bace_runtime::{
+        npc_persistence::{NpcServiceCompletionInput, freeze_service_completion},
+        npc_service::{NpcCoordinator, NpcCoordinatorEvent, NpcDurableAdoption},
+        saves::{SaveBackend, SaveFailure, SaveWorkerConfig, spawn_save_worker},
+        simulation::{SimulationConfig, SimulationWorker},
+    };
+    use bace_simulation::{Kernel, NpcServiceResult};
+    use bace_types::CellId;
+    use bace_world::World;
+    use std::sync::Arc;
+
+    struct NoSql;
+    impl SaveBackend for NoSql {
+        async fn routine(
+            &self,
+            _: &[bace_persistence::SaveSnapshot],
+        ) -> Result<Vec<bace_persistence::SaveAck>, SaveFailure> {
+            panic!("pure NPC motion must not persist player state")
+        }
+        async fn valuable(
+            &self,
+            _: &str,
+            _: &[bace_persistence::SaveSnapshot],
+        ) -> Result<bace_persistence::OperationOutcome, SaveFailure> {
+            panic!("pure NPC motion must not persist player state")
+        }
+    }
+
+    let source = EntityId(2);
+    let cell = CellId(1);
+    let mut world = World::default();
+    world
+        .register_scene(
+            cell,
+            SyntheticScene::new(
+                0.0,
+                Aabb::new(Vec3::new(-10.0, -10.0, -1.0), Vec3::new(10.0, 10.0, 10.0)).unwrap(),
+                vec![],
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    let body = Body::spawn_oriented(
+        world.scene(cell).unwrap(),
+        Vec3::new(0.0, 0.0, 0.5),
+        0.5,
+        Capabilities {
+            speed: 1.0,
+            jump_impulse: 1.0,
+        },
+        0.0,
+        3.0,
+    )
+    .unwrap();
+    world
+        .insert(Actor {
+            id: source,
+            cell,
+            body,
+        })
+        .unwrap();
+    world
+        .register_properties(source, EntityProperties::new(100).unwrap())
+        .unwrap();
+    let mut kernel = Kernel::new(world, 16).unwrap();
+    kernel
+        .configure_npc_services_without_catalogs(
+            Arc::new(bace_random::RandomRoot::new([7; 32], 1).unwrap()),
+            1000,
+        )
+        .unwrap();
+    let program = NativeProgram::prepare(
+        vec![Emote {
+            category: 7,
+            probability: 1.0,
+            actions: vec![
+                EmoteAction {
+                    r#type: 5,
+                    motion: Some(0x1300_00aa),
+                    extent: 1.0,
+                    ..Default::default()
+                },
+                EmoteAction {
+                    r#type: 8,
+                    message: Some("continued".into()),
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        }],
+        NativeLimits::default(),
+    )
+    .unwrap();
+    kernel
+        .register_native_npc(source, Arc::new(program), 3.0)
+        .unwrap();
+    kernel
+        .start_npc_emote(
+            source,
+            None,
+            NativeTrigger {
+                category: 7,
+                ..Default::default()
+            },
+            [9; 16],
+            3,
+            false,
+        )
+        .unwrap();
+    kernel.step().unwrap();
+    let proposal = kernel.take_npc_proposal().unwrap();
+    assert!(matches!(
+        proposal.effect,
+        NpcEffect::Service(NpcOperation::Motion { .. })
+    ));
+    let checkpoint = kernel.preview_skipped_npc_motion(&proposal).unwrap();
+    assert_eq!(kernel.npc_pending_service(proposal.ticket), Some(&proposal));
+    let binding = NpcCheckpointBinding {
+        source_version: 0,
+        source_template: 100,
+        invocation: [9; 16],
+        source: source.0,
+        program_hash: [2; 32],
+        content_generation: [3; 32],
+    };
+    let pending = freeze_service_completion(NpcServiceCompletionInput {
+        binding,
+        workflow_version: 0,
+        world_epoch: 5,
+        proposal: proposal.clone(),
+        checkpoint,
+        leases: vec![],
+    })
+    .unwrap();
+    assert!(pending.operation().inventory.snapshots.is_empty());
+    assert!(pending.operation().inventory.changes.is_empty());
+
+    let saves = spawn_save_worker(NoSql, SaveWorkerConfig::default()).unwrap();
+    let simulation = SimulationWorker::spawn(
+        kernel,
+        SimulationConfig {
+            command_capacity: 8,
+            tick_limit: None,
+            real_time: true,
+        },
+    )
+    .unwrap();
+    let mut coordinator = NpcCoordinator::new(4).unwrap();
+    coordinator.bind(binding, 0).unwrap();
+    assert!(
+        coordinator
+            .enqueue_stage(
+                source,
+                pending,
+                NpcDurableAdoption::SkippedMotion {
+                    proposal: proposal.clone(),
+                },
+            )
+            .is_ok()
+    );
+    assert!(coordinator.busy(source));
+    let mut committed = false;
+    let mut adopted = false;
+    for _ in 0..200 {
+        coordinator.pump(&simulation.input(), &saves.handle);
+        while let Some(event) = coordinator.take_event() {
+            if let NpcCoordinatorEvent::Durable { resolution, .. } = event {
+                assert!(matches!(
+                    resolution.as_ref(),
+                    bace_runtime::npc_persistence::NpcStageResolution::Committed { .. }
+                ));
+                committed = true;
+            }
+        }
+        while let Ok(outcome) = simulation.npc_service_outcomes().try_recv() {
+            assert!(committed, "commit dispatched before source receipt");
+            adopted = matches!(outcome.result, Ok(NpcServiceResult::Applied));
+            assert!(coordinator.accept(outcome).is_ok());
+        }
+        if adopted {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+    }
+    assert!(committed && adopted);
+    let exit = simulation.shutdown_recover().unwrap();
+    assert!(exit.failure.is_none());
+    assert!(exit.kernel.npc_pending_service(proposal.ticket).is_none());
+}
+#[test]
 fn allegiance_only_policy_survives_binary_restart_and_v1_defaults_are_explicit() {
     let mut input = input();
     for proposal in [
@@ -262,8 +522,8 @@ fn detached_source_schema3_preserves_properties_and_migrates_old_workflows() {
 }
 
 #[tokio::test]
-async fn coordinator_retains_exact_uncertain_write_and_failed_owner_adoption() {
-    use bace_persistence::{NpcStageOperation, OperationOutcome, SaveAck, SaveSnapshot};
+async fn ephemeral_npc_stage_skips_sql_and_player_stage_uses_exact_placement_retry() {
+    use bace_persistence::{OperationOutcome, PlacementOperation, SaveAck, SaveSnapshot};
     use bace_runtime::{
         npc_service::{NpcCoordinator, NpcCoordinatorEvent, NpcDurableAdoption},
         saves::{SaveBackend, SaveFailure, SaveWorkerConfig, spawn_save_worker},
@@ -271,7 +531,7 @@ async fn coordinator_retains_exact_uncertain_write_and_failed_owner_adoption() {
     };
     use std::sync::{Arc, Mutex};
     #[derive(Clone)]
-    struct Backend(Arc<Mutex<Vec<Vec<u8>>>>);
+    struct Backend(Arc<Mutex<Vec<PlacementOperation>>>);
     impl SaveBackend for Backend {
         async fn routine(&self, _: &[SaveSnapshot]) -> Result<Vec<SaveAck>, SaveFailure> {
             Ok(vec![])
@@ -283,12 +543,12 @@ async fn coordinator_retains_exact_uncertain_write_and_failed_owner_adoption() {
         ) -> Result<OperationOutcome, SaveFailure> {
             Ok(OperationOutcome::AlreadyCommitted)
         }
-        async fn npc_stage(
+        async fn placement(
             &self,
-            operation: &NpcStageOperation,
+            operation: &PlacementOperation,
         ) -> Result<OperationOutcome, SaveFailure> {
             let mut calls = self.0.lock().unwrap();
-            calls.push(operation.workflow.checkpoint.clone());
+            calls.push(operation.clone());
             if calls.len() == 1 {
                 Err(SaveFailure::Storage {
                     message: "commit response lost".into(),
@@ -303,7 +563,6 @@ async fn coordinator_retains_exact_uncertain_write_and_failed_owner_adoption() {
     let binding = fixture.binding;
     let source = EntityId(binding.source);
     let pending = freeze_experience_admission(fixture).unwrap();
-    let exact = pending.operation().workflow.checkpoint.clone();
     let backend = Backend(Arc::new(Mutex::new(vec![])));
     let saves = spawn_save_worker(backend.clone(), SaveWorkerConfig::default()).unwrap();
     let simulation = SimulationWorker::spawn(
@@ -323,7 +582,6 @@ async fn coordinator_retains_exact_uncertain_write_and_failed_owner_adoption() {
             .enqueue_stage(source, pending, NpcDurableAdoption::Player)
             .is_ok()
     );
-    let mut uncertain = false;
     let mut committed = false;
     let mut adoption_failed = false;
     for _ in 0..200 {
@@ -333,15 +591,6 @@ async fn coordinator_retains_exact_uncertain_write_and_failed_owner_adoption() {
         }
         while let Some(event) = coordinator.take_event() {
             match event {
-                NpcCoordinatorEvent::Durable { resolution, .. }
-                    if matches!(
-                        resolution.as_ref(),
-                        bace_runtime::npc_persistence::NpcStageResolution::Uncertain { .. }
-                    ) =>
-                {
-                    uncertain = true;
-                    assert_eq!(coordinator.binding(source).unwrap().0.source_version, 0);
-                }
                 NpcCoordinatorEvent::Durable { resolution, .. }
                     if matches!(
                         resolution.as_ref(),
@@ -363,8 +612,8 @@ async fn coordinator_retains_exact_uncertain_write_and_failed_owner_adoption() {
         tokio::time::sleep(std::time::Duration::from_millis(2)).await;
     }
     assert!(
-        uncertain && committed && adoption_failed,
-        "uncertain={uncertain} committed={committed} adoption_failed={adoption_failed} calls={} binding={:?}",
+        committed && adoption_failed,
+        "committed={committed} adoption_failed={adoption_failed} calls={} binding={:?}",
         backend.0.lock().unwrap().len(),
         coordinator.binding(source)
     );
@@ -380,7 +629,43 @@ async fn coordinator_retains_exact_uncertain_write_and_failed_owner_adoption() {
             )
             .is_err()
     );
-    assert_eq!(*backend.0.lock().unwrap(), vec![exact.clone(), exact]);
+    assert!(backend.0.lock().unwrap().is_empty());
+    let mut player_stage = freeze_experience_admission(input())
+        .unwrap()
+        .operation()
+        .clone();
+    let player = 0x5000_0001;
+    player_stage.inventory.snapshots.push(SaveSnapshot {
+        object_id: player,
+        mutation_revision: 1,
+        expected_version: 1,
+        bytes: vec![1],
+    });
+    assert!(player_stage.inventory.participants.contains(&player));
+    for attempt in 0..2 {
+        let report = saves
+            .handle
+            .try_npc_stage(&player_stage)
+            .unwrap()
+            .await
+            .unwrap();
+        if attempt == 0 {
+            assert!(report.result.is_err());
+        } else {
+            assert!(matches!(
+                report.result,
+                Ok(bace_runtime::saves::WriteOutcome::Valuable(
+                    OperationOutcome::AlreadyCommitted
+                ))
+            ));
+        }
+    }
+    {
+        let calls = backend.0.lock().unwrap();
+        assert_eq!(calls.len(), 2);
+        assert_eq!(calls[0], calls[1]);
+        assert!(!calls[0].participants.contains(&source.0));
+    }
     let exit = simulation.shutdown_recover().unwrap();
     assert!(exit.failure.is_none());
     saves.handle.close();

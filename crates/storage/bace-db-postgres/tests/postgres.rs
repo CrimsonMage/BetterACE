@@ -623,6 +623,10 @@ async fn offline_xp_receipts_and_login_logout_fences_prevent_stale_writes() {
     store.close().await;
 }
 
+#[path = "postgres/creation_allocations.rs"]
+mod creation_allocations;
+#[path = "postgres/creation_equipment.rs"]
+mod creation_equipment;
 #[path = "postgres/gameplay.rs"]
 mod gameplay;
 #[path = "postgres/identity.rs"]

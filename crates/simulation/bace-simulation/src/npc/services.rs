@@ -362,6 +362,16 @@ impl Npcs {
     pub(crate) fn service_detached(&self, ticket: u64) -> bool {
         self.pending.get(&ticket).is_some_and(|p| p.detached)
     }
+    pub(crate) fn motion_skip_adopted(&self, expected: &NpcProposal) -> Result<bool, NpcFailure> {
+        let pending = self
+            .pending
+            .get(&expected.ticket)
+            .ok_or(NpcFailure::Conflict)?;
+        if pending.proposal != *expected || pending.detached {
+            return Err(NpcFailure::Conflict);
+        }
+        Ok(pending.adopted && pending.completion == NpcCompletion::Applied { post_delay: 0.0 })
+    }
     pub(crate) fn owns_inventory(&self, operation: u64) -> bool {
         self.inventory_services.contains_key(&operation) || self.handins.contains_key(&operation)
     }

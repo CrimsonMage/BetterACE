@@ -97,6 +97,15 @@ pub(crate) struct Combat {
     pub(crate) refresh_scratch: Vec<EntityId>,
 }
 impl Combat {
+    pub(crate) fn healing_stream(&self, operation: u64) -> Result<bace_random::RandomStream, ()> {
+        let (root, epoch) = self.random.as_ref().ok_or(())?;
+        let mut identity = [0; 16];
+        identity[..8].copy_from_slice(&epoch.to_le_bytes());
+        identity[8..].copy_from_slice(&operation.to_le_bytes());
+        root.event_stream(identity, bace_random::Domain::Combat)
+            .and_then(|stream| stream.fork(b"healing-kit", 0))
+            .map_err(|_| ())
+    }
     pub(crate) fn set_simulation_tick(&mut self, tick: u64) {
         self.simulation_tick = tick;
     }

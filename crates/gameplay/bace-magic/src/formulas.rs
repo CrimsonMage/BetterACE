@@ -83,3 +83,67 @@ pub fn mana_cost(
     }
     Ok((cost.max(1), used))
 }
+
+/// ACE WorldObject_Weapon.GetWeaponManaConversionModifier followed by
+/// Creature.CalculateManaUsage's Math.Round(Current * modifier). The caller
+/// resolves current selected weapon and live enchantment top layers.
+pub fn weapon_mana_conversion_skill(
+    skill: u32,
+    base_modifier: f32,
+    item_enchantment: f32,
+    wielder_enchantment: f32,
+    combat_mode: bool,
+) -> Result<u32, MagicFormulaError> {
+    if skill > i32::MAX as u32
+        || [base_modifier, item_enchantment, wielder_enchantment]
+            .iter()
+            .any(|v| !v.is_finite())
+    {
+        return Err(MagicFormulaError::InvalidInput);
+    }
+    if !combat_mode {
+        return Ok(skill);
+    }
+    let modifier = 1.0f32 + base_modifier * (item_enchantment * wielder_enchantment);
+    let effective = (skill as f32 * modifier) as f64;
+    if !effective.is_finite() || effective < 0. || effective > f64::from(i32::MAX) {
+        return Err(MagicFormulaError::InvalidInput);
+    }
+    Ok(effective.round_ties_even() as u32)
+}
+
+#[cfg(test)]
+mod mana_conversion_tests {
+    use super::*;
+
+    #[test]
+    fn ace_weapon_modifier_uses_float_product_and_noncombat_default() {
+        // WorldObject_Weapon.GetWeaponManaConversionModifier uses float:
+        // 1 + baseMod * (weapon enchantment * wielding aura).
+        assert_eq!(
+            weapon_mana_conversion_skill(100, 0.1, 1.2, 1.5, true),
+            Ok(118)
+        );
+        assert_eq!(
+            weapon_mana_conversion_skill(100, 0.1, 1.2, 1.5, false),
+            Ok(100)
+        );
+        assert_eq!(
+            weapon_mana_conversion_skill(100, 0.1, 1.2, 1., true),
+            Ok(112)
+        );
+        assert_eq!(weapon_mana_conversion_skill(100, 0., 2., 2., true), Ok(100));
+    }
+
+    #[test]
+    fn invalid_weapon_modifier_cannot_wrap_a_skill() {
+        assert_eq!(
+            weapon_mana_conversion_skill(100, -2., 1., 1., true),
+            Err(MagicFormulaError::InvalidInput)
+        );
+        assert_eq!(
+            weapon_mana_conversion_skill(100, f32::NAN, 1., 1., true),
+            Err(MagicFormulaError::InvalidInput)
+        );
+    }
+}

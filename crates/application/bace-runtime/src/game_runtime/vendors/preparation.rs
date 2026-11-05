@@ -34,6 +34,7 @@ pub(super) struct Input {
     pub templates: BTreeMap<u32, Arc<WeenieV1>>,
 }
 
+#[allow(dead_code)] // Frozen stock rows remain a legacy durability oracle.
 pub(super) struct Prepared {
     pub batch: PreparedVendorLazyStock,
     pub listing: VendorListing,
@@ -567,6 +568,7 @@ pub(super) fn listing_limits(max_message_bytes: usize) -> ObjectCodecLimits {
     }
 }
 
+#[allow(dead_code)] // New Shop incarnations keep stock in their landblock.
 impl Prepared {
     pub(super) fn freeze(
         self,

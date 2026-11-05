@@ -1,0 +1,624 @@
+# P0-L client gameplay rules that imply server behaviour (read-only).
+# Client source: /home/jokerfactor/Documents/acclient-source-split/ (paths below are relative to that root).
+# Manifests used: INDEX/manifests/10_character_gameplay_systems.json, 09_client_core_systems.json (via INDEX/TINY_AI_SCOPE_GUIDE.md).
+# ACE pin: 47edade3bd3f6044b676d4eb877c4965c7eda62b (.reference/ACE-.../Source/ACE.Server).
+# BACE refs are crates/... relative to the BACE repo root.
+# bace_status: met = BACE emits or validates what the client needs; unmet = absent or ignored; unknown = not verified in this pass.
+# Priority: high = a missing reply hangs the client (busy cursor, prevRequest lock, or a window that never closes).
+
+[meta]
+busy_count_rule = "ClientUISystem::IncrementBusyCount is called on every Use, UseWithTarget, cast, attack, shop event and teleport start. m_cBusy is reset only at ClientUISystem.cpp:605 and :799, and nothing times it out. Only UseDone (0x01C7, CM_Item.cpp:34 / ClientUISystem.cpp:666), HandleAttackDoneEvent (ClientCombatSystem.cpp:1863), a vendor response or the teleport end decrements it. A missing reply leaves the cursor busy until relog."
+inventory_lock_rule = "ACCWeenieObject.cpp:1560-1576 refuses every move/put/drop while prevRequest != 0. It is released only by a reply for the same object id: ServerSaysMoveItem (:1942-1946), ServerSaysSetStackSize (:1345-1349), RecordResponse (:1224-1230) or ServerSaysAttemptFailed (:2711-2715). prevRequestTime is written but never read, so there is no timeout."
+window_rule = "Book pages, the trade window, the vendor window and the ground-container window each stay open on the client until the server or the client closes them. No client-side timeout closes them."
+
+# ---------------------------------------------------------------------------
+# Use / busy-lock family
+# ---------------------------------------------------------------------------
+
+[[client_rule]]
+system = "use"
+client_file = "ItemHolder.cpp"
+client_function = "ItemHolder::UseObject (ItemHolder.cpp:1344-1500, busy increment at :1493)"
+rule = "Every useable item (world or inventory) sends Event_UseEvent and increments busy. The cursor stays busy until UseDone arrives."
+server_expectation = "Exactly one UseDone (0x01C7, code 0 on success, WeenieError otherwise) for every Use request, including refusals and unhandled object classes."
+bace_status = "unmet"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/ingress.rs:754"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Use.cs:176-200, 236-238 (TryUseItem queues SendUseDoneEvent after OnActivate; line 249 defines it)"
+priority = "high"
+notes = "ingress.rs:754 warns and ignores any Use outside the handled classes (see ACE WorldObjects ActOnUse list in action-coverage). No UseDone is produced, so the busy count stays up."
+
+[[client_rule]]
+system = "use"
+client_file = "CPlayerSystem.cpp"
+client_function = "CPlayerSystem::UsingItem (CPlayerSystem.cpp:4058-4120)"
+rule = "After a Use the client opens owned containers locally and only asks the server for ground containers. For non-owned containers it sets requestedGroundObject and waits for ViewContents."
+server_expectation = "For each container Use: ViewContents (0x0196) for the requested id, then UseDone. Owned containers need a UseDone, ground containers need ViewContents matching requestedGroundObject."
+bace_status = "unmet"
+bace_ref = "crates/application/bace-runtime/src/inventory_service/output.rs:163"
+ace_ref = "Source/ACE.Server/WorldObjects/Container.cs:695 (Container.ActOnUse); Player_Use.cs:236-238"
+priority = "high"
+notes = "ViewContents is emitted only for NPC inventory and corpse access (game_runtime/npc/inventory_output.rs, deaths/access/output.rs:264-269). Generic containers and chests have no producer."
+
+[[client_rule]]
+system = "use"
+client_file = "ClientUISystem.cpp"
+client_function = "ClientUISystem::Handle_Item__UseDone (ClientUISystem.cpp:666-680)"
+rule = "UseDone decrements busy; a non-zero code is shown as a failure. There is no timeout path."
+server_expectation = "UseDone code 0 for a completed use; the WeenieError code for a failed one. Never zero-length or silent."
+bace_status = "met"
+bace_ref = "crates/network/bace-wire/src/events.rs:7 (SimpleGameEvent::UseDone); crates/application/bace-runtime/src/game_runtime/doors.rs:196"
+ace_ref = "Source/ACE.Server/Network/GameEvent/Events/GameEventUseDone.cs:7"
+priority = "high"
+notes = "Emitted by doors, healing kits, mana stones, NPC hand-in, pets, skill devices, attribute transfer, crafting and vendor Buy success."
+
+[[client_rule]]
+system = "use"
+client_file = "ItemHolder.cpp"
+client_function = "ItemHolder::UseObject lifestone/bindstone branch (ItemHolder.cpp:1493 path)"
+rule = "Using a bindstone (lifestone or allegiance stone) is a normal Use. The client holds the busy cursor until UseDone."
+server_expectation = "UseDone after the binding completes or fails. Success codes must not leave busy set."
+bace_status = "unmet"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/recalls/bindings.rs:572 (only WeenieError is emitted)"
+ace_ref = "Source/ACE.Server/WorldObjects/Bindstone.cs:46 (ActOnUse); Player_Use.cs:236-238"
+priority = "high"
+notes = "The bindings output emits WeenieError on failure and sound/vital effects on success, but never UseDone. The client stays busy after every bind."
+
+[[client_rule]]
+system = "use"
+client_file = "ItemHolder.cpp"
+client_function = "ItemHolder::UseObject corpse branch (ItemHolder.cpp:1493)"
+rule = "Corpse Use goes through the same busy-count path as any Use."
+server_expectation = "UseDone after the corpse access transcript finishes, plus ViewContents for the loot list."
+bace_status = "unmet"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/deaths/access/output.rs:264-269 (ViewContents only; no UseDone in deaths/)"
+ace_ref = "Source/ACE.Server/WorldObjects/Container.cs:695; Player_Use.cs:236-238"
+priority = "high"
+notes = "Corpse open emits ViewContents and CloseContainer (output.rs:200) but no UseDone. Busy stays up after opening a corpse."
+
+[[client_rule]]
+system = "use"
+client_file = "ItemHolder.cpp"
+client_function = "ItemHolder::UseObject targeted branch (ItemHolder.cpp:1465-1470)"
+rule = "UseWithTarget increments busy after Event_UseWithTargetEvent and waits for UseDone."
+server_expectation = "UseDone for every UseWithTarget, including target-incompatible and unhandled pairs."
+bace_status = "met"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/healing_kits/output.rs:107,112,193; crates/application/bace-runtime/src/game_runtime/mana_stones/output.rs:39,46,150"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Use.cs:29-140 (HandleActionUseWithTarget, TargetType mismatch sends UseDone); Healer.cs:53-163"
+priority = "med"
+notes = "Healing kits and mana stones are covered. Other ACE TargetType pairs (keys, lockpicks, dye, salvage) are not handled, so their UseDone is missing."
+
+[[client_rule]]
+system = "use"
+client_file = "CPlayerSystem.cpp / ClientTradeSystem.cpp"
+client_function = "CPlayerSystem::UsingItem case 5 (CPlayerSystem.cpp:4058) -> ClientTradeSystem::AttemptToOpenTradeNegotiations"
+rule = "Using a player (drag-to-trade path) opens negotiations via OpenTradeNegotiations (0x01F6) after a peace-mode check."
+server_expectation = "Use on a player answers with UseDone plus RegisterTrade (or an error). Client waits for RegisterTrade to finish a drag-to-trade."
+bace_status = "unmet"
+bace_ref = "crates/network/bace-session/src/inventory.rs:23-34 (trade opcodes not routed); crates/application/bace-runtime/src/game_runtime/ingress.rs:754"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Trade.cs:30-100"
+priority = "high"
+notes = "No trade owner exists in BACE. Use on a player is ignored, so busy stays up."
+
+[[client_rule]]
+system = "use"
+client_file = "ClientUISystem.cpp / ItemHolder.cpp"
+client_function = "ItemHolder::AttemptToPlaceInContainer, UseObject (no distance check on the client)"
+rule = "The client has no use-range check. Using a distant item only sends Use; the server must walk the player to the object and then answer."
+server_expectation = "Server approach (MoveToObject chain) before the activation, then UseDone. Out-of-reach refusals must be UseDone with an error."
+bace_status = "unknown"
+bace_ref = "crates/simulation/bace-simulation/src/kernel/world_use.rs:160 (MoveToObject approach)"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Use.cs:184-200 (CreateMoveToChain, then TryUseItem with success flag)"
+priority = "med"
+notes = "world_use.rs approach exists for some object classes. Generic Use approach is not verified."
+
+[[client_rule]]
+system = "use"
+client_file = "ACCWeenieObject.cpp"
+client_function = "ACCWeenieObject::IsPlayerReadyToMakeInventoryRequest (ACCWeenieObject.cpp:1555-1590)"
+rule = "The client refuses item moves while another request is pending on any object (prevRequest != 0), printing 'You can only move or use one item at a time'."
+server_expectation = "Every inventory request gets a reply for the same object id: MoveItem, SetStackSize, or InventoryServerSaveFailed (0x00A0). A silently dropped request locks inventory until relog."
+bace_status = "met"
+bace_ref = "crates/network/bace-wire/src/inventory_output.rs:77 (SaveFailed); crates/application/bace-runtime/src/game_runtime/inventory.rs:192"
+ace_ref = "Source/ACE.Server/Network/GameEvent/GameEventType.cs:18 (InventoryServerSaveFailed 0x00A0)"
+priority = "high"
+notes = "Met for requests in the inventory allowlist (session inventory.rs:23-34). Trade and vendor requests have no inventory reply path, so they hold the lock (see vendor rows)."
+
+# ---------------------------------------------------------------------------
+# Vendor
+# ---------------------------------------------------------------------------
+
+[[client_rule]]
+system = "vendor"
+client_file = "gmVendorUI.cpp"
+client_function = "gmVendorUI::BuySingleItem (gmVendorUI.cpp:850-980; busy at :972, RecordRequest IR_SHOP_EVENT at :970)"
+rule = "A Buy sets prevRequest=IR_SHOP_EVENT (10) for the vendor, increments busy and waits. Inventory moves are refused until the vendor reply."
+server_expectation = "UseDone (success 0, or an error code) and InventoryServerSaveFailed for failures. ACE sends UseDone even when validation fails (Player_Commerce.cs:22-51)."
+bace_status = "unmet"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/vendors.rs:492-496 (non-Use vendor actions return Unsupported)"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Commerce.cs:22-51 (HandleActionBuyItem)"
+priority = "high"
+notes = "Buy is decoded but closed. The client locks busy and inventory until relog. Success output exists only for the default-buy path (vendors/buy/output.rs:163,382)."
+
+[[client_rule]]
+system = "vendor"
+client_file = "gmVendorUI.cpp"
+client_function = "gmVendorUI::SellSingleItem (gmVendorUI.cpp:981-1050; busy at :1044) and the sell list path (:2247-2250)"
+rule = "Sell increments busy and records IR_SHOP_EVENT, the same as Buy."
+server_expectation = "UseDone for every Sell (even failures) plus InventoryServerSaveFailed when nothing sold. ACE Player_Commerce.cs:126-225 sends both."
+bace_status = "unmet"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/vendors.rs:492-496"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Commerce.cs:126-225 (HandleActionSellItem)"
+priority = "high"
+notes = "Sell is closed in BACE (action-coverage 0x0060). A sell attempt leaves busy and inventory locked."
+
+[[client_rule]]
+system = "vendor"
+client_file = "gmVendorUI.cpp"
+client_function = "gmVendorUI::OpenVendor (gmVendorUI.cpp:1892-1950; RegisterObjectRangeHandler at :1944)"
+rule = "The vendor window closes locally when the player leaves range. Range comes from the vendor's own UseRadius (pwd._useRadius)."
+server_expectation = "Vendor objects carry UseRadius (PropertyFloat 54) in their description so the client closes at the authored distance."
+bace_status = "unknown"
+bace_ref = "crates/content/bace-import/src/property_names.rs:311 (UseRadius id 54 mapping only)"
+ace_ref = "Source/ACE.Entity/Enum/Properties/PropertyFloat.cs:68 (UseRadius = 54)"
+priority = "med"
+notes = "BACE reads UseRadius from DAT for region bindings (region_activation/bindings.rs:22-35) but emission to the client is not verified."
+
+[[client_rule]]
+system = "vendor"
+client_file = "gmVendorUI.cpp"
+client_function = "gmVendorUI::RecvNotice_OpenVendor / ClientUISystem::Handle_VendorInfo (ClientUISystem.cpp:1552)"
+rule = "Shop open needs the vendor profile and item list (VendorInfo, 0x0062). The client clears prevRequest on the vendor reply (gmVendorUI.cpp:1931)."
+server_expectation = "VendorInfo for every open. For ShopMode the same message type carries the item list."
+bace_status = "unknown"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Commerce.cs:22-51 (vendor shop open path; VendorInfo event file not located under Events/)"
+priority = "med"
+notes = "Not verified in this pass; the vendor UI state and ShopMode encoding need a dedicated check."
+
+# ---------------------------------------------------------------------------
+# Trade (player-to-player)
+# ---------------------------------------------------------------------------
+
+[[client_rule]]
+system = "trade"
+client_file = "ClientTradeSystem.cpp"
+client_function = "ClientTradeSystem::AttemptToOpenTradeNegotiations (ClientTradeSystem.cpp:434-459)"
+rule = "The client refuses to open a trade unless combatMode==1 (peace), printing 'You need to be in peace mode to trade.' and sending nothing."
+server_expectation = "Server re-checks peace mode and answers failures with WeenieError (ACE Player_Trade.cs:51-65). No client-side hang."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Trade.cs:30-100"
+priority = "med"
+notes = "BACE has no trade simulation or runtime owner; opcodes are decoded (inventory_input.rs:160-175) but not routed."
+
+[[client_rule]]
+system = "trade"
+client_file = "ClientTradeSystem.cpp"
+client_function = "ClientTradeSystem::Handle_Trade__Recv_RegisterTrade (ClientTradeSystem.cpp:501-537)"
+rule = "RegisterTrade sets the partner and initiator ids and opens the window. A pending drag-to-trade completes only when the partner id matches attemptTradeToPlayerID."
+server_expectation = "RegisterTrade (0x01FD) to initiator as (initiator, partner) and to partner as (partner, partner), as in ACE Player_Trade.cs:80 and :98."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Trade.cs:80, 98; GameEventRegisterTrade.cs:7-13"
+priority = "high"
+notes = "The encoder exists (inventory_output.rs:135-141) but nothing produces it."
+
+[[client_rule]]
+system = "trade"
+client_file = "ClientTradeSystem.cpp"
+client_function = "ClientTradeSystem::AddPartnerItem (ClientTradeSystem.cpp:537-580)"
+rule = "A partner AddToTrade is ignored (returns 0) unless ClientObjMaintSystem already holds that item object. The window is then never filled, though the notice still fires."
+server_expectation = "CreateObject for the partner's item before AddToTrade(side 2). ACE calls TrackObject and then the delayed event (Player_Trade.cs:170-174)."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Trade.cs:170-174"
+priority = "high"
+notes = "Ordering matters: the object must be resident first."
+
+[[client_rule]]
+system = "trade"
+client_file = "ClientTradeSystem.cpp"
+client_function = "ClientTradeSystem::Handle_Trade__Recv_AddToTrade (ClientTradeSystem.cpp:582-604)"
+rule = "AddToTrade id 1 (self) adds to the local trade; id 2 (partner) adds a partner item and resets the trade button (gmSecureTradeUI.cpp:606-637)."
+server_expectation = "AddToTrade (0x0200) side 1 to the actor and side 2 to the partner; both sides' acceptances cleared (ACE Player_Trade.cs:132-134)."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Trade.cs:116-175"
+priority = "high"
+notes = "Acceptance clearing is what makes the client's accept button leave the accepted state."
+
+[[client_rule]]
+system = "trade"
+client_file = "ClientTradeSystem.cpp / gmSecureTradeUI.cpp"
+client_function = "ClientTradeSystem::Handle_Trade__Recv_AcceptTrade (ClientTradeSystem.cpp:257-305); gmSecureTradeUI::RecvNotice_AcceptTrade (gmSecureTradeUI.cpp:460-499)"
+rule = "AcceptTrade with the actor's own guid sets self accepted; with the partner's guid sets partner accepted. The button goes to state 6 (accepted) only for the matching side."
+server_expectation = "AcceptTrade (0x0202) carrying the accepting character's guid, to both parties, followed by finalize when both accepted (ACE Player_Trade.cs:196-216)."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Trade.cs:196-216; GameActionAcceptTrade.cs:9-19"
+priority = "high"
+notes = "A wrong guid flips the wrong side's accept state."
+
+[[client_rule]]
+system = "trade"
+client_file = "gmSecureTradeUI.cpp"
+client_function = "gmSecureTradeUI::AcceptTheTrade (gmSecureTradeUI.cpp:300-332)"
+rule = "If the displayed item counts disagree with the trade system, the client sends an empty NotifyServerThatTradeIsOutOfSync (AcceptTrade) instead of a real accept and leaves the button in state 6."
+server_expectation = "Reconcile: reply with ResetTrade or the current window contents so the client clears its acceptance. Do not finalize from an out-of-sync accept."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Trade.cs:196-216 (ACE ignores the payload and would accept)"
+priority = "med"
+notes = "ACE accepts regardless of the payload. BACE must not copy that (AUTH-01; policy: follow ACE except that success needs durable commit). Flag for coordinator."
+
+[[client_rule]]
+system = "trade"
+client_file = "gmSecureTradeUI.cpp"
+client_function = "gmSecureTradeUI::RecvNotice_RegisterTrade (gmSecureTradeUI.cpp:977-1000; range 5.0 at :997)"
+rule = "The client registers a 5.0 range handler on the partner. Exiting that range closes the trade on the client (OnObjectRangeExit, :916-934) without asking the server."
+server_expectation = "Accept CloseTradeNegotiations from the client at any time, even if the server already closed the trade. Close both sides."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/Network/GameAction/Actions/GameActionCloseTradeNegotiations.cs:8-19"
+priority = "high"
+notes = "An ignored close leaves the server-side trade open against a client that has already closed it."
+
+[[client_rule]]
+system = "trade"
+client_file = "gmSecureTradeUI.cpp"
+client_function = "gmSecureTradeUI::OnVisibilityChanged (gmSecureTradeUI.cpp:894-915)"
+rule = "Hiding the trade window sends CloseTradeNegotiations and resets the UI."
+server_expectation = "Same as the range close: a CloseTradeNegotiations that is always accepted, closing the partner too."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/Network/GameAction/Actions/GameActionCloseTradeNegotiations.cs:8-19"
+priority = "high"
+notes = "Accepted only when the server has a trade. BACE has none."
+
+[[client_rule]]
+system = "trade"
+client_file = "ClientTradeSystem.cpp"
+client_function = "ClientTradeSystem::Handle_Trade__Recv_CloseTrade (ClientTradeSystem.cpp:405-433)"
+rule = "CloseTrade with any reason prints 'The trade has been cancelled.', resets all trade state and clears both partner ids. The reason value is only passed through to the notice."
+server_expectation = "CloseTrade (0x01FF) reason u32 to both sides plus WeenieError 0x0451 TradeClosed. Divergence D1 (retail 1105 vs ACE 1) stays open."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Trade.cs:102-114; Source/ACE.Entity/Enum/EndTradeReason.cs:5-6"
+priority = "med"
+notes = "Retail reason 1105 is UNVERIFIED (docs/divergences.toml id 23). Keep ACE values until captured."
+
+[[client_rule]]
+system = "trade"
+client_file = "ClientTradeSystem.cpp"
+client_function = "ClientTradeSystem::Handle_Trade__Recv_TradeFailure (ClientTradeSystem.cpp:72-79) and Handle_Trade__Recv_ResetTrade (:55-71)"
+rule = "TradeFailure removes the item from the local window. ResetTrade clears the window and calls the API hook."
+server_expectation = "TradeFailure (0x0207) with object and WeenieError (0x0426 AttunedItem for attuned or pet items; 0x0000 for unique items). ResetTrade (0x0205) after finalize and after a reset request."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Trade.cs:138-157, 177-186"
+priority = "med"
+notes = "Encoders exist (inventory_output.rs:153-156, 148)."
+
+[[client_rule]]
+system = "trade"
+client_file = "gmSecureTradeUI.cpp"
+client_function = "gmSecureTradeUI::AddMyItem / AddPartnerItem (gmSecureTradeUI.cpp:567-637) and ACCWeenieObject::SetTradeState"
+rule = "A traded item gets tradeState=1 on the client. Moving that item (ItemHolder::AttemptToPlaceInContainer, ItemHolder.cpp:923-960) and placing it into a traded container is refused locally."
+server_expectation = "Server locks window items against sell, use, drop, craft and house moves until the trade resolves (ACE IsBeingTradedOrContainsItemBeingTraded: Player_Commerce.cs:31,282; Player_Inventory.cs:860)."
+bace_status = "unmet"
+bace_ref = "crates/gameplay/bace-inventory/src/actions.rs:241 (TradeReserved error exists; no trade lock)"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Inventory.cs:860, 1402; Player_Use.cs:122,188"
+priority = "med"
+notes = "The reserved-item error is ready in the inventory owner but nothing sets the reservation."
+
+[[client_rule]]
+system = "trade"
+client_file = "gmSecureTradeUI.cpp"
+client_function = "gmSecureTradeUI::DragItemAcceptable (gmSecureTradeUI.cpp:1026-1064)"
+rule = "The client accepts only items it owns and not already in the window. Contents-only checks are local, and the message 'You can only trade items you are carrying' is shown."
+server_expectation = "Validate ownership server-side (ACE Player_Trade.cs:132-141 with GetInventoryItem, main pack and side packs at Container.cs:263-275)."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Container.cs:263-275"
+priority = "med"
+notes = "Server-side ownership check is part of the trade owner design (trade-design.toml S2)."
+
+# ---------------------------------------------------------------------------
+# Combat
+# ---------------------------------------------------------------------------
+
+[[client_rule]]
+system = "combat"
+client_file = "ClientCombatSystem.cpp"
+client_function = "ClientCombatSystem::HandleCommenceAttackEvent (ClientCombatSystem.cpp:564-601)"
+rule = "CommenceAttack (0x01B8) sets attackInProgress and attackServerResponsePending and increments busy. The power bar is then driven locally."
+server_expectation = "CombatCommenceAttack (0x01B8) at the start of each accepted melee or missile attack (ACE Player_Melee.cs:289, Player_Missile.cs:199)."
+bace_status = "met"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/combat/output.rs:197-200 (CombatEvent emitters); crates/network/bace-wire/src/combat_output.rs:19,44"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Melee.cs:289; Player_Missile.cs:199; GameEventType.cs:41"
+priority = "med"
+notes = "CommenceAttack encoder and physical-combat CommenceAttack event exist (simulation/combat/physical.rs:46)."
+
+[[client_rule]]
+system = "combat"
+client_file = "ClientCombatSystem.cpp"
+client_function = "ClientCombatSystem::HandleAttackDoneEvent (ClientCombatSystem.cpp:1863-1936)"
+rule = "AttackDone decrements busy, clears attackServerResponsePending and resets the power bar. Without it the power bar and busy cursor stay up. The client does not show the error text."
+server_expectation = "Exactly one AttackDone per attack request, including refused attacks (ACE OnAttackDone, Player_Melee.cs:215-230)."
+bace_status = "met"
+bace_ref = "crates/network/bace-replication/src/combat_actions.rs:38 (AttackDone with error); crates/application/bace-runtime/src/game_runtime/combat/output.rs:98,200"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Melee.cs:215-230"
+priority = "high"
+notes = "combat_actions.rs:64 deliberately avoids a second AttackDone when lifecycle already sent one. Verify no double send under cancellation."
+
+[[client_rule]]
+system = "combat"
+client_file = "ClientCombatSystem.cpp"
+client_function = "ClientCombatSystem::ExecuteAttack (ClientCombatSystem.cpp:1292-1356)"
+rule = "The client sends TargetedMelee or TargetedMissile only when the target is attackable and in ready position. Otherwise it prints 'You must select a valid combat target' and sends nothing."
+server_expectation = "Server must still answer any attack request it receives with AttackDone. A client-refused attack expects no server reply."
+bace_status = "met"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/combat/output.rs:98"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Melee.cs:289"
+priority = "low"
+notes = "Client refusals are local, so no server obligation."
+
+# ---------------------------------------------------------------------------
+# Magic
+# ---------------------------------------------------------------------------
+
+[[client_rule]]
+system = "magic"
+client_file = "ClientMagicSystem.cpp"
+client_function = "ClientMagicSystem::CastSpell (ClientMagicSystem.cpp:844-955) with AreSpellComponentsRequired and ComponentTracker::ComponentIsOwned"
+rule = "Before a cast the client checks component ownership locally ('You do not have all of this spell's components') and only then sends the cast."
+server_expectation = "Server re-checks components and mana, answering failures with UseDone plus the WeenieError (ACE Player_Magic.cs:92-298)."
+bace_status = "met"
+bace_ref = "crates/simulation/bace-simulation/src/kernel/magic_components.rs; crates/network/bace-replication/src/cast_output.rs:65 (UseDone code)"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Magic.cs:92-298"
+priority = "med"
+notes = "Component validation is server-side in magic_components.rs; the cast outcome always produces UseDone."
+
+[[client_rule]]
+system = "magic"
+client_file = "ClientMagicSystem.cpp"
+client_function = "ClientMagicSystem::FreeHandsAndCastSpell (ClientMagicSystem.cpp:82-95)"
+rule = "Each cast (targeted or untargeted) increments busy. Only the matching UseDone releases it."
+server_expectation = "UseDone for every cast request, including target-not-acquired and busy refusals (ACE Player_Magic.cs:101-139)."
+bace_status = "met"
+bace_ref = "crates/network/bace-replication/src/cast_output.rs:65"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Magic.cs:101-139"
+priority = "high"
+notes = "Covered for the BACE magic path. Any cast request that falls to an ignored ingress path would hang, so keep the unsupported-action guard."
+
+# ---------------------------------------------------------------------------
+# Confirmation dialogs
+# ---------------------------------------------------------------------------
+
+[[client_rule]]
+system = "confirmation"
+client_file = "ClientUISystem.cpp"
+client_function = "ClientUISystem::Handle_Character__ConfirmationRequest (ClientUISystem.cpp:111-151)"
+rule = "A server ConfirmationRequest (0x0274) carries type 1-7 and a context token. The client answers ConfirmationResponse with the same type and token."
+server_expectation = "Echo the exact token and type. Types 1 (allegiance), 4 (fellowship), 2/3/6 (skill and attribute devices), 5 (craft) must each reach their owner."
+bace_status = "met"
+bace_ref = "crates/network/bace-wire/src/group_input.rs:134; crates/network/bace-session/src/social_actions.rs:150-156; crates/network/bace-session/src/crafting.rs:21-35; crates/network/bace-session/src/skill_devices.rs:53-66"
+ace_ref = "Source/ACE.Server/WorldObjects/Managers/ConfirmationManager.cs (HandleResponse); Source/ACE.Entity/Enum/ConfirmationType.cs:3-13"
+priority = "med"
+notes = "Fix landed: non-1/4 group confirmations return Unsupported, not InvalidTarget (session 0275 test). Craft owner was corrected by coordinator."
+
+[[client_rule]]
+system = "confirmation"
+client_file = "gmGamePlayUI.cpp"
+client_function = "gmGamePlayUI::CloseGameplayConfirmationDialog (gmGamePlayUI.cpp:195-206)"
+rule = "A Yes/No (type 7) dialog sends ConfirmationResponse(7, server context, bool). The client clears its context when the dialog closes."
+server_expectation = "Accept type 7 responses for every YesNo request the server issued. An unowned type 7 must not fail the session."
+bace_status = "unmet"
+bace_ref = "crates/network/bace-session/src/social_actions.rs:150-156 (type 7 falls to Unsupported; no producer of YesNo requests found)"
+ace_ref = "Source/ACE.Server/WorldObjects/Managers/ConfirmationManager.cs; Source/ACE.Entity/Enum/ConfirmationType.cs:12 (Yes_No = 7)"
+priority = "med"
+notes = "Unowned YesNo answers are ignored, not failed, which is correct. Any server flow waiting on YesNo would hang without an owner."
+
+[[client_rule]]
+system = "confirmation"
+client_file = "ClientUISystem.cpp"
+client_function = "ClientUISystem::Handle_Character__ConfirmationDone (ClientUISystem.cpp:153-156)"
+rule = "Closing a confirmation dialog without choosing sends AbortConfirmationRequest for that token."
+server_expectation = "Treat an abort as cancel of that token: no commit, no error text. The pending server operation must be released."
+bace_status = "unknown"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Managers/ConfirmationManager.cs (cancel path)"
+priority = "med"
+notes = "The abort path is not evidenced in BACE crates. Verify before any craft or device confirmation is shipped."
+
+[[client_rule]]
+system = "confirmation"
+client_file = "gmFellowshipUI.cpp"
+client_function = "gmFellowshipUI invite confirm (gmFellowshipUI.cpp:880-905, ConfirmationResponse(4) at :900)"
+rule = "A fellowship invite is answered with ConfirmationResponse(4, token, accepted) using the token from the server request."
+server_expectation = "Fellowship invite request with token; accept/decline routed to the fellowship owner (social_actions.rs:138-143)."
+bace_status = "met"
+bace_ref = "crates/network/bace-session/src/social_actions.rs:138-143 (kind 4 to FellowshipRequest::Confirm)"
+ace_ref = "Source/ACE.Server/Network/GameAction/Actions/GameActionFellowshipRecruit.cs; Source/ACE.Entity/Enum/ConfirmationType.cs:9 (Fellowship = 4)"
+priority = "med"
+notes = "Routed. The fellowship owner's confirm outcome is a separate check."
+
+[[client_rule]]
+system = "confirmation"
+client_file = "gmAllegianceUI.cpp"
+client_function = "gmAllegianceUI::CloseAcceptSwearConfirmationDialog (gmAllegianceUI.cpp:205)"
+rule = "Swear-allegiance confirm answers ConfirmationResponse(1, context, bool)."
+server_expectation = "SwearAllegiance confirm token routed to the allegiance owner (social_actions.rs:143-149 kind 1)."
+bace_status = "met"
+bace_ref = "crates/network/bace-session/src/social_actions.rs:143-149"
+ace_ref = "Source/ACE.Server/Network/GameAction/Actions/GameActionConfirmationResponse.cs:9-19; Source/ACE.Entity/Enum/ConfirmationType.cs:4"
+priority = "med"
+notes = "Routed. Allegiance owner outcome is out of scope here."
+
+# ---------------------------------------------------------------------------
+# Books
+# ---------------------------------------------------------------------------
+
+[[client_rule]]
+system = "book"
+client_file = "gmBookUI.cpp"
+client_function = "gmBookUI::SetCurPage (gmBookUI.cpp:686-790; requestPending set at :771)"
+rule = "Turning to an unloaded page sends BookPageData (or BookAddPage) and sets requestPending. Page navigation is refused while requestPending is set."
+server_expectation = "BookPageDataResponse (or BookAddPageResponse) for the same book id and page. Without it the reader is stuck until closed."
+bace_status = "unmet"
+bace_ref = "crates/network/bace-wire/src/opcode_action.rs:64-68 (book opcodes enum only; no decoder or emitter)"
+ace_ref = "Source/ACE.Server/Network/GameAction/Actions/GameActionBookPageData.cs; GameActionBookAddPage.cs"
+priority = "high"
+notes = "Books are missing entirely (action-coverage rows 0x00AA-0x00AE)."
+
+[[client_rule]]
+system = "book"
+client_file = "gmBookUI.cpp"
+client_function = "gmBookUI::OpenBook (gmBookUI.cpp:1006-1114) and RecvNotice_OpenBook (:1121)"
+rule = "The reader opens only on a server OpenBook with the page list (max pages and loaded pages). It registers a range handler at the book's UseRadius (:1109)."
+server_expectation = "OpenBook (book id, max pages, page list) after the BookData request, and UseRadius on the book object."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Book.cs:67 (ActOnUse)"
+priority = "high"
+notes = "No book owner exists."
+
+[[client_rule]]
+system = "book"
+client_file = "gmBookUI.cpp"
+client_function = "gmBookUI::OnObjectRangeExit (gmBookUI.cpp:106) and CloseBook (:665)"
+rule = "Leaving range closes the book on the client without any server message."
+server_expectation = "Accept a later book request for a closed book without error; no ack needed for close."
+bace_status = "unmet"
+bace_ref = ""
+ace_ref = "Source/ACE.Server/WorldObjects/Book.cs:67"
+priority = "low"
+notes = "Depends on the book owner (above)."
+
+# ---------------------------------------------------------------------------
+# Inventory placement and container windows
+# ---------------------------------------------------------------------------
+
+[[client_rule]]
+system = "inventory"
+client_file = "CPlayerSystem.cpp"
+client_function = "CPlayerSystem::PlaceInBackpack (CPlayerSystem.cpp:342-360)"
+rule = "Placing an item shows it as pending in the player (CM_Item::SendNotice_ShowPendingInPlayer). It is cleared only on local failure or by the server's MoveItem for that object."
+server_expectation = "MoveItem for the placed item (accepted), or InventoryServerSaveFailed for the same object (refused). Never silence."
+bace_status = "met"
+bace_ref = "crates/network/bace-wire/src/inventory_output.rs:77 (SaveFailed); crates/application/bace-runtime/src/game_runtime/inventory/output.rs"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Inventory.cs:212-217 (TryRemoveFromInventoryWithNetworking shape)"
+priority = "high"
+notes = "Same obligation as the prevRequest lock row. Met for the allowlisted inventory opcodes."
+
+[[client_rule]]
+system = "inventory"
+client_file = "ItemHolder.cpp"
+client_function = "ItemHolder::WillItemFitInContainer (ItemHolder.cpp:713-760)"
+rule = "Fit checks use pwd._containersCapacity and _itemsCapacity (property ids 6 and 7, -1 = unlimited) plus CheckHookStatus and tradeState."
+server_expectation = "Container descriptions carry ItemsCapacity (6) and ContainersCapacity (7) for every container the client can place into (ACE PropertyInt.cs:20,22)."
+bace_status = "met"
+bace_ref = "crates/application/bace-runtime/src/player_entry/object.rs:148,152 (player-owned containers); crates/content/bace-import/src/integer_property_names.rs:11-12 (ids 6, 7)"
+ace_ref = "Source/ACE.Server/Entity/Enum/Properties/PropertyInt.cs:20,22"
+priority = "med"
+notes = "Verified for player-owned containers only. Ground and side containers are unverified."
+
+[[client_rule]]
+system = "inventory"
+client_file = "ItemHolder.cpp"
+client_function = "ItemHolder::AttemptToPlaceInContainer (ItemHolder.cpp:923-960)"
+rule = "Placement is refused while IsPlayerReadyToMakeInventoryRequest is false (prevRequest set) and when the target container is in a trade window (tradeState==1)."
+server_expectation = "The server never leaves a request pending: every placement gets MoveItem or SaveFailed for that object id."
+bace_status = "met"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/inventory.rs:192-200 (allowlisted); crates/network/bace-wire/src/inventory_output.rs:77"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Inventory.cs:860,1402"
+priority = "high"
+notes = "Requests refused by the cascade (e.g. blocked inventory) must still answer. Check the blocked-ingress path."
+
+[[client_rule]]
+system = "inventory"
+client_file = "UIQueueManager.cpp / ClientUISystem.cpp"
+client_function = "UIQueueManager 0x0052 case (UIQueueManager.cpp:1208) and ClientUISystem.cpp:1290-1305 (ViewContents matching requestedGroundObject)"
+rule = "CloseGroundContainer (0x0052) and ViewContents for the requested ground object clear requestedGroundObject and the request lock. A ground container that never gets ViewContents stays requested."
+server_expectation = "ViewContents for the ground container and CloseGroundContainer when it goes away or the player leaves range."
+bace_status = "met"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/deaths/access/output.rs:200 (CloseContainer); crates/network/bace-wire/src/inventory_output.rs:26 (ViewContents variant)"
+ace_ref = "Source/ACE.Server/Network/GameEvent/GameEventType.cs:14 (CloseGroundContainer 0x0052), :31 (ViewContents 0x0196)"
+priority = "med"
+notes = "Met for corpses. Ground containers are not produced (see the container Use row)."
+
+[[client_rule]]
+system = "inventory"
+client_file = "gmSecureTradeUI.cpp / ItemHolder.cpp"
+client_function = "NoLongerViewingContents on container close (client sends 0x0195)"
+rule = "The client sends NoLongerViewingContents when a container window closes. No ack is expected."
+server_expectation = "Accept and drop the view state; no reply is required."
+bace_status = "unmet"
+bace_ref = "crates/network/bace-session/src/inventory.rs:23-34 (0x0195 decoded but not allowlisted; inventory_input.rs:176)"
+ace_ref = "Source/ACE.Server/Network/GameAction/Actions/GameActionNoLongerViewingContents.cs"
+priority = "low"
+notes = "Ignoring it is safe for the client, but the server keeps a stale viewer."
+
+# ---------------------------------------------------------------------------
+# Teleport, fellowship and allegiance panels
+# ---------------------------------------------------------------------------
+
+[[client_rule]]
+system = "teleport"
+client_file = "gmSmartBoxUI.cpp / CPlayerSystem.cpp"
+client_function = "gmSmartBoxUI teleport state (gmSmartBoxUI.cpp:805-830, :960-975); CPlayerSystem::SetTeleportInProgress (CPlayerSystem.cpp:169-189)"
+rule = "A teleport or logoff increments busy until the teleport animation ends, then the client sends LoginComplete (SendLoginCompleteNotification) and decrements busy."
+server_expectation = "Complete the teleport handshake: the server must accept LoginComplete after the teleport and must not leave the player in a no-ack state. Logoff completion must follow the same path."
+bace_status = "unknown"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/portals/controls.rs:209-240 (LoginComplete for portal adoption only)"
+ace_ref = "Source/ACE.Server/WorldObjects/Player.cs:536-541 (logout closes partner trade)"
+priority = "high"
+notes = "The end of a teleport depends on the client's own animation and LoginComplete. The server side of this handshake for recalls is not verified."
+
+[[client_rule]]
+system = "fellowship"
+client_file = "ClientFellowshipSystem.cpp"
+client_function = "ClientFellowshipSystem::Handle_Fellowship__FullUpdate (ClientFellowshipSystem.cpp:201-293) and Handle_Fellowship__UpdateFellow (:62-83)"
+rule = "The fellowship panel rebuilds from a full update and updates single fellows. Leader and membership checks depend on those lists."
+server_expectation = "FellowshipFullUpdate on create/join and FellowshipUpdateFellow on each change, with the leader id."
+bace_status = "unknown"
+bace_ref = "crates/network/bace-wire/src/group_output.rs (fellowship outputs; not traced to emitters in this pass)"
+ace_ref = "Source/ACE.Server/Entity/Fellowship.cs (BroadcastFellowshipUpdate paths)"
+priority = "med"
+notes = "Needs a dedicated emitter trace."
+
+[[client_rule]]
+system = "fellowship"
+client_file = "ClientFellowshipSystem.cpp"
+client_function = "ClientFellowshipSystem::Handle_Fellowship__Quit / Dismiss / Disband (ClientFellowshipSystem.cpp:495-560)"
+rule = "Quit, dismiss and disband events remove the fellows locally and refresh the panel."
+server_expectation = "The matching fellowship event (quit, dismiss, disband) to each affected member, in the same tick as the change."
+bace_status = "unknown"
+bace_ref = "crates/network/bace-wire/src/group_output.rs"
+ace_ref = "Source/ACE.Server/Entity/Fellowship.cs"
+priority = "low"
+notes = "Not traced."
+
+[[client_rule]]
+system = "allegiance"
+client_file = "gmAllegianceUI.cpp"
+client_function = "gmAllegianceUI::RecvNotice_PlayerDescReceived (gmAllegianceUI.cpp:340-356) and gmAllegianceUI::Update (gmAllegianceUI.cpp:1478-1484)"
+rule = "The allegiance panel increments busy and sends AllegianceUpdateRequest. It decrements busy on its next Update, so it does not hang even without a reply."
+server_expectation = "AllegianceUpdate plus AllegianceAllegianceUpdateDone for every request, as ACE does (GameActionAllegianceUpdateRequest.cs:9-18). Missing replies leave the panel stale, not hung."
+bace_status = "unknown"
+bace_ref = "crates/network/bace-wire/src/group_output.rs:105 (AllegianceDone encoder); no runtime emitter found in this pass"
+ace_ref = "Source/ACE.Server/Network/GameAction/Actions/GameActionAllegianceUpdateRequest.cs:9-18"
+priority = "med"
+notes = "Encoder exists. Runtime emission unverified."
+
+[[client_rule]]
+system = "combat"
+client_file = "ClientCombatSystem.cpp"
+client_function = "ClientCombatSystem::ExecuteAttack powerbar path (ClientCombatSystem.cpp:1292-1356) with AutoRepeatAttack"
+rule = "Auto-repeat re-sends the attack after each AttackDone while the power bar is still set. A missing AttackDone stops the repeat loop."
+server_expectation = "AttackDone for each repeat attack, not once per burst (ACE OnAttackDone is called per attack sequence, Player_Melee.cs:217-218)."
+bace_status = "unknown"
+bace_ref = "crates/application/bace-runtime/src/game_runtime/combat/output.rs:98"
+ace_ref = "Source/ACE.Server/WorldObjects/Player_Melee.cs:215-230"
+priority = "med"
+notes = "Repeat cadence not verified against the BACE combat driver."

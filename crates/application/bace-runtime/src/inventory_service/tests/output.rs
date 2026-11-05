@@ -258,7 +258,7 @@ fn durable_bag_snapshot_children_publish_after_placement_and_view() {
     )
     .unwrap()
     .unwrap();
-    assert_eq!(batch.messages.len(), 4);
+    assert_eq!(batch.messages.len(), 5);
     assert_eq!(
         u32::from_le_bytes(batch.messages[0].bytes[0..4].try_into().unwrap()),
         0xf745
@@ -269,14 +269,153 @@ fn durable_bag_snapshot_children_publish_after_placement_and_view() {
     );
     let event =
         |index: usize| u32::from_le_bytes(batch.messages[index].bytes[12..16].try_into().unwrap());
-    assert_eq!(event(1), 0x22);
-    assert_eq!(event(2), 0x196);
     assert_eq!(
-        u32::from_le_bytes(batch.messages[3].bytes[0..4].try_into().unwrap()),
+        u32::from_le_bytes(batch.messages[1].bytes[0..4].try_into().unwrap()),
+        0x02da
+    );
+    assert_eq!(
+        u32::from_le_bytes(batch.messages[1].bytes[5..9].try_into().unwrap()),
+        SOURCE.0
+    );
+    assert_eq!(
+        u32::from_le_bytes(batch.messages[1].bytes[9..13].try_into().unwrap()),
+        2
+    );
+    assert_eq!(
+        u32::from_le_bytes(batch.messages[1].bytes[13..17].try_into().unwrap()),
+        completion.work.binding.actor.0
+    );
+    assert_eq!(event(2), 0x22);
+    assert_eq!(event(3), 0x196);
+    assert_eq!(
+        u32::from_le_bytes(batch.messages[4].bytes[0..4].try_into().unwrap()),
         0xf745
     );
     assert_eq!(
-        u32::from_le_bytes(batch.messages[3].bytes[4..8].try_into().unwrap()),
+        u32::from_le_bytes(batch.messages[4].bytes[4..8].try_into().unwrap()),
         FRESH.0
+    );
+}
+
+#[test]
+fn carried_move_updates_container_property_before_containment_event() {
+    // ACE Player_Inventory.DoHandleActionPutItemInContainer sends
+    // PublicUpdateInstanceID(Container) immediately before
+    // ItemServerSaysContainId for a carried bag-to-pack move.
+    let (_, _, mut work) = fixture();
+    let mut after = work
+        .operation
+        .ticket
+        .proposal
+        .changes
+        .iter()
+        .find(|change| change.after.id == SOURCE)
+        .unwrap()
+        .after
+        .clone();
+    let mut before = after.clone();
+    before.revision = 1;
+    before.place = bace_inventory::ItemPlace::Contained {
+        container: TARGET,
+        slot: 0,
+        equipped: 0,
+    };
+    after.revision = 2;
+    after.place = bace_inventory::ItemPlace::Contained {
+        container: work.binding.actor,
+        slot: 0,
+        equipped: 0,
+    };
+    work.operation.request = bace_gameplay_api::InventoryRequest::Move {
+        item: SOURCE,
+        container: work.binding.actor,
+        placement: 0,
+    };
+    work.operation.ticket.proposal.changes = vec![bace_inventory::ItemChange {
+        before: Some(before),
+        after,
+    }];
+    let mut saved = bace_storage_codec::ItemSaveV5::migrate_v4(
+        bace_storage_codec::ItemSaveV4::migrate_v2(bace_storage_codec::ItemSaveV2 {
+            entity: bace_storage_codec::EntitySaveV1 {
+                object_id: SOURCE.0,
+                template_revision: 1,
+                mutation_revision: 2,
+                state: bace_content::WeenieV1 {
+                    schema_version: 1,
+                    weenie_id: 10,
+                    class_name: "carried_move".into(),
+                    weenie_type: 51,
+                    last_modified: None,
+                    properties: Default::default(),
+                },
+            },
+            placement: bace_storage_codec::ItemPlacementV2::Contained {
+                container: work.binding.actor.0,
+                slot: 0,
+                pack_slot: false,
+                equipped: 0,
+            },
+        })
+        .unwrap(),
+    )
+    .unwrap();
+    saved
+        .entity
+        .state
+        .properties
+        .ints
+        .push(bace_content::Property { id: 11, value: 1 });
+    let completion = InventoryCompletion {
+        work,
+        committed: true,
+        snapshots: vec![SaveSnapshot {
+            object_id: SOURCE.0,
+            mutation_revision: 2,
+            expected_version: 1,
+            bytes: saved.encode().unwrap(),
+        }],
+    };
+    let mut events = EventSequencer::new(completion.work.binding, 1);
+    let mut counters = BTreeMap::from([(SOURCE, Sequences::new(16).unwrap())]);
+    let batch = project_inventory_completion(
+        &completion,
+        &mut events,
+        &mut counters,
+        &BTreeMap::new(),
+        ObjectCodecLimits {
+            max_message_bytes: 4096,
+            max_model_entries: 255,
+            max_children: 128,
+            max_restrictions: 1024,
+            max_motion_commands: 32,
+            max_string_bytes: 1024,
+        },
+        BatchLimits {
+            max_messages: 16,
+            max_bytes: 16384,
+            max_message_bytes: 4096,
+            max_string_bytes: 1024,
+        },
+    )
+    .unwrap()
+    .unwrap();
+    assert_eq!(batch.messages.len(), 2);
+    let update = &batch.messages[0].bytes;
+    assert_eq!(u32::from_le_bytes(update[0..4].try_into().unwrap()), 0x02da);
+    assert_eq!(
+        u32::from_le_bytes(update[5..9].try_into().unwrap()),
+        SOURCE.0
+    );
+    assert_eq!(u32::from_le_bytes(update[9..13].try_into().unwrap()), 2);
+    assert_eq!(
+        u32::from_le_bytes(update[13..17].try_into().unwrap()),
+        completion.work.binding.actor.0
+    );
+    let event = &batch.messages[1].bytes;
+    assert_eq!(u32::from_le_bytes(event[12..16].try_into().unwrap()), 0x22);
+    assert_eq!(
+        u32::from_le_bytes(event[16..20].try_into().unwrap()),
+        SOURCE.0
     );
 }

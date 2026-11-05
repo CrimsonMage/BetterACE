@@ -393,6 +393,42 @@ impl Combat {
         }
         let actor = EntityId(p.actor);
         let target = EntityId(p.target);
+        let held_burden = state
+            .profile
+            .main
+            .as_ref()
+            .or(state.profile.launcher.as_ref())
+            .map_or(0, |w| w.encumbrance)
+            .checked_add(state.profile.offhand.as_ref().map_or(0, |w| w.encumbrance))
+            .ok_or(CombatRejection::InvalidRequest)?;
+        let stamina_cost =
+            bace_combat::physical::attack_stamina(bace_combat::physical::AttackStaminaInput {
+                kind: PhysicalKind::Missile,
+                player: state.profile.player,
+                base_endurance: state.profile.base_endurance,
+                weapon_burden: held_burden,
+                shield_burden: state.profile.shield_encumbrance,
+                shield_placement: state.profile.shield_placement,
+                power: state.power,
+                roll: 0.0,
+            })
+            .map_err(|_| CombatRejection::InvalidRequest)?;
+        // ACE Creature_Missile never debits monster attack stamina. Native NPCs
+        // can have no Stamina vital, so only a nonzero player debit needs one.
+        let stamina_before = if stamina_cost == 0 {
+            None
+        } else {
+            if world.vital_reserved(actor, bace_entity::EntityVital::Stamina) {
+                return Err(CombatRejection::Busy);
+            }
+            Some(
+                world
+                    .combatant(actor)
+                    .and_then(|c| c.vital(bace_entity::EntityVital::Stamina))
+                    .ok_or(CombatRejection::MissingCombatProfile)?
+                    .current,
+            )
+        };
         if self.physical_sources.contains_key(&actor) && i32::try_from(receipt.remaining).is_err() {
             return Err(CombatRejection::InvalidRequest);
         }
@@ -471,6 +507,20 @@ impl Combat {
         let profile = Arc::new(profile);
         self.physical.insert(actor, profile.clone());
         self.adopt_physical_ammunition_source(actor, receipt, profile);
+        if stamina_cost != 0 {
+            world
+                .combatant_mut(actor)
+                .expect("preflight actor")
+                .apply_vital(
+                    bace_entity::EntityVital::Stamina,
+                    stamina_before.expect("preflight stamina"),
+                    stamina_before
+                        .expect("preflight stamina")
+                        .saturating_sub(stamina_cost),
+                    None,
+                )
+                .expect("preflight stamina");
+        }
         if auto_peace {
             let state = world.combatant_mut(actor).expect("preflight actor");
             state.set_mode(1);
@@ -699,6 +749,10 @@ impl Combat {
                         && vital.can_record_damage(EntityId(state.proposal.credited_owner))
                         && vital.revision() != u64::MAX
                     {
+                        let stamina = vital
+                            .vital(bace_entity::EntityVital::Stamina)
+                            .map_or(0, |v| v.current);
+                        let defender_in_combat = vital.mode() != 1;
                         let input = PhysicalDamageInput {
                             attacker: &state.profile,
                             pk_override: Some((
@@ -725,10 +779,8 @@ impl Combat {
                             target_angle_degrees: f64::from(
                                 accepted_angle(world, actor, target).unwrap_or(0.0),
                             ),
-                            defender_stamina: vital
-                                .vital(bace_entity::EntityVital::Stamina)
-                                .map_or(0, |v| v.current),
-                            defender_in_combat: vital.mode() != 1,
+                            defender_stamina: stamina,
+                            defender_in_combat,
                             rolls,
                         };
                         let key = bace_gameplay_api::physical_procs::PhysicalHitKey {
@@ -793,6 +845,19 @@ impl Combat {
                                 }
                             }
                         };
+                        let defense_cost = bace_combat::physical::defense_stamina(
+                            defender.player,
+                            defender_in_combat,
+                            impact.evaded,
+                            defender
+                                .skills
+                                .iter()
+                                .find(|s| s.0 == 7)
+                                .map_or(0, |s| s.1.advancement),
+                            defender.base_endurance,
+                            rolls.defender_stamina,
+                        )
+                        .unwrap_or(1);
                         if !self.physical_procs_enabled && !impact.evaded {
                             crate::pk_activity::record_pair(world, actor, target, now);
                         }
@@ -803,6 +868,18 @@ impl Combat {
                                 impact.damage,
                             )
                             .expect("preflight");
+                        if defense_cost != 0 {
+                            world
+                                .combatant_mut(target)
+                                .expect("preflight defender")
+                                .apply_vital(
+                                    bace_entity::EntityVital::Stamina,
+                                    stamina,
+                                    stamina.saturating_sub(defense_cost),
+                                    None,
+                                )
+                                .expect("preflight defender stamina");
+                        }
                         let vital = world.combatant(target).expect("accepted damage");
                         if !self.physical_procs_enabled && impact.dirty_count > 0 {
                             self.dirty.push_back(DirtyFightingImpact {

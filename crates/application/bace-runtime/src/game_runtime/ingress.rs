@@ -18,6 +18,33 @@ impl GameRuntime {
             let Ok(event) = self.network.events().try_recv() else {
                 break;
             };
+            if let NetworkEvent::Message { key, message } = &event
+                && let Ok(action) =
+                    bace_wire::GameActionEnvelope::decode(&message.bytes, self.limits.message_bytes)
+                && matches!(
+                    action.action,
+                    bace_wire::opcode::GameActionType::Use
+                        | bace_wire::opcode::GameActionType::GetAndWieldItem
+                        | bace_wire::opcode::GameActionType::IdentifyObject
+                        | bace_wire::opcode::GameActionType::QueryHealth
+                        | bace_wire::opcode::GameActionType::QueryItemMana
+                )
+            {
+                self.diagnostic(
+                    "info",
+                    "game.action_received",
+                    &format!(
+                        "session {} generation {}: queue {}, message sequence {}, action {:#06x}, staff phase {:?}, inventory pending {}",
+                        key.id,
+                        key.generation,
+                        message.queue,
+                        message.sequence,
+                        action.action.0,
+                        self.staff_pending_phase(*key),
+                        self.inventory_ingress_blocked(*key),
+                    ),
+                );
+            }
             let size = event_bytes(&event);
             self.input_bytes = self
                 .input_bytes
@@ -253,11 +280,54 @@ impl GameRuntime {
                         return Err(NetworkEvent::Message { key, message });
                     }
                 }
+                match self.handle_ping_message(key, &message) {
+                    Ok(ping::PingIngress::Accepted | ping::PingIngress::Dropped) => {
+                        return Ok(());
+                    }
+                    Ok(ping::PingIngress::Blocked) => {
+                        return Err(NetworkEvent::Message { key, message });
+                    }
+                    Ok(ping::PingIngress::Unsupported) => {}
+                    Err(error) => {
+                        if let Some(session) = self.sessions.get_mut(&key) {
+                            session.failure = Some(error);
+                        }
+                        return Err(NetworkEvent::Message { key, message });
+                    }
+                }
                 let Some(session) = self.sessions.get(&key) else {
                     return Err(NetworkEvent::Message { key, message });
                 };
                 if session.terminated || self.draining {
                     return Ok(());
+                }
+                // ACE accepts GameAction only after the selected character has
+                // reached WorldConnected. A retail client can send one while our
+                // asynchronous load is still running. Retain its reliable input
+                // until the entered receipt, then route it through the ordinary
+                // action owners with the original sequence and bounds intact.
+                if self.entry_pending.contains(&key)
+                    && session.failure.is_none()
+                    && bace_wire::GameActionEnvelope::decode(
+                        &message.bytes,
+                        self.limits.message_bytes,
+                    )
+                    .is_ok()
+                {
+                    if self.deferred_entry_actions.insert(key) {
+                        let action = u32::from_le_bytes(
+                            message.bytes[8..12].try_into().expect("decoded action"),
+                        );
+                        self.diagnostic(
+                            "info",
+                            "game.entry_action_deferred",
+                            &format!(
+                                "session {} generation {}: action {action:#010x} waiting for world entry",
+                                key.id, key.generation
+                            ),
+                        );
+                    }
+                    return Err(NetworkEvent::Message { key, message });
                 }
                 match self.handle_movement_message(key, &message) {
                     Ok(movement::MovementIngress::Accepted) => return Ok(()),
@@ -402,7 +472,35 @@ impl GameRuntime {
                         return Err(NetworkEvent::Message { key, message });
                     }
                 }
+                match self.handle_door_message(key, &message) {
+                    Ok(doors::DoorIngress::Accepted) => return Ok(()),
+                    Ok(doors::DoorIngress::Blocked) => {
+                        return Err(NetworkEvent::Message { key, message });
+                    }
+                    Ok(doors::DoorIngress::Unsupported) => {}
+                    Err(error) => {
+                        self.sessions
+                            .get_mut(&key)
+                            .expect("retained session")
+                            .failure = Some(error);
+                        return Err(NetworkEvent::Message { key, message });
+                    }
+                }
                 match self.handle_npc_message(key, &message) {
+                    Ok(inventory::InventoryIngress::Accepted) => return Ok(()),
+                    Ok(inventory::InventoryIngress::Blocked) => {
+                        return Err(NetworkEvent::Message { key, message });
+                    }
+                    Ok(inventory::InventoryIngress::Unsupported) => {}
+                    Err(error) => {
+                        self.sessions
+                            .get_mut(&key)
+                            .expect("retained session")
+                            .failure = Some(error);
+                        return Err(NetworkEvent::Message { key, message });
+                    }
+                }
+                match self.handle_appraisal_message(key, &message) {
                     Ok(inventory::InventoryIngress::Accepted) => return Ok(()),
                     Ok(inventory::InventoryIngress::Blocked) => {
                         return Err(NetworkEvent::Message { key, message });
@@ -451,6 +549,14 @@ impl GameRuntime {
                             queue: 9,
                             bytes,
                         });
+                        self.diagnostic(
+                            "info",
+                            "game.world_server_ready",
+                            &format!(
+                                "session {} generation {}: reply queued",
+                                key.id, key.generation
+                            ),
+                        );
                         Ok(())
                     }
                     Ok(CharacterLifecycleAction::EnterWorld {
@@ -508,9 +614,26 @@ impl GameRuntime {
                         }
                         self.login_queue
                             .push_back((key, PlayerIoAction::Load(character_id)));
+                        self.entry_pending.insert(key);
+                        self.diagnostic(
+                            "info",
+                            "game.enter_world_request",
+                            &format!(
+                                "session {} generation {}: character {character_id:#010x} accepted",
+                                key.id, key.generation
+                            ),
+                        );
                         Ok(())
                     }
                     Ok(CharacterLifecycleAction::LogOff) => {
+                        self.diagnostic(
+                            "info",
+                            "game.logoff_request",
+                            &format!(
+                                "session {} generation {}: client requested logoff",
+                                key.id, key.generation
+                            ),
+                        );
                         self.sessions.get_mut(&key).expect("session").terminated = true;
                         Ok(())
                     }
@@ -523,95 +646,205 @@ impl GameRuntime {
                             self.sessions.get_mut(&key).expect("session").failure = Some(error);
                             Err(NetworkEvent::Message { key, message })
                         }
-                        Ok(progression::ProgressionIngress::Unsupported) => match self
-                            .handle_social_message(key, &message)
-                        {
-                            Ok(social::SocialIngress::Accepted) => Ok(()),
-                            Ok(social::SocialIngress::Blocked) => {
-                                Err(NetworkEvent::Message { key, message })
-                            }
-                            Ok(social::SocialIngress::Unsupported) => {
-                                match self.handle_pet_message(key, &message) {
-                                    Ok(inventory::InventoryIngress::Accepted) => return Ok(()),
-                                    Ok(inventory::InventoryIngress::Blocked) => {
-                                        return Err(NetworkEvent::Message { key, message });
-                                    }
-                                    Ok(inventory::InventoryIngress::Unsupported) => {}
-                                    Err(error) => {
-                                        self.sessions.get_mut(&key).expect("session").failure =
-                                            Some(error);
-                                        return Err(NetworkEvent::Message { key, message });
-                                    }
+                        Ok(progression::ProgressionIngress::Unsupported) => {
+                            match self.handle_social_message(key, &message) {
+                                Ok(social::SocialIngress::Accepted) => Ok(()),
+                                Ok(social::SocialIngress::Blocked) => {
+                                    Err(NetworkEvent::Message { key, message })
                                 }
-                                match self.handle_attribute_transfer_message(key, &message) {
-                                    Ok(inventory::InventoryIngress::Accepted) => return Ok(()),
-                                    Ok(inventory::InventoryIngress::Blocked) => {
-                                        return Err(NetworkEvent::Message { key, message });
+                                Ok(social::SocialIngress::Unsupported) => {
+                                    match self.handle_pet_message(key, &message) {
+                                        Ok(inventory::InventoryIngress::Accepted) => return Ok(()),
+                                        Ok(inventory::InventoryIngress::Blocked) => {
+                                            return Err(NetworkEvent::Message { key, message });
+                                        }
+                                        Ok(inventory::InventoryIngress::Unsupported) => {}
+                                        Err(error) => {
+                                            self.sessions.get_mut(&key).expect("session").failure =
+                                                Some(error);
+                                            return Err(NetworkEvent::Message { key, message });
+                                        }
                                     }
-                                    Ok(inventory::InventoryIngress::Unsupported) => {}
-                                    Err(error) => {
-                                        self.sessions.get_mut(&key).expect("session").failure =
-                                            Some(error);
-                                        return Err(NetworkEvent::Message { key, message });
+                                    match self.handle_attribute_transfer_message(key, &message) {
+                                        Ok(inventory::InventoryIngress::Accepted) => return Ok(()),
+                                        Ok(inventory::InventoryIngress::Blocked) => {
+                                            return Err(NetworkEvent::Message { key, message });
+                                        }
+                                        Ok(inventory::InventoryIngress::Unsupported) => {}
+                                        Err(error) => {
+                                            self.sessions.get_mut(&key).expect("session").failure =
+                                                Some(error);
+                                            return Err(NetworkEvent::Message { key, message });
+                                        }
                                     }
-                                }
-                                match self.handle_inventory_message(key, &message) {
-                                    Ok(inventory::InventoryIngress::Accepted) => Ok(()),
-                                    Ok(inventory::InventoryIngress::Blocked) => {
-                                        Err(NetworkEvent::Message { key, message })
-                                    }
-                                    Ok(inventory::InventoryIngress::Unsupported) => match self
-                                        .handle_skill_device_message(key, &message)
-                                    {
+                                    match self.handle_inventory_message(key, &message) {
                                         Ok(inventory::InventoryIngress::Accepted) => Ok(()),
                                         Ok(inventory::InventoryIngress::Blocked) => {
                                             Err(NetworkEvent::Message { key, message })
                                         }
-                                        Err(error) => {
-                                            if let Some(s) = self.sessions.get_mut(&key) {
-                                                s.failure = Some(error);
-                                            }
-                                            Err(NetworkEvent::Message { key, message })
-                                        }
                                         Ok(inventory::InventoryIngress::Unsupported) => {
-                                            match self.handle_crafting_message(key, &message) {
-                                                Ok(crafting::CraftingIngress::Accepted) => Ok(()),
-                                                Ok(crafting::CraftingIngress::Blocked) => {
+                                            match self.handle_skill_device_message(key, &message) {
+                                                Ok(inventory::InventoryIngress::Accepted) => Ok(()),
+                                                Ok(inventory::InventoryIngress::Blocked) => {
                                                     Err(NetworkEvent::Message { key, message })
-                                                }
-                                                Ok(crafting::CraftingIngress::Unsupported) => {
-                                                    self.sessions
-                                                        .get_mut(&key)
-                                                        .expect("session")
-                                                        .terminated = true;
-                                                    Ok(())
                                                 }
                                                 Err(error) => {
-                                                    self.sessions
-                                                        .get_mut(&key)
-                                                        .expect("session")
-                                                        .failure = Some(error);
+                                                    if let Some(s) = self.sessions.get_mut(&key) {
+                                                        s.failure = Some(error);
+                                                    }
                                                     Err(NetworkEvent::Message { key, message })
+                                                }
+                                                Ok(inventory::InventoryIngress::Unsupported) => {
+                                                    match self.handle_healing_kit_message(key, &message) {
+                                                Ok(inventory::InventoryIngress::Accepted) => return Ok(()),
+                                                Ok(inventory::InventoryIngress::Blocked) => return Err(NetworkEvent::Message { key, message }),
+                                                Ok(inventory::InventoryIngress::Unsupported) => {},
+                                                Err(error) => {
+                                                    self.sessions.get_mut(&key).expect("session").failure = Some(error);
+                                                    return Err(NetworkEvent::Message { key, message });
+                                                }
+                                            }
+                                                    match self.handle_mana_stone_message(key, &message) {
+                                                Ok(inventory::InventoryIngress::Accepted) => return Ok(()),
+                                                Ok(inventory::InventoryIngress::Blocked) => return Err(NetworkEvent::Message { key, message }),
+                                                Ok(inventory::InventoryIngress::Unsupported) => {},
+                                                Err(error) => {
+                                                    self.sessions.get_mut(&key).expect("session").failure = Some(error);
+                                                    return Err(NetworkEvent::Message { key, message });
+                                                }
+                                            }
+                                                    match self
+                                                        .handle_crafting_message(key, &message)
+                                                    {
+                                                        Ok(crafting::CraftingIngress::Accepted) => {
+                                                            Ok(())
+                                                        }
+                                                        Ok(crafting::CraftingIngress::Blocked) => {
+                                                            Err(NetworkEvent::Message {
+                                                                key,
+                                                                message,
+                                                            })
+                                                        }
+                                                        Ok(
+                                                            crafting::CraftingIngress::Unsupported,
+                                                        ) => {
+                                                            let opcode =
+                                                                message.bytes.get(..4).map_or_else(
+                                                                    || "short message".to_owned(),
+                                                                    |bytes| {
+                                                                        format!(
+                                                                    "{:#010x}",
+                                                                    u32::from_le_bytes(
+                                                                        bytes.try_into().expect(
+                                                                            "checked opcode"
+                                                                        )
+                                                                    )
+                                                                )
+                                                                    },
+                                                                );
+                                                            let action = if message.bytes.get(..4)
+                                                        == Some(
+                                                            &bace_wire::opcode::GameMessageOpcode::GameAction
+                                                                .0
+                                                                .to_le_bytes(),
+                                                        ) {
+                                                        message.bytes.get(8..12).map(|bytes| {
+                                                            format!(
+                                                                ", action {:#010x}",
+                                                                u32::from_le_bytes(
+                                                                    bytes.try_into().expect("checked action")
+                                                                )
+                                                            )
+                                                        })
+                                                    } else {
+                                                        None
+                                                    };
+                                                            // ACE InboundMessageManager.HandleClientMessage
+                                                            // warns on an unhandled opcode and leaves
+                                                            // the authenticated session connected. An
+                                                            // unknown GameActionType follows the same
+                                                            // rule in HandleGameAction.
+                                                            self.diagnostic(
+                                                        "warn",
+                                                        "game.unsupported_message",
+                                                        &format!(
+                                                            "session {} generation {}: queue {}, opcode {opcode}{}; ignored",
+                                                            key.id, key.generation, message.queue,
+                                                            action.as_deref().unwrap_or("")
+                                                        ),
+                                                    );
+                                                            Ok(())
+                                                        }
+                                                        Err(error) => {
+                                                            self.sessions
+                                                                .get_mut(&key)
+                                                                .expect("session")
+                                                                .failure = Some(error);
+                                                            Err(NetworkEvent::Message {
+                                                                key,
+                                                                message,
+                                                            })
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
-                                    },
-                                    Err(error) => {
-                                        self.sessions.get_mut(&key).expect("session").failure =
-                                            Some(error);
-                                        Err(NetworkEvent::Message { key, message })
+                                        Err(error) => {
+                                            self.sessions.get_mut(&key).expect("session").failure =
+                                                Some(error);
+                                            Err(NetworkEvent::Message { key, message })
+                                        }
                                     }
                                 }
+                                Err(error) => {
+                                    self.sessions.get_mut(&key).expect("session").failure =
+                                        Some(error);
+                                    Err(NetworkEvent::Message { key, message })
+                                }
                             }
-                            Err(error) => {
-                                self.sessions.get_mut(&key).expect("session").failure = Some(error);
-                                Err(NetworkEvent::Message { key, message })
-                            }
-                        },
+                        }
                     },
                 }
             }
             NetworkEvent::Terminated { key, reason } => {
+                self.entry_pending.remove(&key);
+                self.deferred_entry_actions.remove(&key);
+                let pending: Vec<_> = [
+                    ("social", self.social_ingress_blocked(key)),
+                    ("staff", self.staff_ingress_blocked(key)),
+                    ("progression", self.progression_ingress_blocked(key)),
+                    ("inventory", self.inventory_ingress_blocked(key)),
+                    ("vendor", self.vendor_ingress_blocked(key)),
+                    ("crafting", self.crafting_ingress_blocked(key)),
+                    ("skill device", self.skill_device_ingress_blocked(key)),
+                    (
+                        "attribute transfer",
+                        self.attribute_transfer_ingress_blocked(key),
+                    ),
+                    ("pet", self.pet_ingress_blocked(key)),
+                    ("creation", self.creation_ingress_blocked(key)),
+                    ("magic", self.magic_ingress_blocked(key)),
+                    ("combat", self.combat_ingress_blocked(key)),
+                    ("NPC", self.npc_session_pending(key)),
+                    ("movement", self.movement_pending(key)),
+                    ("portal", self.portal_session_pending(key)),
+                    ("death", self.death_session_pending(key)),
+                    ("recall", self.recall_session_pending(key)),
+                ]
+                .into_iter()
+                .filter_map(|(name, held)| held.then_some(name))
+                .collect();
+                self.diagnostic(
+                    "info",
+                    "game.session_terminated",
+                    &format!(
+                        "session {} generation {}: {reason:?}; logout pending: {pending:?}; staff phase: {:?}; staff failure: {:?}",
+                        key.id,
+                        key.generation,
+                        self.staff_pending_phase(key),
+                        self.staff_failure(),
+                    ),
+                );
                 if let Some(session) = self.sessions.get_mut(&key) {
                     session.terminated = true;
                     session.disconnected = true;

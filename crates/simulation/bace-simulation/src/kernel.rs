@@ -28,6 +28,7 @@ mod staff;
 mod staff_assets;
 mod staff_inspection;
 mod world_policies;
+pub(crate) mod world_use;
 pub use generator_enchantments::PreparedGeneratorEnchantment;
 mod generators;
 pub use generated_retirement::GeneratedRetirementTicket;
@@ -42,6 +43,9 @@ mod crafting_wand;
 mod device_commands;
 mod equipment_effects;
 mod equipment_mana;
+mod item_mana_query;
+pub use item_mana_query::{ItemManaQueryOutcome, ItemManaQueryRequest, ItemManaValues};
+mod healing_kits;
 mod housing;
 mod inventory;
 mod inventory_commands;
@@ -54,6 +58,7 @@ mod magic;
 mod magic_npc_caster;
 mod magic_procs;
 mod magic_resource_commands;
+mod mana_stones;
 mod npc;
 mod npc_service_queue;
 mod object_views;
@@ -90,6 +95,7 @@ pub enum Command {
     DetachPlayer(crate::PlayerDetachRequest),
     AdmitResidentRegion(crate::RegionAdmissionRequest),
     PlayerSnapshot(crate::PlayerSnapshotRequest),
+    ItemManaQuery(crate::ItemManaQueryRequest),
     Visibility(Box<bace_gameplay_api::visibility::VisibilityRequest>),
     ObjectView(Box<bace_gameplay_api::visibility::ObjectViewRequest>),
     Locomotion(bace_gameplay_api::locomotion::LocomotionCommand),
@@ -133,6 +139,8 @@ pub enum Command {
     Inventory(Box<crate::InventoryCommand>),
     SkillDevice(crate::SkillDeviceCommand),
     AttributeTransfer(crate::AttributeTransferCommand),
+    HealingKit(crate::HealingKitCommand),
+    ManaStone(crate::ManaStoneCommand),
     Ui {
         context: ActionContext,
         request: bace_gameplay_api::UiRequest,
@@ -213,6 +221,8 @@ pub struct Kernel {
     inventory_commands: inventory_commands::InventoryCommands,
     skill_devices: crate::skill_devices::SkillDevices,
     attribute_transfers: crate::attribute_transfer::AttributeTransfers,
+    healing_kits: crate::healing_kits::HealingKits,
+    mana_stones: crate::mana_stones::ManaStones,
     world: World,
     commands: VecDeque<Command>,
     capacity: usize,
@@ -232,12 +242,14 @@ pub struct Kernel {
     population: Population,
     doors: Doors,
     npcs: crate::npc::Npcs,
+    npc_player_uses: std::collections::BTreeMap<EntityId, npc::player_use::Approach>,
     magic: crate::magic::Magic,
     player_admission_outcomes: VecDeque<crate::PlayerAdmissionOutcome>,
     player_entered_outcomes: VecDeque<crate::PlayerEnteredOutcome>,
     player_detach_outcomes: VecDeque<crate::PlayerDetachOutcome>,
     region_admission_outcomes: VecDeque<crate::RegionAdmissionOutcome>,
     player_snapshot_outcomes: VecDeque<crate::PlayerSnapshotOutcome>,
+    item_mana_query_outcomes: VecDeque<crate::ItemManaQueryOutcome>,
     pve_service_outcomes: VecDeque<crate::PveServiceOutcome>,
     npc_service_outcomes: VecDeque<std::sync::Arc<crate::NpcServiceOutcome>>,
     visibility_outcomes: VecDeque<std::sync::Arc<bace_gameplay_api::visibility::VisibilityOutcome>>,
@@ -326,6 +338,8 @@ impl Kernel {
             attribute_transfers: crate::attribute_transfer::AttributeTransfers::new(
                 outcome_capacity,
             ),
+            healing_kits: crate::healing_kits::HealingKits::new(outcome_capacity),
+            mana_stones: crate::mana_stones::ManaStones::new(outcome_capacity),
             world,
             commands: VecDeque::new(),
             capacity,
@@ -345,12 +359,14 @@ impl Kernel {
             population: Population::new(outcome_capacity),
             doors: Doors::new(outcome_capacity),
             npcs: crate::npc::Npcs::new(outcome_capacity),
+            npc_player_uses: Default::default(),
             magic: crate::magic::Magic::new(outcome_capacity),
             player_admission_outcomes: VecDeque::with_capacity(1),
             player_entered_outcomes: VecDeque::with_capacity(1),
             player_detach_outcomes: VecDeque::with_capacity(1),
             region_admission_outcomes: VecDeque::with_capacity(1),
             player_snapshot_outcomes: VecDeque::with_capacity(1),
+            item_mana_query_outcomes: VecDeque::with_capacity(outcome_capacity),
             pve_service_outcomes: VecDeque::with_capacity(outcome_capacity),
             npc_service_outcomes: VecDeque::with_capacity(outcome_capacity),
             visibility_outcomes: VecDeque::with_capacity(1),

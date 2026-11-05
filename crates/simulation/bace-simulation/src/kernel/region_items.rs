@@ -57,6 +57,8 @@ pub struct PreparedResidentRegion {
     pub visibility: Vec<bace_world::PreparedCellVisibility>,
     pub region: PreparedGeneratorRegion,
     pub items: PreparedWorldRegionItems,
+    /// Authored doors share identities and collision bodies with region roots.
+    pub doors: Vec<(EntityId, crate::PreparedDoor)>,
     pub bindings: Vec<crate::PreparedBindingObject>,
     pub dungeon: bool,
     pub keep_alive: u32,
@@ -122,6 +124,50 @@ impl Kernel {
         {
             return Err((GeneratorServiceError::Invalid, Box::new(input)));
         }
+        let mut door_ids = BTreeSet::new();
+        let additional_obstacles = input
+            .region
+            .roots
+            .iter()
+            .map(|root| root.shape.obstacles().count())
+            .sum::<usize>()
+            .saturating_add(
+                input
+                    .items
+                    .roots
+                    .iter()
+                    .map(|root| root.shape.obstacles().count())
+                    .sum::<usize>(),
+            );
+        if input.doors.len() > 4096
+            || !self.doors.can_register(input.doors.len())
+            || !self.world.can_register_doors(input.doors.len())
+            || !self
+                .world
+                .can_refresh_with_additional_obstacles(additional_obstacles)
+            || input.doors.iter().any(|(id, door)| {
+                let Some(root) = input.region.roots.iter().find(|root| root.entity == *id) else {
+                    return true;
+                };
+                id.0 == 0
+                    || !door_ids.insert(*id)
+                    || root.creature.is_some()
+                    || root.shape.horizontal_radius() <= 0.0
+                    || root.shape.height() <= 0.0
+                    || root.location.cell != door.collider.cell.0
+                    || root.location.origin
+                        != [
+                            door.collider.position.x,
+                            door.collider.position.y,
+                            door.collider.position.z,
+                        ]
+                    || self.doors.physics(*id).is_some()
+                    || self.world.door(*id).is_some()
+                    || self.doors.preflight(*id, door).is_err()
+            })
+        {
+            return Err((GeneratorServiceError::Invalid, Box::new(input)));
+        }
         let roots = input.region.roots.iter().map(|r| r.entity).collect();
         let plain: BTreeSet<_> = input
             .region
@@ -144,6 +190,10 @@ impl Kernel {
             self.admit_generator_region_inner(&input.region, &mut input.items, false)
         {
             return Err((error, Box::new(input)));
+        }
+        for (id, door) in std::mem::take(&mut input.doors) {
+            self.register_door(id, door)
+                .expect("preflighted authored door after region root admission");
         }
         for binding in std::mem::take(&mut input.bindings) {
             self.register_binding_object(binding)
@@ -204,6 +254,7 @@ impl Kernel {
             || !input.items.registries.is_empty()
             || !input.items.constructed.is_empty()
             || !input.bindings.is_empty()
+            || !input.doors.is_empty()
             || !input.region.containers.is_empty()
             || input
                 .region

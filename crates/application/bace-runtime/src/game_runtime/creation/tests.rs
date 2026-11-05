@@ -39,6 +39,13 @@ async fn account(runtime: &mut GameRuntime) -> (SessionKey, bace_types::AccountI
     (key, id)
 }
 fn message(color: u32) -> bace_transport::ReceivedMessage {
+    message_with_allocation(color, [10; 6], &[])
+}
+fn message_with_allocation(
+    color: u32,
+    attributes: [u32; 6],
+    skills: &[(u32, u32)],
+) -> bace_transport::ReceivedMessage {
     // Source CharacterCreateInfo wire order, ASCII subset common to UTF8/CP1252.
     let mut w = bace_wire::Writer::new();
     w.u32(0xf656);
@@ -68,18 +75,17 @@ fn message(color: u32) -> bace_transport::ReceivedMessage {
         w.f64(0.5);
     }
     w.u32(0);
-    for _ in 0..6 {
-        w.u32(10);
+    for value in attributes {
+        w.u32(value);
     }
     for value in [0, 0, 55] {
         w.u32(value);
     }
     for id in 0..55 {
-        w.u32(if bace_character::is_locked_skill(id) {
-            2
-        } else {
-            0
-        });
+        w.u32(skills.iter().find(|(skill, _)| *skill == id).map_or_else(
+            || u32::from(bace_character::is_locked_skill(id)) * 2,
+            |(_, class)| *class,
+        ));
     }
     w.string16("Creationprobe").unwrap();
     for value in [0, 0, 0] {
@@ -165,6 +171,7 @@ async fn actual_creation_commits_after_disconnect_and_before_success() {
         cell: dat.join("client_cell_1.dat"),
         portal_sha256: "dc6e500ba22e6b186db7171e3f3345238b6444c85d798adc85e550973b8d12e4".into(),
         cell_sha256: "6db0abf00fbceed62c3f1ee842ee7c1f423d732bed77a5b7c102ee89a52ab99e".into(),
+        store: None,
     };
     let mut verified = crate::region_activation::VerifiedRegionAssets::open(&assets).unwrap();
     let closure = verified
@@ -186,7 +193,10 @@ async fn actual_creation_commits_after_disconnect_and_before_success() {
     };
     assert!(matches!(
         runtime
-            .handle_creation_message(key, &message(color))
+            .handle_creation_message(
+                key,
+                &message_with_allocation(color, [100, 100, 40, 60, 20, 10], &[(6, 2), (7, 3)]),
+            )
             .unwrap(),
         CreationIngress::Accepted
     ));
@@ -217,7 +227,32 @@ async fn actual_creation_commits_after_disconnect_and_before_success() {
         .await
         .unwrap()
         .unwrap();
-    assert!(!stored.bytes.is_empty());
+    let saved = bace_storage_codec::PlayerSaveV6::decode_or_migrate(&stored.bytes).unwrap();
+    crate::progression_saves::restore_progression(&saved, &closure.character).unwrap();
+    let description =
+        crate::player_entry::prepare_player_description(&saved, &[], &[], false).unwrap();
+    // ACE CharacterCreateInfo.Unpack reads Coordination before Quickness;
+    // GameEventPlayerDescription writes Quickness before Coordination.
+    let expected = [100, 100, 60, 40, 20, 10];
+    assert_eq!(
+        description.attributes.map(|attribute| attribute.starting),
+        expected
+    );
+    let melee_defense = description
+        .skills
+        .iter()
+        .find(|skill| skill.id == 6)
+        .unwrap();
+    assert_eq!(melee_defense.advancement, 2);
+    assert_eq!(melee_defense.ranks, 5);
+    assert_eq!(melee_defense.experience, 526);
+    let missile_defense = description
+        .skills
+        .iter()
+        .find(|skill| skill.id == 7)
+        .unwrap();
+    assert_eq!(missile_defense.advancement, 3);
+    assert_eq!(missile_defense.initial_level, 10);
     runtime
         .creation
         .shutdown()

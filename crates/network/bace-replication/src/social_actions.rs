@@ -37,7 +37,8 @@ impl EventSequencer {
             } else {
                 format!("Your {name} is low on Mana.")
             };
-            if text.len() > limits.max_string_bytes {
+            // Wire limit is Windows-1252 bytes, which equals the char count for representable text.
+            if text.chars().count() > limits.max_string_bytes {
                 return Err(SessionProjectionError::Limit);
             }
             let mut messages = Vec::new();
@@ -82,8 +83,8 @@ impl EventSequencer {
                 if !recipients.contains(&binding.actor) {
                     return Err(SessionProjectionError::WrongBinding);
                 }
-                if accepted.sender_name.len() > limits.max_string_bytes
-                    || accepted.text.len() > limits.max_string_bytes
+                if accepted.sender_name.chars().count() > limits.max_string_bytes
+                    || accepted.text.chars().count() > limits.max_string_bytes
                 {
                     return Err(SessionProjectionError::Limit);
                 }
@@ -173,7 +174,7 @@ impl EventSequencer {
                 chat_type,
             } => {
                 recipient_check(binding, *recipient)?;
-                if text.len() > limits.max_string_bytes {
+                if text.chars().count() > limits.max_string_bytes {
                     return Err(SessionProjectionError::Limit);
                 }
                 ChatMessage::System {

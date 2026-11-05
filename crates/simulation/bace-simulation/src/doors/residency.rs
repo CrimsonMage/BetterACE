@@ -2,7 +2,11 @@
 use super::*;
 impl Doors {
     pub(crate) fn can_retire_region(&self, block: u16) -> bool {
-        !self.events.iter().any(|event| {
+        !self.approaches.values().any(|use_| {
+            self.entries
+                .get(&use_.door)
+                .is_some_and(|entry| entry.prepared.collider.cell.0 >> 16 == u32::from(block))
+        }) && !self.events.iter().any(|event| {
             self.entries
                 .get(&event.door)
                 .is_some_and(|entry| entry.prepared.collider.cell.0 >> 16 == u32::from(block))

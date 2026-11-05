@@ -19,6 +19,13 @@ pub enum NpcServiceAction {
     InspectMotion {
         proposal: NpcProposal,
     },
+    /// Journal a source-aligned best-effort motion skip after bounded retries.
+    PreviewSkippedMotion {
+        proposal: NpcProposal,
+    },
+    CommitSkippedMotion {
+        proposal: NpcProposal,
+    },
     BeginPreparedMotion {
         proposal: NpcProposal,
         actor: EntityId,
@@ -56,6 +63,11 @@ pub enum NpcServiceAction {
         source: EntityId,
         event: [u8; 16],
         operation: u64,
+    },
+    /// Continue an accepted player approach from simulation-owned movement.
+    PollUse {
+        source: EntityId,
+        actor: EntityId,
     },
     FreezeIdle {
         source: EntityId,
@@ -322,6 +334,7 @@ pub enum NpcServiceResult {
     CastStarted(CastChange),
     CastProgress(Option<ServerCastOutcome>),
     MotionStarted(bace_motion::MotionToken),
+    MotionBusy,
     MotionProgress(Option<bace_world::WorldMotionEvent>),
     MovementProgress(bool),
     Door(DoorChange),
@@ -338,6 +351,7 @@ impl NpcServiceCommand {
             return false;
         }
         match &self.action {
+            NpcServiceAction::PollUse { source, actor } => source.0 != 0 && actor.0 != 0,
             NpcServiceAction::FreezeBootstrapIdle {
                 source,
                 operation,

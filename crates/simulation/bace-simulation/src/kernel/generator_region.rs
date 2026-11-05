@@ -280,9 +280,26 @@ impl Kernel {
                 self.world
                     .validate_locomotion_styles(root.entity, styles)
                     .map_err(|_| GeneratorServiceError::Capacity)?;
-                self.combat
-                    .validate_physical_motions(root.entity, motions)
-                    .map_err(|_| GeneratorServiceError::Invalid)?;
+                if motions.is_empty() {
+                    let profile = root
+                        .loadout
+                        .as_ref()
+                        .map(|loadout| &loadout.profile)
+                        .or(creature.physical.as_ref())
+                        .ok_or(GeneratorServiceError::Missing)?;
+                    // ACE's nonattackable stationary Creatures can retain
+                    // physical qualities with no attack motion program.
+                    if profile.attackable
+                        || !profile.maneuvers.is_empty()
+                        || creature.combat_assets.is_some()
+                    {
+                        return Err(GeneratorServiceError::Invalid);
+                    }
+                } else {
+                    self.combat
+                        .validate_physical_motions(root.entity, motions)
+                        .map_err(|_| GeneratorServiceError::Invalid)?;
+                }
                 motion_assets.push((root.entity, styles.clone(), motions.clone()));
             }
         }
@@ -346,30 +363,34 @@ impl Kernel {
             {
                 return Err(GeneratorServiceError::Geometry);
             }
-            let mut body = bace_physics::Body::spawn_geometry(
-                &geometry,
-                bace_physics::GeometrySpawn {
-                    cell: root.location.cell,
-                    position: bace_geometry::Vec3::new(
-                        root.location.origin[0],
-                        root.location.origin[1],
-                        root.location.origin[2],
-                    ),
-                    shape: root.shape.clone(),
-                    capabilities: root.creature.as_ref().map_or(
-                        bace_motion::Capabilities {
-                            speed: 0.0,
-                            jump_impulse: 0.0,
-                        },
-                        |c| c.blueprint.capabilities,
-                    ),
-                    heading: 2.0 * q[2].atan2(q[3]),
-                    maximum_turn_rate: root
-                        .creature
-                        .as_ref()
-                        .map_or(0.0, |c| c.geometry.maximum_turn_rate),
-                },
-            )
+            let spawn = bace_physics::GeometrySpawn {
+                cell: root.location.cell,
+                position: bace_geometry::Vec3::new(
+                    root.location.origin[0],
+                    root.location.origin[1],
+                    root.location.origin[2],
+                ),
+                shape: root.shape.clone(),
+                capabilities: root.creature.as_ref().map_or(
+                    bace_motion::Capabilities {
+                        speed: 0.0,
+                        jump_impulse: 0.0,
+                    },
+                    |c| c.blueprint.capabilities,
+                ),
+                heading: 2.0 * q[2].atan2(q[3]),
+                maximum_turn_rate: root
+                    .creature
+                    .as_ref()
+                    .map_or(0.0, |c| c.geometry.maximum_turn_rate),
+            };
+            let mut body = if root.authored_static {
+                bace_physics::Body::spawn_authored_static_geometry(&geometry, spawn)
+            } else if root.creature.is_none() {
+                bace_physics::Body::spawn_authored_stationary_geometry(&geometry, spawn)
+            } else {
+                bace_physics::Body::spawn_geometry(&geometry, spawn)
+            }
             .map_err(|_| GeneratorServiceError::Geometry)?;
             if let Some(creature) = &root.creature {
                 body.adopt_animated_style(creature.geometry.locomotion.clone(), true)

@@ -1,5 +1,6 @@
 //! Geometry-owner lifecycle regressions; synthetic authored assets, no client capture.
 use bace_entity::{Actor, Combatant, CombatantProfile};
+use bace_gameplay_api::visibility::{AcceptedMoveParameters, ServerMovementGoal};
 use bace_geometry::Vec3;
 use bace_motion::*;
 use bace_physics::*;
@@ -146,6 +147,52 @@ fn fixture(airborne: bool) -> (World, Arc<AnimatedLocomotion>) {
         .register_locomotion_styles(EntityId(1), vec![style.clone()])
         .unwrap();
     (world, style)
+}
+#[test]
+fn server_move_keeps_a_projectable_style_after_superseding_manual_locomotion() {
+    let (mut world, _) = fixture(false);
+    let actor = EntityId(1);
+    let control = world.next_server_control(actor).unwrap();
+    world
+        .begin_server_move(
+            actor,
+            0,
+            control,
+            MotionIntent::new(Vec3::new(0., 1., 0.), false).unwrap(),
+        )
+        .unwrap();
+    world
+        .body_mut(actor)
+        .unwrap()
+        .begin_server_turn(0, control, TurnIntent::new(0.).unwrap())
+        .unwrap();
+    world
+        .bind_movement_goal(
+            actor,
+            control,
+            ServerMovementGoal::MoveToPosition {
+                cell: 0x100,
+                position: [0., 5., 0.],
+                parameters: AcceptedMoveParameters {
+                    flags: 0,
+                    distance_to_object: 1.,
+                    min_distance: 0.,
+                    fail_distance: 15.,
+                    speed: 1.,
+                    walk_run_threshold: 15.,
+                    desired_heading: 0.,
+                },
+                run_rate: 1.5,
+            },
+        )
+        .unwrap();
+    let view = world.accepted_object_view(actor).unwrap();
+    let motion = view.motion.unwrap().unwrap();
+    assert_eq!(motion.style, 0x80000049);
+    assert!(matches!(
+        motion.goal.unwrap().goal,
+        ServerMovementGoal::MoveToPosition { .. }
+    ));
 }
 #[test]
 fn death_stops_previous_run_while_authoritative_gravity_continues() {

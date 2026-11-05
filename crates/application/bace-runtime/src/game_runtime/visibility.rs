@@ -138,6 +138,18 @@ impl GameRuntime {
                 break;
             };
             let (key, correlation, accepted) = self.reliable_admissions[index];
+            // A disconnected peer can reject a batch already submitted to the
+            // network thread. Its client knowledge is gone, so release that
+            // observer instead of retaining a global lifecycle failure.
+            if self
+                .sessions
+                .get(&key)
+                .is_none_or(|session| session.disconnected)
+            {
+                self.visibility.service.unbind(key);
+                self.reliable_admissions.remove(index);
+                continue;
+            }
             match self
                 .visibility
                 .service

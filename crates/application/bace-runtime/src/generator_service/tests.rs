@@ -548,9 +548,8 @@ fn contained_create_list_leaf_creature_keeps_source_parent_and_reserved_order() 
         });
     let mut creature = template(200, false);
     creature.weenie_type = 10;
-    Arc::get_mut(&mut regions.region)
+    Arc::get_mut(&mut Arc::get_mut(&mut regions.region).unwrap().catalog)
         .unwrap()
-        .catalog
         .templates
         .insert(200, Arc::new(creature));
     let raw = mixed::materialize(
@@ -637,15 +636,13 @@ fn contained_creature_and_cow_construct_selected_wield_loadouts_with_reserved_id
                 shade: 0.0,
                 try_to_bond: false,
             });
-        Arc::get_mut(&mut regions.region)
+        Arc::get_mut(&mut Arc::get_mut(&mut regions.region).unwrap().catalog)
             .unwrap()
-            .catalog
             .templates
             .insert(id, Arc::new(creature));
     }
-    Arc::get_mut(&mut regions.region)
+    Arc::get_mut(&mut Arc::get_mut(&mut regions.region).unwrap().catalog)
         .unwrap()
-        .catalog
         .templates
         .insert(212, Arc::new(weapon));
     let raw = mixed::materialize(
@@ -771,9 +768,8 @@ fn nested_creature_gear_creature_recursively_reserves_a_distinct_constructed_roo
         value: 0x100000,
     });
     for source in [creature, cow, weapon] {
-        Arc::get_mut(&mut regions.region)
+        Arc::get_mut(&mut Arc::get_mut(&mut regions.region).unwrap().catalog)
             .unwrap()
-            .catalog
             .templates
             .insert(source.weenie_id, Arc::new(source));
     }
@@ -861,9 +857,8 @@ fn contained_creature_root_and_nested_cow_share_one_constructed_forest() {
         value: 0x100000,
     });
     for source in [creature.clone(), cow, weapon] {
-        Arc::get_mut(&mut regions.region)
+        Arc::get_mut(&mut Arc::get_mut(&mut regions.region).unwrap().catalog)
             .unwrap()
-            .catalog
             .templates
             .insert(source.weenie_id, Arc::new(source));
     }

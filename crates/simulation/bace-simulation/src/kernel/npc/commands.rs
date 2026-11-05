@@ -54,6 +54,12 @@ impl Kernel {
                         scale,
                     },
                 ),
+                A::PreviewSkippedMotion { proposal } => self
+                    .preview_skipped_npc_motion(&proposal)
+                    .map(R::Checkpoint),
+                A::CommitSkippedMotion { proposal } => self
+                    .commit_skipped_npc_motion(&proposal)
+                    .map(|()| R::Applied),
                 A::BeginPreparedMotion {
                     proposal,
                     actor,
@@ -63,7 +69,7 @@ impl Kernel {
                     chain,
                 } => self
                     .begin_npc_prepared_motion(&proposal, actor, epoch, revision, before, chain)
-                    .map(R::MotionStarted),
+                    .map(|token| token.map_or(R::MotionBusy, R::MotionStarted)),
                 A::BeginGive { proposal } => self
                     .begin_npc_give(&proposal)
                     .map(|(detached, turning)| R::GiveStarted { detached, turning }),
@@ -121,7 +127,22 @@ impl Kernel {
                     operation,
                 } => self
                     .use_native_npc(context, source, event, operation)
-                    .map(R::Started),
+                    .map(|started| {
+                        if self.npc_player_uses.contains_key(&context.actor) {
+                            R::MovementProgress(false)
+                        } else {
+                            R::Started(started)
+                        }
+                    }),
+                A::PollUse { source, actor } => {
+                    self.poll_player_npc_use(actor, source).map(|started| {
+                        if self.npc_player_uses.contains_key(&actor) {
+                            R::MovementProgress(false)
+                        } else {
+                            R::Started(started)
+                        }
+                    })
+                }
                 A::FreezeIdle { source, operation } => self
                     .npcs
                     .freeze_idle(source, operation, self.tick)
@@ -298,7 +319,7 @@ impl Kernel {
                     .map(|()| R::Applied),
                 A::BeginMotion { proposal, chain } => self
                     .begin_npc_motion(&proposal, chain)
-                    .map(R::MotionStarted),
+                    .map(|token| token.map_or(R::MotionBusy, R::MotionStarted)),
                 A::PollMotion { proposal } => {
                     self.poll_npc_motion(&proposal).map(R::MotionProgress)
                 }

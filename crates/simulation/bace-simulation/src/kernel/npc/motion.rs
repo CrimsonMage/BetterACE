@@ -55,7 +55,7 @@ impl Kernel {
         revision: u64,
         before: bace_motion::SourceMotionState,
         chain: Arc<PreparedMotionChain>,
-    ) -> Result<MotionToken, E> {
+    ) -> Result<Option<MotionToken>, E> {
         let current = self.inspect_npc_motion_source(expected)?;
         if (current.0, current.1, current.2, current.3) != (actor, epoch, revision, before) {
             return Err(E::Conflict);
@@ -67,7 +67,7 @@ impl Kernel {
         &mut self,
         expected: &NpcProposal,
         chain: Arc<PreparedMotionChain>,
-    ) -> Result<MotionToken, E> {
+    ) -> Result<Option<MotionToken>, E> {
         self.npcs.validate_service(expected)?;
         if self.npcs.motion_services.contains_key(&expected.ticket) {
             return Err(E::Conflict);
@@ -106,13 +106,59 @@ impl Kernel {
             owner: expected.ticket,
             sequence: 1,
         };
-        self.world
-            .begin_motion(actor, token, chain)
-            .map_err(|_| E::Conflict)?;
+        match self.world.begin_motion(actor, token, chain) {
+            Ok(()) => {}
+            Err(bace_world::WorldError::MotionBusy) => return Ok(None),
+            Err(_) => return Err(E::Conflict),
+        }
         self.npcs
             .motion_services
             .insert(expected.ticket, (expected.clone(), actor, epoch, token));
-        Ok(token)
+        Ok(Some(token))
+    }
+    /// Pinned ACE's `EmoteManager` Motion row is conditional (for example it
+    /// skips a source that is already moving). A skip still advances the authored
+    /// row only after its exact workflow checkpoint has been committed.
+    pub fn preview_skipped_npc_motion(
+        &mut self,
+        expected: &NpcProposal,
+    ) -> Result<crate::NpcSourceCheckpoint, E> {
+        self.npcs.validate_service(expected)?;
+        if !matches!(
+            expected.effect,
+            NpcEffect::Service(NpcOperation::Motion { .. })
+        ) || self.npcs.motion_services.contains_key(&expected.ticket)
+            || self.npcs.motion_completions.contains_key(&expected.ticket)
+        {
+            return Err(E::Conflict);
+        }
+        let now = self
+            .npcs
+            .source_checkpoint(expected.context.source, self.tick)?
+            .logical_now;
+        let preview = self.preview_npc_committed_checkpoint(
+            expected,
+            NpcCompletion::Applied { post_delay: 0.0 },
+            now,
+        )?;
+        self.npcs.hold_journal(expected, self.tick)?;
+        Ok(preview)
+    }
+    pub fn commit_skipped_npc_motion(&mut self, expected: &NpcProposal) -> Result<(), E> {
+        if !matches!(
+            expected.effect,
+            NpcEffect::Service(NpcOperation::Motion { .. })
+        ) || self.npcs.motion_services.contains_key(&expected.ticket)
+            || self.npcs.motion_completions.contains_key(&expected.ticket)
+        {
+            return Err(E::Conflict);
+        }
+        let adopted = self.npcs.motion_skip_adopted(expected)?;
+        if !adopted {
+            self.npcs
+                .mark_service_adopted(expected, NpcCompletion::Applied { post_delay: 0.0 })?;
+        }
+        self.confirm_npc_committed(expected)
     }
     /// Hooks remain actual world outputs for projection. Only a matching terminal
     /// callback is retained as evidence permitting completion of the script row.

@@ -188,3 +188,56 @@ fn social_event_tables_validate_nested_limits_duplicate_ids_and_delta_cardinalit
         Err(WireError::LimitExceeded)
     );
 }
+
+fn string_limits(max_string_bytes: usize) -> SocialCodecLimits {
+    SocialCodecLimits {
+        max_message_bytes: 1024,
+        max_entries: 2,
+        max_filters: 4,
+        max_string_bytes,
+    }
+}
+
+#[test]
+fn social_string_limit_counts_windows_1252_wire_bytes_not_utf8_bytes() {
+    // U+00E9 is one Windows-1252 byte (0xE9) but two UTF-8 bytes.
+    let accented = "\u{e9}".repeat(16);
+    assert_eq!(accented.len(), 32);
+    let bytes = SocialEvent::Transient(&accented)
+        .encode(1, 2, string_limits(16))
+        .expect("16 wire bytes are exactly at the limit");
+    // Header is opcode, object, sequence and event (16 bytes), then the string16 length.
+    assert_eq!(&bytes[16..18], &16u16.to_le_bytes());
+    assert_eq!(&bytes[18..34], vec![0xe9; 16].as_slice());
+
+    let over = "\u{e9}".repeat(17);
+    assert_eq!(
+        SocialEvent::Transient(&over).encode(1, 2, string_limits(16)),
+        Err(WireError::LimitExceeded)
+    );
+}
+
+#[test]
+fn social_string_limit_accepts_windows_1252_extension_chars_as_single_bytes() {
+    // U+20AC (euro) maps to Windows-1252 0x80 and must count as one byte.
+    let bytes = SocialEvent::Transient("\u{20ac}\u{20ac}")
+        .encode(1, 2, string_limits(2))
+        .expect("two single-byte chars are at the limit");
+    assert_eq!(&bytes[16..18], &2u16.to_le_bytes());
+    assert_eq!(&bytes[18..20], &[0x80, 0x80]);
+    assert_eq!(
+        SocialEvent::Transient("\u{20ac}\u{20ac}\u{20ac}").encode(1, 2, string_limits(2)),
+        Err(WireError::LimitExceeded)
+    );
+}
+
+#[test]
+fn social_string_rejects_chars_outside_windows_1252() {
+    // CJK and Latin Extended-A characters have no Windows-1252 byte.
+    for text in ["\u{4e2d}", "\u{141}"] {
+        assert_eq!(
+            SocialEvent::Transient(text).encode(1, 2, string_limits(16)),
+            Err(WireError::InvalidEncoding)
+        );
+    }
+}

@@ -47,7 +47,10 @@ impl VisibilityService {
         let delta = self.observers[&key]
             .knowledge
             .pending()
-            .ok_or(VisibilityServiceError::Projection)?
+            .ok_or(VisibilityServiceError::ProjectionDetail {
+                object: 0,
+                reason: "object view arrived without staged knowledge".into(),
+            })?
             .clone();
         let snapshot = match &outcome.result {
             Ok(s)
@@ -80,10 +83,16 @@ impl VisibilityService {
                 return self.discard(key, delta.ticket);
             }
         }
+        // Prepare the whole accepted snapshot before advancing any shared
+        // object/player sequence owner. A transient incomplete movement view
+        // must release this unpublished knowledge ticket, not leave the
+        // observer permanently Busy after a partial projection.
+        let mut prepared = Vec::with_capacity(snapshot.views.len());
         for (id, view) in &snapshot.views {
             let view = view.as_ref().expect("checked");
-            let object = self.objects.get_mut(id).expect("checked");
+            let object = self.objects.get(id).expect("checked");
             if snapshot.tick < object.tick {
+                prepared.push((*id, None));
                 continue;
             }
             let source = &object.blueprint.description;
@@ -104,28 +113,57 @@ impl VisibilityService {
                         })
                 })
             {
-                object.tick = snapshot.tick;
+                prepared.push((*id, None));
                 continue;
             }
-            let (sequences, public_state) =
+            let (mut sequences, public_state) =
                 if let Some(replication) = players.as_mut().and_then(|p| p.replication(*id)) {
                     (
-                        &mut replication.properties,
+                        replication.properties.proposal_copy(),
                         replication.public_physics_state,
                     )
                 } else {
-                    (&mut object.sequences, None)
+                    (object.sequences.proposal_copy(), None)
                 };
-            let projection = ObjectProjection::prepare_with_public_state(
+            let projection = match ObjectProjection::prepare_with_public_state(
                 source,
                 view.clone(),
                 object.projection.as_ref(),
-                sequences,
+                &mut sequences,
                 self.limits.codec,
                 force,
                 public_state,
-            )
-            .map_err(|_| VisibilityServiceError::Projection)?;
+            ) {
+                Ok(projection) => projection,
+                Err(bace_replication::SessionProjectionError::InvalidProjection) => {
+                    // The owner may be between a server-movement transition
+                    // and its next complete view. A new query can retry it;
+                    // no wire bytes or sequence changes have been committed.
+                    return self.discard(key, delta.ticket);
+                }
+                Err(error) => {
+                    self.discard(key, delta.ticket)?;
+                    return Err(VisibilityServiceError::ProjectionDetail {
+                        object: id.0,
+                        reason: format!("accepted object view: {error:?}"),
+                    });
+                }
+            };
+            prepared.push((*id, Some((projection, sequences, force))));
+        }
+        for (id, result) in prepared {
+            let object = self.objects.get_mut(&id).expect("checked");
+            let Some((projection, sequences, force)) = result else {
+                if snapshot.tick >= object.tick {
+                    object.tick = snapshot.tick;
+                }
+                continue;
+            };
+            if let Some(replication) = players.as_mut().and_then(|p| p.replication(id)) {
+                replication.properties = sequences;
+            } else {
+                object.sequences = sequences;
+            }
             object.version = object
                 .version
                 .checked_add(1)
@@ -151,16 +189,21 @@ impl VisibilityService {
             let p = object
                 .projection
                 .as_ref()
-                .ok_or(VisibilityServiceError::Projection)?;
+                .ok_or(VisibilityServiceError::ProjectionDetail {
+                    object: id.0,
+                    reason: "accepted view has no prepared projection".into(),
+                })?;
             if *id == o.binding.actor {
                 if o.self_sent.as_ref().is_none_or(|old| {
                     old.version != object.version
                         || old.blueprint.incarnation != object.blueprint.incarnation
                 }) {
-                    messages.extend(
-                        p.refresh_messages(self.limits.codec)
-                            .map_err(|_| VisibilityServiceError::Projection)?,
-                    );
+                    messages.extend(p.refresh_messages(self.limits.codec).map_err(|error| {
+                        VisibilityServiceError::ProjectionDetail {
+                            object: id.0,
+                            reason: format!("self refresh: {error:?}"),
+                        }
+                    })?);
                     self_sent = Some(Sent {
                         blueprint: object.blueprint.clone(),
                         version: object.version,
@@ -177,9 +220,12 @@ impl VisibilityService {
                 for child in &object.blueprint.children {
                     messages.push(ReplicationMessage {
                         queue: 10,
-                        bytes: child
-                            .encode_create(self.limits.codec)
-                            .map_err(|_| VisibilityServiceError::Projection)?,
+                        bytes: child.encode_create(self.limits.codec).map_err(|error| {
+                            VisibilityServiceError::ProjectionDetail {
+                                object: child.object_id,
+                                reason: format!("new attachment create: {error:?}"),
+                            }
+                        })?,
                     });
                 }
             } else if let Some(previous) = o.sent.get(id) {
@@ -208,15 +254,21 @@ impl VisibilityService {
                         }) {
                             None => messages.push(ReplicationMessage {
                                 queue: 10,
-                                bytes: child
-                                    .encode_create(self.limits.codec)
-                                    .map_err(|_| VisibilityServiceError::Projection)?,
+                                bytes: child.encode_create(self.limits.codec).map_err(|error| {
+                                    VisibilityServiceError::ProjectionDetail {
+                                        object: child.object_id,
+                                        reason: format!("changed attachment create: {error:?}"),
+                                    }
+                                })?,
                             }),
                             Some(old) if **old != **child => messages.push(ReplicationMessage {
                                 queue: 10,
-                                bytes: child
-                                    .encode_update(self.limits.codec)
-                                    .map_err(|_| VisibilityServiceError::Projection)?,
+                                bytes: child.encode_update(self.limits.codec).map_err(|error| {
+                                    VisibilityServiceError::ProjectionDetail {
+                                        object: child.object_id,
+                                        reason: format!("changed attachment update: {error:?}"),
+                                    }
+                                })?,
                             }),
                             _ => {}
                         }
@@ -226,13 +278,18 @@ impl VisibilityService {
                         bytes: p
                             .description
                             .encode_update(self.limits.codec)
-                            .map_err(|_| VisibilityServiceError::Projection)?,
+                            .map_err(|error| VisibilityServiceError::ProjectionDetail {
+                                object: id.0,
+                                reason: format!("changed root update: {error:?}"),
+                            })?,
                     });
                 } else if previous.version != object.version {
-                    messages.extend(
-                        p.refresh_messages(self.limits.codec)
-                            .map_err(|_| VisibilityServiceError::Projection)?,
-                    );
+                    messages.extend(p.refresh_messages(self.limits.codec).map_err(|error| {
+                        VisibilityServiceError::ProjectionDetail {
+                            object: id.0,
+                            reason: format!("observer refresh: {error:?}"),
+                        }
+                    })?);
                 }
             }
             if create
@@ -268,11 +325,12 @@ impl VisibilityService {
     }
     fn discard(&mut self, key: SessionKey, ticket: u64) -> Result<(), VisibilityServiceError> {
         let o = self.observers.get_mut(&key).expect("found");
-        if let Some(snapshot) = o
-            .knowledge
-            .discard_unpublished(ticket)
-            .map_err(|_| VisibilityServiceError::Projection)?
-        {
+        if let Some(snapshot) = o.knowledge.discard_unpublished(ticket).map_err(|error| {
+            VisibilityServiceError::ProjectionDetail {
+                object: o.binding.actor.0,
+                reason: format!("unpublished view discard: {error:?}"),
+            }
+        })? {
             o.buffer = snapshot.candidates;
         }
         Ok(())

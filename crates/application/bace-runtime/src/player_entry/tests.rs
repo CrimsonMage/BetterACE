@@ -10,7 +10,7 @@ fn player() -> PlayerSaveV6 {
         last_modified: None,
         properties: Default::default(),
     };
-    state.properties.attributes = [1, 2, 4, 3, 5, 6]
+    state.properties.attributes = [1, 2, 3, 4, 5, 6]
         .into_iter()
         .enumerate()
         .map(|(slot, id)| Property {

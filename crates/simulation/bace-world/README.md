@@ -26,6 +26,15 @@ proposals retain revision checks; none of these new paths grants client poses.
 `install_geometry`, `prepare_geometry_body` and `validate_actor` now connect the
 immutable authored-geometry path to the existing actor registry and tick owner.
 Insertion, teleports and generation adoption validate placement before mutation.
+Authored stationary portal bodies retain their restricted terrain-intersection
+admission mode through world insertion, ticks and later geometry replacement.
+Other authored noncreature roots retain full terrain validation but may overlap
+another stationary source root. Patches v0.9.295 places `fireworksgen` WCID 19457
+at `0x7e74e057` beside `statuebentennull` WCID 19195 at `0x7e74e063` in
+landblock `e74e`; their verified source spheres overlap. Both keep collision and
+cannot gain movement capabilities. Mobile actors still reject overlap with them.
+The approved-pack `e74e` replay and synthetic world regression cover the two
+directions of that admission rule.
 `insert_loading_player` is the narrow player-entry exception: it still validates
 identity and authored static placement, while allowing a second loading player
 at an occupied spawn. Pinned ACE `Player.InitPhysicsObj` sets IgnoreCollisions

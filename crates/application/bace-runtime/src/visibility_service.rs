@@ -36,6 +36,7 @@ pub enum VisibilityServiceError {
     Capacity,
     InvalidDescription,
     Projection,
+    ProjectionDetail { object: u32, reason: String },
     Stale,
     WorkerClosed,
     NetworkClosed,
@@ -471,8 +472,16 @@ impl VisibilityService {
             self.bind(key, binding)?;
         }
         while let Ok(outcome) = worker.visibility_outcomes().try_recv() {
-            let outcome =
-                Arc::try_unwrap(outcome).map_err(|_| VisibilityServiceError::Projection)?;
+            let outcome = Arc::try_unwrap(outcome).map_err(|outcome| {
+                VisibilityServiceError::ProjectionDetail {
+                    object: 0,
+                    reason: format!(
+                        "visibility outcome {} has {} retained owners",
+                        outcome.correlation,
+                        Arc::strong_count(&outcome)
+                    ),
+                }
+            })?;
             self.accept_visibility(outcome)?;
         }
         while let Ok(outcome) = worker.object_view_outcomes().try_recv() {

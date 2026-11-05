@@ -6,7 +6,7 @@ use crate::player_service::PlayerIoResult;
 use bace_gameplay_api::social::SocialIdentity;
 use bace_persistence::{CharacterLease, OnlineLoginReceipt};
 use bace_simulation::{Command, SocialControl, SocialControlAction};
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Phase {
     Metadata,
     Region,
@@ -65,6 +65,7 @@ impl GameRuntime {
                         self.complete_roster_ddd(key)?;
                     }
                     Ok(PlayerIoResult::Loaded(loaded)) => {
+                        let actor = loaded.binding.actor.0;
                         let session = self
                             .sessions
                             .get_mut(&key)
@@ -88,6 +89,14 @@ impl GameRuntime {
                             settle_attempts: 0,
                             first_settle_tick: None,
                         });
+                        self.diagnostic(
+                            "info",
+                            "game.character_loaded",
+                            &format!(
+                                "session {} generation {}: character {actor:#010x}",
+                                key.id, key.generation
+                            ),
+                        );
                     }
                     Ok(PlayerIoResult::Online(lease)) => {
                         let loading = self
@@ -112,11 +121,15 @@ impl GameRuntime {
                         self.forget_staff_session(key)?;
                         self.forget_progression_session(key)?;
                         self.forget_inventory_session(key)?;
+                        self.forget_healing_kit_session(key)?;
+                        self.forget_mana_stone_session(key)?;
                         self.forget_crafting_session(key)?;
                         self.forget_skill_device_session(key)?;
                         self.forget_attribute_transfer_session(key)?;
                         self.forget_pet_session(key)?;
                         self.forget_magic_session(key)?;
+                        self.entry_pending.remove(&key);
+                        self.deferred_entry_actions.remove(&key);
                         self.sessions.remove(&key);
                     }
                     Ok(_) => {}
@@ -381,6 +394,8 @@ impl GameRuntime {
                 } = cold;
                 match self.players.stage_admission(key, admission) {
                     Ok(_) => {
+                        self.character_assets
+                            .get_or_insert_with(|| character_assets.clone());
                         loading.appearance = Some(appearance);
                         loading.character_assets = Some(character_assets);
                         loading.enchantments = enchantments;
@@ -534,9 +549,18 @@ impl GameRuntime {
                             .ok_or("entered loading missing")?;
                         loading.phase = Phase::Entered;
                         loading.appearance = None;
+                        // Later appearance changes use the one immutable
+                        // approved character table owner in GameRuntime.
                         loading.character_assets = None;
                         loading.snapshot = None;
                         loading.enchantments.clear();
+                        self.entry_pending.remove(&key);
+                        self.deferred_entry_actions.remove(&key);
+                        self.diagnostic(
+                            "info",
+                            "game.world_entered",
+                            &format!("session {} generation {}: entered", key.id, key.generation),
+                        );
                     }
                 }
                 Err((error, outcome)) => {

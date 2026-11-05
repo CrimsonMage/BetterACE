@@ -125,6 +125,20 @@ pub struct MagicCaster {
     pub components_required: bool,
     pub safe_components: bool,
 }
+
+/// ACE Creature.CalculateManaUsage only enters GetManaCost for a trained or
+/// specialized Mana Conversion skill. The owner passes this effective value.
+pub(crate) fn trained_mana_conversion(value: bace_character::SkillValues) -> u32 {
+    if matches!(
+        value.advancement,
+        bace_gameplay_api::SkillAdvancement::Trained
+            | bace_gameplay_api::SkillAdvancement::Specialized
+    ) {
+        value.current
+    } else {
+        0
+    }
+}
 #[derive(Clone, Debug, PartialEq)]
 pub enum MagicEvent {
     /// Source Remove semantics; recipient/name are frozen at accepted removal.

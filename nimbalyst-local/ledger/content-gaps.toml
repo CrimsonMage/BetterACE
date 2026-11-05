@@ -1,0 +1,377 @@
+# P0-K content gap inventory (read-only). For each ACE world-database content category: does BACE carry it
+# from the pinned SQL through bace-import, native TOML, bace-content-tools compile (.bace namespace), the frozen
+# bace-content DTO, bace-runtime preparation, to a gameplay consumer?
+#
+# Pins: ACE 47edade3bd3f6044b676d4eb877c4965c7eda62b (Source/ACE.Database/Models/World, 56 files);
+#       world SQL v0.9.295, SHA256 98caa038a27d2620bc4b644e62150aa4eec7754251c6313aaa959c3b11f784a8.
+# Sources: docs/pack-format.md (namespace table, lines ~95-135), docs/content-inbox.md (lines 25-30, 76-87),
+#   crates/content/bace-{content,content-tools,import}/README.md, crates/content/bace-content/src/world_record.rs
+#   (namespace() 16-45), crates/content/bace-content-tools/src/world_pack.rs (namespaces 1,2,3,48,49,52),
+#   crates/content/bace-content-tools/src/loot_tables.rs (46,47), creature_name_validation.rs (48,49).
+# Import counts are from the accepted pack's import report: .local/world-packs-current/import-report.toml.
+#
+# status: end_to_end = data reaches a gameplay consumer that uses it; partial = reaches runtime but the consumer
+#   does not execute the full gameplay; prepared_only = loaded and validated, no gameplay reader; gap = not carried.
+#
+# Pack paths in use: server.toml pack_directory = .local/world-packs-current (accepted head is in PostgreSQL;
+#   manifests there: fdb4...manifest revision 3 -> 7a27...bace; 9e13...manifest revision 1 -> 7a27...bace).
+
+[[content]]
+category = "weenie core (weenie table)"
+ace_tables = ["weenie"]
+import = "crates/content/bace-import/src/sql_specs.rs (weenie mapping), complete_world.rs; import count 43913"
+native_toml = "crates/content/bace-content/src/model.rs WeenieV1 (schema_version, weenie_id, class_name, weenie_type); fixture tests/fixtures/content/minimal.toml"
+pack_namespace = "1 (kind 1 schema 1 WeenieV1 envelope, key = weenie id)"
+runtime_prepare = "crates/application/bace-runtime/src/world_content.rs prepare (ns 1 lookup into templates); bace-content catalog.rs Catalog::prepare"
+consumer = "many: region admission (world_content.rs), generator_catalog.rs, npc_sources.rs, vendors/preparation.rs"
+status = "end_to_end"
+notes = "Core of every other weenie family. Staged, complete-world conversion verified against the pinned SQL."
+
+[[content]]
+category = "weenie scalar properties (bool, int, int64, float, string, d_i_d, i_i_d)"
+ace_tables = ["weenie_properties_bool", "weenie_properties_int", "weenie_properties_int64", "weenie_properties_float", "weenie_properties_string", "weenie_properties_d_i_d", "weenie_properties_i_i_d"]
+import = "sql_specs.rs (all 7 checked mappings); counts bool 179632, int 505423, float 311562, string 82791, d_i_d 224081, i_i_d 249, int64 354"
+native_toml = "bace-content model.rs SparseProperties.bools/ints/int64s/floats/strings/data_ids/instance_ids (Property<T> numeric ids, unknown ids preserved)"
+pack_namespace = "1 (inside WeenieV1)"
+runtime_prepare = "world_content.rs (templates); catalog.rs (ID index)"
+consumer = "property readers across bace-runtime (npc_combat_assets.rs, generator_preparation/creatures.rs, player_assets/*) and bace-gameplay crates"
+status = "end_to_end"
+notes = "Each property id is consumed by the reader that needs it, not by a single table consumer. Unknown ids are preserved, not dropped."
+
+[[content]]
+category = "weenie attributes, vitals, body parts, skills"
+ace_tables = ["weenie_properties_attribute", "weenie_properties_attribute_2nd", "weenie_properties_body_part", "weenie_properties_skill"]
+import = "sql_specs.rs; counts attribute 52560, attribute_2nd 26309, body_part 64792, skill 51171"
+native_toml = "model.rs SparseProperties.attributes / secondary_attributes / body_parts / skills"
+pack_namespace = "1 (inside WeenieV1)"
+runtime_prepare = "world_content.rs templates"
+consumer = "npc_combat_assets.rs, character_assets.rs, generator_preparation/creatures.rs, skill_devices.rs"
+status = "end_to_end"
+notes = "Creature stats and skills feed the NPC combat and skill checks; vitals derived via bace-character."
+
+[[content]]
+category = "weenie appearance (anim_part, palette, texture_map) and position"
+ace_tables = ["weenie_properties_anim_part", "weenie_properties_palette", "weenie_properties_texture_map", "weenie_properties_position"]
+import = "sql_specs.rs; counts anim_part 156, palette 92, texture_map 157, position 3341"
+native_toml = "model.rs SparseProperties.animation_parts / palettes / texture_maps / positions"
+pack_namespace = "1 (inside WeenieV1)"
+runtime_prepare = "visibility_assets.rs, npc_appearance.rs, player_entry/appearance_assets.rs"
+consumer = "player_entry/appearance*.rs, npc_appearance.rs, visibility_assets.rs (object model); positions used by world/death placement (death_saves, game_inventory.rs)"
+status = "end_to_end"
+notes = "Appearance overrides reach the object codec. Position rows are read for placement, not for physics admission."
+
+[[content]]
+category = "weenie spell book (creature spells)"
+ace_tables = ["weenie_properties_spell_book"]
+import = "sql_specs.rs; count spell_book 45045"
+native_toml = "model.rs SparseProperties.spell_book (Property<f32, i32>)"
+pack_namespace = "1 (inside WeenieV1)"
+runtime_prepare = "world_content.rs templates; generator_enchantments.rs"
+consumer = "equipment_effects.rs, equipment_mana.rs, generator_equipment.rs (partial)"
+status = "partial"
+notes = "Spell ids are read for equipment and generator spells. Creature casting is not executed (magic feature scaffolded: casting and components remaining)."
+
+[[content]]
+category = "weenie create list"
+ace_tables = ["weenie_properties_create_list"]
+import = "sql_specs.rs; count create_list 62418"
+native_toml = "model.rs SparseProperties.create_list (CreateListEntry, sequence order preserved)"
+pack_namespace = "1 (inside WeenieV1)"
+runtime_prepare = "generator_catalog.rs, generator_preparation/creatures.rs, region_service/refresh.rs"
+consumer = "generator_equipment.rs, npc_items.rs, vendors/preparation.rs (vendor stock), player_death_preparation/no_corpse.rs"
+status = "end_to_end"
+notes = "Vendor stock and NPC inventory are consumers. Some references unresolved in the pinned SQL presence audit (19 create-list ids); not removed."
+
+[[content]]
+category = "weenie emote and emote action (NPC talk, emotes, animations)"
+ace_tables = ["weenie_properties_emote", "weenie_properties_emote_action"]
+import = "sql_specs.rs; counts emote 71756, emote_action 154306; emote script schema emote_script_schema.rs"
+native_toml = "model.rs SparseProperties.emotes (Emote with ordered actions)"
+pack_namespace = "1 (inside WeenieV1)"
+runtime_prepare = "npc_recovery.rs prepare_npc_source (NativeProgram::prepare, bace-emotes), npc_sources.rs"
+consumer = "bace-emotes NativeProgram (npc_recovery.rs:57); simulation kernel/npc/source_state.rs"
+status = "partial"
+notes = "Blocks NPC talk and emote behaviour. bace-emotes 'Content action interpreter, conditions/branching, delayed sequences' remain in gameplay-parity; emotes are prepared and validated but not fully executed. Presence audit: 9 unresolved emote references."
+
+[[content]]
+category = "weenie generator"
+ace_tables = ["weenie_properties_generator"]
+import = "sql_specs.rs; count generator 21655"
+native_toml = "model.rs SparseProperties.generators (Generator, sequence preserved)"
+pack_namespace = "1 (inside WeenieV1)"
+runtime_prepare = "generator_catalog.rs, generator_preparation.rs"
+consumer = "bace-spawning generator_service (spawn-lifecycle foundation; generator timers, nested generators, region links)"
+status = "end_to_end"
+notes = "Generator timing and selection implemented per the pinned ACE lifecycle. Presence audit: 116 unresolved generator references (diagnostics only; treasure profiles may be legal)."
+
+[[content]]
+category = "weenie event filter"
+ace_tables = ["weenie_properties_event_filter"]
+import = "sql_specs.rs; count event_filter 4198"
+native_toml = "model.rs SparseProperties.event_filter (Vec<i32>)"
+pack_namespace = "1 (inside WeenieV1)"
+runtime_prepare = "world_content.rs templates only"
+consumer = "none found (grep of bace-runtime, bace-simulation, bace-emotes)"
+status = "prepared_only"
+notes = "Event filters are imported but no reader consumes them. Part of the emote/event dispatch that the emotes feature has not built."
+
+[[content]]
+category = "weenie book and book pages"
+ace_tables = ["weenie_properties_book", "weenie_properties_book_page_data"]
+import = "sql_specs.rs; counts book 1479, book_page_data 4919; lifestoned books also mapped (tests/lifestoned.rs)"
+native_toml = "model.rs Book (max chars, pages, ignore author) and book_pages: Vec<BookPage>; bace-content properties.rs page_text"
+pack_namespace = "1 (inside WeenieV1)"
+runtime_prepare = "world_content.rs templates only"
+consumer = "none (no reader of Book or book_pages in runtime or simulation). Wire BookDataResponse 0x00B4 is a constant only (bace-wire opcode_event.rs:25)."
+status = "prepared_only"
+notes = "Blocks Book Use (use-types.toml: Book missing). Needs a BookData encoder and a runtime read path. Authored pages are content, so the author fields stay in native TOML."
+
+[[content]]
+category = "landblock instances and instance links"
+ace_tables = ["landblock_instance", "landblock_instance_link"]
+import = "complete_world.rs (30 typed world-row families incl. these); counts landblock_instance 365195, landblock_instance_link 304360"
+native_toml = "bace-content world_record.rs LandblockInstance / LandblockInstanceLink rows (WorldRecordV1)"
+pack_namespace = "20 and 21 (WorldRecordV1 rows); index ns 2 (LandblockIndexV1 per landblock) and ns 3 (InstanceLinkIndexV1 per parent GUID)"
+runtime_prepare = "world_content.rs prepare: ns 2 lookup, bounded to 4096 instance+encounter ids; mapped_validation.rs validates link index"
+consumer = "region admission (world_content.rs -> region_service / region_activation); npc_region.rs"
+status = "end_to_end"
+notes = "Region population for instances is consumed. Link index (ns 3) is validated in mapped_validation.rs; I did not trace a runtime reader of the child-link lookup. Presence audit: 19 link children unresolved."
+
+[[content]]
+category = "encounter"
+ace_tables = ["encounter"]
+import = "complete_world.rs; count encounter 165465"
+native_toml = "WorldRecordV1::Encounter (EncounterRowV1)"
+pack_namespace = "17 (WorldRecordV1), listed in landblock index ns 2"
+runtime_prepare = "world_content.rs (encounter ids per landblock, 4096 cap)"
+consumer = "region_activation/generators.rs, region_activation/visibility.rs, region_activation/npc_recovery.rs, region_geometry.rs"
+status = "end_to_end"
+notes = "Encounters feed region activation. Population is consumed; encounter-specific behaviour follows the generator and NPC paths."
+
+[[content]]
+category = "event"
+ace_tables = ["event"]
+import = "complete_world.rs; count event 700"
+native_toml = "WorldRecordV1::Event (EventRowV1)"
+pack_namespace = "18"
+runtime_prepare = "none; accepted in content_inbox.rs only"
+consumer = "none (world-events feature scaffolded: scheduled event state and activation effects not built)"
+status = "prepared_only"
+notes = "Imports and publishes through the content inbox, but no runtime reader exists. Gated by the world-events feature (gameplay-parity status scaffolded)."
+
+[[content]]
+category = "house portal"
+ace_tables = ["house_portal"]
+import = "complete_world.rs; count house_portal 861"
+native_toml = "WorldRecordV1::HousePortal (HousePortalRowV1)"
+pack_namespace = "19"
+runtime_prepare = "none; content_inbox.rs only"
+consumer = "none (housing scaffolded: house portals remaining in gameplay-parity)"
+status = "prepared_only"
+notes = "Blocks house portal Use (use-types.toml: HousePortal missing). Needs the housing content and the portal recall path."
+
+[[content]]
+category = "points of interest"
+ace_tables = ["points_of_interest"]
+import = "complete_world.rs; count points_of_interest 62"
+native_toml = "WorldRecordV1::PointsOfInterest (PointsOfInterestRowV1)"
+pack_namespace = "22"
+runtime_prepare = "mapped_validation.rs only"
+consumer = "none"
+status = "prepared_only"
+notes = "Only 62 rows; no gameplay reader. Low impact."
+
+[[content]]
+category = "quest"
+ace_tables = ["quest"]
+import = "complete_world.rs; count quest 4237"
+native_toml = "WorldRecordV1::Quest (QuestRowV1); content inbox kind = quest"
+pack_namespace = "23"
+runtime_prepare = "content_inbox.rs (accepted into the mapped generation only)"
+consumer = "none for mapped quest rows. bace-quests is eligibility-only (explicit-time cooldown, solve ordering, signed range predicates); counters, contracts and rewards remain"
+status = "prepared_only"
+notes = "docs/content-inbox.md:81-83: gameplay consumption of mapped quest rows is integration work. Blocks quest turn-ins, quest-gated chests (ACE Chest.cs:145-171) and quest emotes."
+
+[[content]]
+category = "cook book"
+ace_tables = ["cook_book"]
+import = "complete_world.rs; count cook_book 44755"
+native_toml = "WorldRecordV1::CookBook (CookBookRowV1)"
+pack_namespace = "16"
+runtime_prepare = "content_inbox.rs (accepted); crafting catalog reloads recipes but cook_book rows are not read"
+consumer = "none found for cook_book rows; crafting uses recipe rows only"
+status = "prepared_only"
+notes = "Cookbook preparation is listed as remaining in the crafting feature. Blocks crafting recipe lookup by ingredient pair (ACE RecipeManager uses cook_book)."
+
+[[content]]
+category = "recipe, recipe_mod, recipe_mods_*, recipe_requirements_*"
+ace_tables = ["recipe", "recipe_mod", "recipe_mods_bool", "recipe_mods_d_i_d", "recipe_mods_float", "recipe_mods_i_i_d", "recipe_mods_int", "recipe_mods_string", "recipe_requirements_bool", "recipe_requirements_d_i_d", "recipe_requirements_float", "recipe_requirements_i_i_d", "recipe_requirements_int", "recipe_requirements_string"]
+import = "complete_world.rs; counts recipe 7272, recipe_mod 1479, recipe_mods_int 526, recipe_requirements_int 856 (others in import-report.toml)"
+native_toml = "WorldRecordV1 rows (ns 24-37); native recipe model in bace-crafting native_recipe.rs"
+pack_namespace = "24-37"
+runtime_prepare = "game_runtime/crafting/catalog.rs (reloads accepted recipe rows on the next crafting request)"
+consumer = "bace-crafting native_recipe.rs; bace-runtime crafting catalog (Confirmed immutable crafting, GDLE salvage yield). Special recipe scripts and tailoring remain"
+status = "end_to_end"
+notes = "Recipes are consumed for crafting. Complete cookbook preparation and special recipe scripts remain (gameplay-parity crafting remaining)."
+
+[[content]]
+category = "spell (world table)"
+ace_tables = ["spell"]
+import = "complete_world.rs; count spell 6266"
+native_toml = "WorldRecordV1::Spell (Box<SpellRowV1>)"
+pack_namespace = "38"
+runtime_prepare = "native_magic_assets.rs, generator_spell_assets.rs, server_magic_assets.rs"
+consumer = "bace-magic native.rs (native spell policy from pinned GDLE records); enchantments on equipment and generator items (equipment_effects.rs, generator_enchantments.rs, player_assets/enchantments.rs)"
+status = "partial"
+notes = "Spell data is consumed for enchantments and generator items. Casting, components, spell effects, projectiles and enchantment expiry for players are not implemented (magic feature scaffolded). Blocks spell Use, scrolls and switches."
+
+[[content]]
+category = "treasure death (ACE TreasureDeath)"
+ace_tables = ["treasure_death"]
+import = "complete_world.rs; count treasure_death 275"
+native_toml = "bace-content treasure: DeathTreasureV1 (separate TOML authoring schema, 16 fields) and WorldRecordV1::TreasureDeath (ns 39)"
+pack_namespace = "39 (rows); loot graph ns 46, rare profile ns 47"
+runtime_prepare = "generator_treasure.rs, generator_catalog.rs, treasure_assets.rs"
+consumer = "bace-loot death_treasure.rs, treasure_selection.rs; player_death_preparation/no_corpse.rs, olthoi.rs"
+status = "end_to_end"
+notes = "Death treasure is consumed by the loot feature (pinned ACE death treasure). Retail rare probabilities need an owner-configured profile (rare-evidence.toml)."
+
+[[content]]
+category = "treasure wielded"
+ace_tables = ["treasure_wielded"]
+import = "complete_world.rs; count treasure_wielded 5975"
+native_toml = "WorldRecordV1::TreasureWielded (ns 44)"
+pack_namespace = "44"
+runtime_prepare = "generator_treasure.rs, generator_equipment.rs, generator_catalog.rs"
+consumer = "bace-loot wielded_treasure.rs; generator equipment (generator_equipment.rs)"
+status = "end_to_end"
+notes = "Wielded treasure feeds generated creature equipment. Presence audit: 5 unresolved wielded classes (diagnostics only)."
+
+[[content]]
+category = "treasure material base, color, groups, gem count"
+ace_tables = ["treasure_material_base", "treasure_material_color", "treasure_material_groups", "treasure_gem_count"]
+import = "complete_world.rs; counts material_base 768, material_color 2187, material_groups 432, gem_count 486"
+native_toml = "WorldRecordV1 rows (ns 40-43)"
+pack_namespace = "40, 41, 42, 43"
+runtime_prepare = "treasure_assets.rs (prepared material and gem tables)"
+consumer = "treasure_assets.rs -> bace-loot (material, color, gem count selection; treasure_materials.rs)"
+status = "end_to_end"
+notes = "Material and gem selection use these rows. Mutation scripts remain in the loot code tables (see ACE static row below)."
+
+[[content]]
+category = "treasure table set (ACE pinned table set, native)"
+ace_tables = []
+import = "not a DB table: compiled from pinned ACE Factories/Tables and the loot oracle (bace-loot ace_tables/)"
+native_toml = "TreasureTableSetV1 (crates/content/bace-content-tools/src/loot_tables.rs)"
+pack_namespace = "52 (kind 27 schema 1, key = profile id 1)"
+runtime_prepare = "treasure_assets.rs; startup_assets.rs; game_bootstrap.rs. Missing or corrupt set blocks game startup (docs/pack-format.md)"
+consumer = "bace-loot/src/ace_tables/mod.rs (loot selection and mutation tables)"
+status = "end_to_end"
+notes = "Required at startup. Loot graphs (ns 46) and rare profiles (ns 47) are native and ride the same publication path. Rare probabilities are uncertain; owner profile required."
+
+[[content]]
+category = "ACE treasure code tables (Factories/Tables/*.cs: material, gem, spell, wcid, chance tables)"
+ace_tables = []
+import = "not a DB table; ported as constants in bace-loot (original table constants, oracle selection/mutations/spells)"
+native_toml = "none (constants, compiled into the crate)"
+pack_namespace = "none"
+runtime_prepare = "compiled, not prepared from a pack"
+consumer = "bace-loot ace_tables, oracle/selection, oracle/mutations, oracle/spells"
+status = "end_to_end"
+notes = "Pinned ACE Factories/Tables includes MaterialTable.cs, GemCountChance.cs, SpellLevelProgression.cs, Wcids, Spells and others. Their values are constants, not world data; the loot feature is implemented against them."
+
+[[content]]
+category = "character starter data"
+ace_tables = []
+import = "not a DB table; bace-runtime data/character-start.toml (pinned ACE starterGear.json conversion; 107 gear and 33 spell rows)"
+native_toml = "application/bace-runtime/data/character-start.toml -> CharacterStartProfileV1"
+pack_namespace = "none (standalone kind 22 schema 1, built-in server default, not in the world pack)"
+runtime_prepare = "character_preparation.rs, creation_profile.rs, creation_preparation_worker.rs"
+consumer = "bace-character factory_types.rs; game_runtime/creation.rs (character creation)"
+status = "end_to_end"
+notes = "Two starter-item property aliases were corrected (divergences register row starter-gear-property-case). Creation runtime composition is in progress per the register."
+
+[[content]]
+category = "creature-name index (derived)"
+ace_tables = ["weenie (PropertyString.Name, Creature type)"]
+import = "derived at compile time (world_pack.rs); no SQL table"
+native_toml = "none (derived)"
+pack_namespace = "48 (kind 23 schema 1, key 1)"
+runtime_prepare = "creation_profile.rs (name policy at startup); bounded 8 MiB"
+consumer = "bace-runtime creation_profile.rs (name policy)"
+status = "end_to_end"
+notes = "A legacy pack without this index disables the configured name check unless recompiled (docs/pack-format.md). Accepted pack has it (3 extra records over the 1,011,977 base count)."
+
+[[content]]
+category = "template-class index (derived)"
+ace_tables = ["weenie (weenie_type)"]
+import = "derived"
+native_toml = "none (derived)"
+pack_namespace = "49 (kind 24 schema 1, key 1)"
+runtime_prepare = "region_activation/startup.rs; portal_preparation/locations.rs"
+consumer = "region_activation/startup.rs and portal_preparation/locations.rs"
+status = "end_to_end"
+notes = "Validated against canonical weenies at offline acceptance."
+
+[[content]]
+category = "clothing base patches (native overlay, not ACE world)"
+ace_tables = []
+import = "content-studio/native (clothing_import.rs, clothing_export.rs)"
+native_toml = "ClothingPatchV1 (clothing/ inbox directory)"
+pack_namespace = "50 (kind 25, keyed by ClothingBase DID)"
+runtime_prepare = "content_inbox.rs (accepted); native_publication.rs"
+consumer = "player_entry/appearance.rs reads ClothingBase DID from the object, not the patch record"
+status = "prepared_only"
+notes = "docs/content-inbox.md:81-83: gameplay consumption of ClothingBase overrides is integration work."
+
+[[content]]
+category = "animation swap patches (native overlay, not ACE world)"
+ace_tables = []
+import = "native / asset overlay"
+native_toml = "AnimationSwapPatchV1"
+pack_namespace = "51 (kind 26, keyed by Animation DID)"
+runtime_prepare = "rejected by live publication until runtime motion preparation resolves the accepted overlay (pack-format.md)"
+consumer = "bace-asset-overlay animation.rs (offline preview only)"
+status = "prepared_only"
+notes = "Live publication rejects it. Offline preview only."
+
+[[content]]
+category = "version and metadata"
+ace_tables = ["version"]
+import = "complete_world.rs; count version 1"
+native_toml = "WorldRecordV1::Version (VersionRowV1)"
+pack_namespace = "45"
+runtime_prepare = "none"
+consumer = "none (schema metadata)"
+status = "prepared_only"
+notes = "Metadata row, no gameplay effect."
+
+# ---------------------------------------------------------------------------
+# Summary: gaps ordered by gameplay impact (what blocks the named systems first).
+# ---------------------------------------------------------------------------
+
+[summary]
+total_rows = 30
+end_to_end = 17
+partial = 3
+prepared_only = 10
+gap = 0
+accepted_pack_path = ".local/world-packs-current (server.toml pack_directory); the two manifests there (fdb4...rev 3, 9e13...rev 1) both reference 7a270ae7a3d62299acbc7077fbef1dc2a44605e145f1c614513150839225b6d1.bace"
+accepted_pack_size_bytes = 219702913
+accepted_pack_base_records = 1011980
+earlier_base_present_not_referenced = "2af5637ef59398f91d556ad20177b5aead61986c65d4b3395bd000c17fa601f1.bace, 214059573 bytes, 1011977 records (the pinned v0.9.295 conversion in pack-format.md); not referenced by either manifest"
+startup_measurement = "docs/implementation-status.md:1068, 1118, 1155: startup to game services 1.596-3.286 s at 170-171 MiB RSS (whole process, not pack-open alone). No isolated pack-open time or RSS measurement found in docs. Mapped open is lazy: pack-format.md 'bounded lazy integrity checks'."
+
+# Blocker order, most impactful first (gameplay consequence in parentheses):
+# 1. NPC talk and emotes: emote + emote_action are partial (bace-emotes program prepared; interpreter incomplete);
+#    event_filter prepared_only (no reader). Blocks NPC greetings, Talk, and authored emote sequences.
+# 2. Quests: quest prepared_only (4237 rows; only bace-quests eligibility). Blocks quest turn-ins, quest chests and quest-gated emotes.
+# 3. Crafting: recipe family end_to_end, cook_book prepared_only (44755 rows never read). Blocks ingredient-pair cookbook lookup.
+# 4. Books: book + book_page_data prepared_only (no reader; no BookData encoder). Blocks Book Use and authored text.
+# 5. Houses: house_portal prepared_only (861 rows); house data in housing scaffolded. Blocks house portals and slumlord content.
+# 6. Spells: spell partial (6266 rows used for enchantments/generators; casting missing). Blocks spell Use, scrolls, switches.
+# 7. World events: event prepared_only (700 rows). Blocks scheduled events.
+# 8. Points of interest, version: prepared_only, low impact.
+# 9. Patches (clothing 50, animation swap 51): prepared_only; live publication rejects animation swaps.
+#
+# Gaps not in the ACE world table set but needed by the pinned pipeline: none found.

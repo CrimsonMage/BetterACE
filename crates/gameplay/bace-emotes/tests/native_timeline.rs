@@ -81,6 +81,23 @@ fn program(delay: f32) -> Arc<NativeProgram> {
         .unwrap(),
     )
 }
+
+#[test]
+fn approved_five_day_event_delay_is_bounded_without_rejecting_source_content() {
+    let set = |delay| Emote {
+        category: 9,
+        probability: 1.0,
+        actions: vec![EmoteAction {
+            r#type: 24,
+            delay,
+            message: Some("EventClutchKingsPrimary".into()),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    assert!(NativeProgram::prepare(vec![set(432_000.0)], NativeLimits::default()).is_ok());
+    assert!(NativeProgram::prepare(vec![set(604_801.0)], NativeLimits::default()).is_err());
+}
 #[test]
 fn pinned_unchanged_enqueue_methods_match_actual_execution_delays_and_nested_order() {
     let mut groups: BTreeMap<String, Vec<(u32, f64)>> = BTreeMap::new();

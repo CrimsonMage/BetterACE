@@ -43,13 +43,7 @@ impl StaffNativeMagicAssets {
         manifest: &RegionAssetManifest,
         generation: Arc<PackGeneration>,
     ) -> Result<Self, String> {
-        if manifest.portal_sha256.len() != 64
-            || bace_dat::fingerprint(&manifest.portal).map_err(|e| e.to_string())?
-                != manifest.portal_sha256
-        {
-            return Err("unapproved native magic DAT fingerprint".into());
-        }
-        let mut portal = DatArchive::open(&manifest.portal).map_err(|e| e.to_string())?;
+        let mut portal = manifest.portal_archive()?;
         if portal.header().dataset != 1 {
             return Err("native magic DAT dataset".into());
         }

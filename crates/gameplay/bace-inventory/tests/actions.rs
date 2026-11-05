@@ -554,6 +554,87 @@ fn pet_device_consumes_structure_without_consuming_the_item_stack() {
 }
 
 #[test]
+fn healer_spends_one_structure_on_attempt_and_removes_empty_kit() {
+    // ACE Healer.DoHealing decrements UsesLeft before the skill check; the
+    // cached weenie's Value / MaxStructure fixes the per-use value loss.
+    let mut kit = item(100, place(0));
+    kit.stack = 1;
+    kit.structure = Some(2);
+    kit.unit_value = 67;
+    let containers = [container()];
+    let items = [kit.clone()];
+    let view = InventoryView {
+        items: &items,
+        containers: &containers,
+    };
+    let charged = propose_healing_kit_charge(Id(1), kit.id, Some(3), Some(100), view).unwrap();
+    let after = &charged.changes[0].after;
+    assert_eq!(after.structure, Some(1));
+    assert_eq!(after.unit_value, 34);
+    assert_eq!(after.stack, 1);
+    assert_eq!(after.revision, kit.revision + 1);
+    assert_eq!(items[0], kit);
+
+    let mut last = kit.clone();
+    last.structure = Some(1);
+    last.unit_value = 34;
+    let items = [last];
+    let consumed = propose_healing_kit_charge(
+        Id(1),
+        kit.id,
+        Some(3),
+        Some(100),
+        InventoryView {
+            items: &items,
+            containers: &containers,
+        },
+    )
+    .unwrap();
+    assert_eq!(consumed.changes[0].after.structure, Some(0));
+    assert_eq!(consumed.changes[0].after.place, ItemPlace::Removed);
+    assert_eq!(consumed.changes[0].after.stack, 0);
+}
+
+#[test]
+fn healer_charge_rejects_stale_or_impossible_structure() {
+    let mut kit = item(100, place(0));
+    kit.stack = 1;
+    kit.structure = Some(0);
+    let containers = [container()];
+    let items = [kit.clone()];
+    assert_eq!(
+        propose_healing_kit_charge(
+            Id(1),
+            kit.id,
+            Some(3),
+            Some(100),
+            InventoryView {
+                items: &items,
+                containers: &containers
+            }
+        ),
+        Err(E::Requirements)
+    );
+    assert_eq!(items[0], kit);
+    kit.structure = Some(4);
+    let items = [kit.clone()];
+    assert_eq!(
+        propose_healing_kit_charge(
+            Id(1),
+            kit.id,
+            Some(3),
+            Some(100),
+            InventoryView {
+                items: &items,
+                containers: &containers
+            }
+        ),
+        Err(E::Requirements)
+    );
+    assert_eq!(items[0], kit);
+}
+
+#[test]
 fn split_uses_fresh_template_and_all_failures_preserve_source() {
     let mut source = item(0x80000010, place(0));
     source.unit_value = 99;

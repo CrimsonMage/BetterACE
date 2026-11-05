@@ -68,6 +68,38 @@ fn terrain_query_retains_plane_slope_and_building_attachment() {
     );
 }
 #[test]
+fn authored_static_portal_keeps_terrain_collision_and_rejects_invalid_spawns() {
+    let region = terrain();
+    let shape = std::sync::Arc::new(
+        CollisionShape::prepare(
+            vec![CollisionSphere {
+                center: Vec3::ZERO,
+                radius: 1.0,
+            }],
+            0.0,
+            0.0,
+        )
+        .unwrap(),
+    );
+    let spawn = |cell, z, speed| GeometrySpawn {
+        cell,
+        position: Vec3::new(8.0, 7.0, z),
+        shape: shape.clone(),
+        capabilities: Capabilities {
+            speed,
+            jump_impulse: 0.0,
+        },
+        heading: 0.0,
+        maximum_turn_rate: 0.0,
+    };
+    assert!(Body::spawn_geometry(&region, spawn(0x12340001, 4.1, 0.0)).is_err());
+    let body = Body::spawn_authored_static_geometry(&region, spawn(0x12340001, 4.1, 0.0)).unwrap();
+    assert!(body.collision_shape().is_some());
+    assert!(Body::spawn_authored_static_geometry(&region, spawn(0x12340002, 4.1, 0.0)).is_err());
+    assert!(Body::spawn_authored_static_geometry(&region, spawn(0x12340001, 3.0, 0.0)).is_err());
+    assert!(Body::spawn_authored_static_geometry(&region, spawn(0x12340001, 4.1, 1.0)).is_err());
+}
+#[test]
 fn geometry_body_cannot_be_relocated_or_advanced_by_synthetic_scene() {
     let shape = std::sync::Arc::new(
         CollisionShape::prepare(

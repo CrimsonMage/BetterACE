@@ -2,11 +2,70 @@
 //! never all world templates. Run exclusively on bounded cold preparation capacity.
 use super::*;
 use bace_storage_codec::{PackKey, PackLookup};
+
+pub(crate) struct StartupWorldIndex {
+    pub classes: bace_content::TemplateClassIndexV1,
+    pub corpse_template: u32,
+}
+
+/// Two hot accepted-pack records; all region templates stay mapped and lazy.
+pub(crate) fn load_startup_world_index(
+    generation: &PackGeneration,
+    treasure_table_set_id: u32,
+) -> Result<StartupWorldIndex, String> {
+    let PackLookup::Record(table_record) = generation
+        .lookup(PackKey {
+            namespace: 52,
+            id: u64::from(treasure_table_set_id),
+        })
+        .map_err(|e| e.to_string())?
+    else {
+        return Err("accepted treasure table set missing".into());
+    };
+    if table_record.schema() != 1 {
+        return Err("unsupported treasure table set schema".into());
+    }
+    let table_set = bace_content_tools::decode_treasure_table_set(table_record.bytes())?;
+    if table_set.id != treasure_table_set_id {
+        return Err("treasure table set identity mismatch".into());
+    }
+    bace_loot::ace_tables::install(table_set)?;
+    let PackLookup::Record(classes) = generation
+        .lookup(PackKey {
+            namespace: 49,
+            id: 1,
+        })
+        .map_err(|e| e.to_string())?
+    else {
+        return Err("startup requires accepted class-name index".into());
+    };
+    let classes = bace_content_tools::decode_template_classes(classes.bytes())?;
+    let corpse_template = classes
+        .entries
+        .iter()
+        .find(|entry| entry.class_name == "corpse")
+        .ok_or("accepted corpse class missing")?
+        .template;
+    Ok(StartupWorldIndex {
+        classes,
+        corpse_template,
+    })
+}
 impl VerifiedRegionAssets {
     pub fn prepare_runtime_startup_assets(
         &mut self,
         generation: &Arc<PackGeneration>,
         policy: crate::startup_assets::StartupAssetPolicy,
+    ) -> Result<crate::game_runtime::GameRuntimeStartupAssets, String> {
+        self.prepare_runtime_startup_assets_traced(generation, policy, None, None)
+    }
+
+    pub(crate) fn prepare_runtime_startup_assets_traced(
+        &mut self,
+        generation: &Arc<PackGeneration>,
+        policy: crate::startup_assets::StartupAssetPolicy,
+        trace: Option<&crate::startup_trace::StartupTrace>,
+        preloaded_world_index: Option<StartupWorldIndex>,
     ) -> Result<crate::game_runtime::GameRuntimeStartupAssets, String> {
         if generation.revision() == 0
             || policy.treasure_table_set_id == 0
@@ -20,39 +79,16 @@ impl VerifiedRegionAssets {
         {
             return Err("invalid startup asset policy".into());
         }
-        let PackLookup::Record(table_record) = generation
-            .lookup(PackKey {
-                namespace: 52,
-                id: u64::from(policy.treasure_table_set_id),
-            })
-            .map_err(|e| e.to_string())?
-        else {
-            return Err("accepted treasure table set missing".into());
+        let StartupWorldIndex {
+            classes,
+            corpse_template,
+        } = if let Some(index) = preloaded_world_index {
+            index
+        } else {
+            let _step = trace.map(|trace| trace.step("load accepted treasure and class indexes"));
+            load_startup_world_index(generation, policy.treasure_table_set_id)?
         };
-        if table_record.schema() != 1 {
-            return Err("unsupported treasure table set schema".into());
-        }
-        let table_set = bace_content_tools::decode_treasure_table_set(table_record.bytes())?;
-        if table_set.id != policy.treasure_table_set_id {
-            return Err("treasure table set identity mismatch".into());
-        }
-        bace_loot::ace_tables::install(table_set)?;
-        let PackLookup::Record(classes) = generation
-            .lookup(PackKey {
-                namespace: 49,
-                id: 1,
-            })
-            .map_err(|e| e.to_string())?
-        else {
-            return Err("startup requires accepted class-name index".into());
-        };
-        let classes = bace_content_tools::decode_template_classes(classes.bytes())?;
-        let corpse_template = classes
-            .entries
-            .iter()
-            .find(|entry| entry.class_name == "corpse")
-            .ok_or("accepted corpse class missing")?
-            .template;
+        let _step = trace.map(|trace| trace.step("load startup spell rows"));
         let mut budget = 64 * 1024 * 1024usize;
         let mut rows = BTreeMap::new();
         let mut cursor = Some(PackKey {
@@ -86,6 +122,8 @@ impl VerifiedRegionAssets {
                 rows.insert(row.id, *row);
             }
         }
+        drop(_step);
+        let _step = trace.map(|trace| trace.step("decode startup portal DAT tables"));
         let spells = bace_dat::SpellTable::decode(&read(
             &mut self.portal,
             bace_dat::SpellTable::RECORD_ID,
@@ -123,6 +161,8 @@ impl VerifiedRegionAssets {
         if component_templates.is_empty() || component_templates.len() > 4096 {
             return Err("startup component template capacity".into());
         }
+        drop(_step);
+        let _step = trace.map(|trace| trace.step("prepare startup projectile assets"));
         let projectile_ids: BTreeSet<_> = rows
             .values()
             .filter_map(|row| row.wcid)
@@ -155,6 +195,8 @@ impl VerifiedRegionAssets {
         }
         let projectile_visibility =
             self.prepare_projectile_visibility_templates(&projectile_sources)?;
+        drop(_step);
+        let _step = trace.map(|trace| trace.step("prepare startup treasure assets"));
         let template_ids = bace_loot::pinned_treasure_templates()
             .map_err(|e| format!("treasure source closure: {e:?}"))?;
         let header = self.portal.header();
@@ -174,6 +216,12 @@ impl VerifiedRegionAssets {
             &mut self.portal,
             version,
         )?;
+        drop(_step);
+        let _step = trace.map(|trace| trace.step("prepare startup recall locations"));
+        let recall_locations = Arc::new(crate::portal_preparation::prepare_recall_locations(
+            generation, &classes,
+        )?);
+        drop(_step);
         let creatures = crate::generator_preparation::CreatureAdmissionPolicy {
             corpse_template,
             think_interval: policy.creature_think_interval,
@@ -191,9 +239,7 @@ impl VerifiedRegionAssets {
                 creatures,
                 policy: policy.player,
             },
-            recall_locations: Arc::new(crate::portal_preparation::prepare_recall_locations(
-                generation, &classes,
-            )?),
+            recall_locations,
             staff_magic,
             levels,
             treasure,

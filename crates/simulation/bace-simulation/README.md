@@ -14,6 +14,30 @@ Generic activation effects beyond plain requirements remain held.
 
 Status: foundation.
 
+ManaStone single-target `UseWithTarget` now holds source/target item revisions
+with the current equipment-mana owner. Exact durable inventory receipt adopts
+both; a rejected or forged receipt leaves current mana unchanged. The focused
+owner test covers that fence. Self-target equipped-item distribution and
+extraction that would destroy equipped gear are not admitted by this live path.
+
+Out-of-range player `Use` of a world NPC now binds a bounded server-owned
+MoveToObject goal. Each poll checks accepted cylinder distance and collision;
+only arrival starts the NPC's category-7 source emote. The 450-tick timeout,
+disconnect cleanup, and sweep-backed movement keep the client pose untrusted.
+Source order follows pinned ACE `Player_Use.HandleActionUseItem` and
+`Player_Move.CreateMoveToChain`; exact retail animation and timing remain
+unverified. The synthetic `native_npc` test exercises separated arrival and
+delayed activation.
+
+Cold region admission retains physical qualities for nonattackable stationary
+Creatures even when they have no attack motion program. Such profiles may enter
+the physical owner without registering an empty motion chain; attackable
+profiles still require prepared motions. Generated births use the same inert
+profile rule after equipment refresh. The approved e74e region regression
+exercises the complete simulation-owner admission path for the source event
+controller and linked sign. Pinned ACE `Creature.SetEphemeralValues` supplies
+missing zero-valued creature attributes/vitals rather than rejecting them.
+
 Default Shop Buy now has a simulation-owned reservation after accepted vendor
 stock is lazy-loaded. It quotes pinned source terms, selects coin stacks in ACE
 inventory order, and holds one inventory proposal behind source, stock and
@@ -159,9 +183,16 @@ the corresponding specialized defense and prepared shield absorption projection.
 No actor task, wall clock, I/O or additional mutable character owner is introduced.
 
 Read-only accepted projection APIs expose Healing's skill/difficulty bonus,
-all three defense ratings and the physical shield cap. A complete healer use,
-kit consumption/vital transaction and missile-weapon attack pipeline remain
-unsupported; these projection APIs do not report healing or missile damage success.
+all three defense ratings and the physical shield cap. Source-prepared self
+HealingKit Use now starts the verified SkillHealSelf motion and spends Structure
+only after its authoritative completion. A cancelled or disrupted motion has no
+charge. The simulation owner reserves the kit, character revision and affected
+vitals, then adopts the finite kit/value and player vital/stamina changes after
+one exact durable receipt. UnlimitedUse holds the kit but commits a player-only
+operation with no manufactured item revision. The current target is the player
+using the kit; healing another player, source proficiency advancement and retail
+motion playback remain unverified/unsupported. The missile-weapon attack pipeline remains
+unsupported; these projections alone do not report missile damage success.
 Full physical weapon/armor/critical calculations also remain separate from the
 prepared scalar melee path. These boundaries are not a stock-client parity claim.
 

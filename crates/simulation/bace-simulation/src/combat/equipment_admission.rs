@@ -92,7 +92,7 @@ impl Combat {
         if !profile.player
             || profile.equipment.len() > 64
             || prepared.motions.is_empty()
-            || prepared.motions.len() > 64
+            || prepared.motions.len() > 128
         {
             return Err(SkillRefreshError::InvalidInput);
         }
@@ -102,7 +102,7 @@ impl Combat {
             .filter(|k| k.0 == actor)
             .count();
         if self.physical_motions.len() - existing + prepared.motions.len()
-            > self.capacity.saturating_mul(64)
+            > self.capacity.saturating_mul(128)
         {
             return Err(SkillRefreshError::Capacity);
         }

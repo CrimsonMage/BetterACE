@@ -32,18 +32,13 @@ pub(super) fn within_use_radius(
     target: EntityId,
     radius: f32,
 ) -> Result<bool, NpcFailure> {
-    if !radius.is_finite() {
-        return Err(NpcFailure::InvalidInput);
-    }
-    let (_, clear) = world
-        .attack_geometry(actor, target, 0.)
-        .map_err(|_| NpcFailure::MissingActor)?;
-    if !clear {
-        return Ok(false);
-    }
-    let distance = bace_emotes::cylinder_distance(cylinder(world, actor)?, cylinder(world, target)?)
-        .map_err(|_| NpcFailure::InvalidInput)? as f32;
-    Ok(distance <= radius)
+    crate::kernel::world_use::within_use_radius(world, actor, target, radius).map_err(|error| {
+        match error {
+            crate::kernel::world_use::WorldUseError::InvalidRadius => NpcFailure::InvalidInput,
+            crate::kernel::world_use::WorldUseError::MissingActor => NpcFailure::MissingActor,
+            crate::kernel::world_use::WorldUseError::MissingContent => NpcFailure::MissingContent,
+        }
+    })
 }
 impl Npcs {
     pub(crate) fn signal(

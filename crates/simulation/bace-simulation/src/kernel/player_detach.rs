@@ -94,6 +94,18 @@ impl Kernel {
         let (items, containers) = self.inventory.detach_player(request.binding.actor);
         self.pets.owners.remove(&request.binding.actor);
         self.combat.retire_actor(request.binding.actor);
+        if let Some(approach) = self.npc_player_uses.remove(&request.binding.actor) {
+            self.finish_player_npc_approach(&approach);
+        }
+        if let Some(approach) = self
+            .recalls
+            .binding_approaches
+            .remove(&request.binding.actor)
+        {
+            approach
+                .movement
+                .stop(&mut self.world, request.binding.actor);
+        }
         let actor = self
             .world
             .remove(request.binding.actor)

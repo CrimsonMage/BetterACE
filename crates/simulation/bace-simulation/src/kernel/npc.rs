@@ -11,6 +11,7 @@ mod handin;
 mod inventory;
 mod motion;
 mod movement;
+pub(super) mod player_use;
 mod skill_reset;
 mod source_inventory;
 mod source_state;
@@ -44,22 +45,7 @@ impl Kernel {
         {
             return Err(bace_gameplay_api::NpcFailure::InvalidInput);
         }
-        self.start_npc_emote(
-            source,
-            Some(context.actor),
-            bace_emotes::NativeTrigger {
-                category: 7,
-                ..Default::default()
-            },
-            event,
-            operation,
-            true,
-        )
-        .map_err(|error| match error {
-            bace_emotes::NativeError::Owner(error) => error,
-            bace_emotes::NativeError::Busy => bace_gameplay_api::NpcFailure::DurabilityPending,
-            _ => bace_gameplay_api::NpcFailure::InvalidInput,
-        })
+        self.begin_player_npc_use(context, source, event, operation)
     }
 
     pub fn preview_npc_owner_completion(

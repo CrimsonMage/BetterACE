@@ -45,6 +45,18 @@ pub fn prepare_visibility_object(
         return Err("visibility identity/revision".into());
     }
     let creature = crate::generator_preparation::is_creature_template(source.source.weenie_type);
+    let generated = if creature {
+        crate::npc_appearance::generate(
+            source.source,
+            source.entity.0,
+            source.incarnation,
+            assets.chargen,
+            assets.palettes,
+        )?
+    } else {
+        None
+    };
+    let body = generated.as_ref().unwrap_or(source.source);
     let equipment: Vec<_> = source
         .equipment
         .iter()
@@ -52,23 +64,36 @@ pub fn prepare_visibility_object(
         .collect();
     let (children, attachments) =
         prepare_entry_attachments(source.entity.0, &equipment, source.missile_combat)?;
+    // Creature_Networking.CalculateObjDesc reads CurrentWieldedLocation from
+    // each equipped object's qualities. Generator and region sources retain
+    // their authored template, while accepted custody carries the live slot.
+    let worn: Vec<_> = source
+        .equipment
+        .iter()
+        .map(|(_, item, location)| {
+            let mut item = (*item).clone();
+            if let Some(row) = item.properties.ints.iter_mut().find(|row| row.id == 10) {
+                row.value = *location as i32;
+            } else {
+                item.properties.ints.push(bace_content::Property {
+                    id: 10,
+                    value: *location as i32,
+                });
+                item.properties.ints.sort_by_key(|row| row.id);
+            }
+            item
+        })
+        .collect();
     let appearance = if creature {
-        prepare_creature_model(
-            source.source,
-            &equipment
-                .iter()
-                .map(|(_, item, _)| *item)
-                .collect::<Vec<_>>(),
-            assets,
-        )?
+        prepare_creature_model(body, &worn.iter().collect::<Vec<_>>(), assets)?
     } else {
-        prepare_item_model(source.source, assets)?
+        prepare_item_model(body, assets)?
     };
-    let mut live = state(source.source, assets, creature)?;
+    let mut live = state(body, assets, creature)?;
     live.children = children;
     let description = Arc::new(prepare_entry_object(
         source.entity.0,
-        source.source,
+        body,
         appearance,
         live,
     )?);

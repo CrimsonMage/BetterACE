@@ -1,0 +1,1125 @@
+# P0-J motion gap list (read-only). No crate or docs edits were made.
+# ACE pin: 47edade3bd3f6044b676d4eb877c4965c7eda62b, read from .reference/ACE-47edade3bd3f6044b676d4eb877c4965c7eda62b/Source.
+# GDLE pin: gdlenhanced 353cbab (Source/PhatSDK).
+# Authority (docs/baselines.toml): ACE for player/default motion; GDLE for monster movement and player cast movement.
+# status: implemented = behaviour present and traceable; partial = present but a named branch/parameter is absent; missing = absent.
+
+[meta]
+ace_root = ".reference/ACE-47edade3bd3f6044b676d4eb877c4965c7eda62b/Source/ACE.Server/Physics"
+gdle_root = "gdlenhanced/Source/PhatSDK"
+bace_motion = "crates/simulation/bace-motion/src"
+bace_physics = "crates/simulation/bace-physics/src"
+name_correction = "ACE has no MotionTableManager.cs under Animation/. It lives at Physics/Managers/MotionTableManager.cs. Likewise MovementManager, MoveToManager, StickyManager, ConstraintManager, InterpolationManager, PositionManager and TargetManager are all under Physics/Managers/. Animation/ holds MotionTable, MotionInterp, Sequence, AnimSequenceNode and the state structs. AnimSequenceNode.cs is under Animation/."
+gdle_name_correction = "GDLE has no MotionInterp.cpp or MoveToManager.cpp. CMotionInterp is in PhatSDK/MovementManager.cpp (lines 264-1124). CMoveToManager is in PhatSDK/MovementManager.cpp (lines 1142-2080). CSequence is in PhatSDK/PartArray.cpp (lines 18-450). CMotionTable and MotionTableManager are in PhatSDK/MotionTable.cpp."
+
+# ---------------------------------------------------------------------------
+# 1+2) ACE behaviours, with BACE status
+# ---------------------------------------------------------------------------
+
+# ---- MotionTable (Animation/MotionTable.cs) ----
+
+[[behaviours]]
+id = "MT-01"
+class = "MotionTable"
+behaviour = "GetObjectSequence Style branch: switch style, use previous style default substate for destination cycle, re-apply modifiers"
+ace_ref = "Animation/MotionTable.cs:74-107"
+gdle_ref = "PhatSDK/MotionTable.cpp:877 (DoObjectMotion)"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/style_chain.rs:7-103"
+notes = "Matches ACE: the destination cycle uses the previous style default substate (style_chain.rs header)."
+
+[[behaviours]]
+id = "MT-02"
+class = "MotionTable"
+behaviour = "GetObjectSequence SubState branch: cycle lookup (style then default style), is_allowed, same-substate speed-only mutation (change_cycle_speed + subtract/combine), substate change with link and default-motion fallback, bitfield 1 clears modifiers"
+ace_ref = "Animation/MotionTable.cs:109-157"
+gdle_ref = "PhatSDK/MotionTable.cpp:877"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/action_chain.rs:157-230 (resolve_sequence substate branch)"
+notes = "Missing: same-substate speed-only mutation (action_chain.rs:157-158 says it is explicitly unsupported and needs a live cursor). Missing: clear_modifiers when bitfield 1 is set. Only part of is_allowed (bitfield 2 check at action_chain.rs:192-195) is applied."
+
+[[behaviours]]
+id = "MT-03"
+class = "MotionTable"
+behaviour = "GetObjectSequence Action branch: add_action when link exists; fallback via default substate with cycle reuse; TooManyActions is checked by MotionInterp, not here"
+ace_ref = "Animation/MotionTable.cs:156-208"
+gdle_ref = "PhatSDK/MotionTable.cpp:877"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/action_chain.rs:66-158 (resolve_action)"
+notes = "Fallback chain (unit, action, unit back) matches ACE link, default and motionData_ parts. Action queue state (add_action) is missing; see MI-19."
+
+[[behaviours]]
+id = "MT-04"
+class = "MotionTable"
+behaviour = "GetObjectSequence Modifier branch: bitfield-1 check on cycle, Modifiers lookup by style then global, add_modifier (stop-and-retry on overflow), combine_motion"
+ace_ref = "Animation/MotionTable.cs:210-258"
+gdle_ref = "PhatSDK/MotionTable.cpp:877"
+bace_status = "missing"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:507-512 (modifier only treated as a barrier)"
+notes = "No modifier branch resolver exists. The DAT modifiers map is loaded (crates/assets/bace-dat/src/motion_table.rs:29,98) but never resolved."
+
+[[behaviours]]
+id = "MT-05"
+class = "MotionTable"
+behaviour = "StopSequenceMotion: SubState stop calls GetObjectSequence(default substate, stopModifiers=true); Modifier stop finds the active modifier, subtracts physics, removes it"
+ace_ref = "Animation/MotionTable.cs:320-357"
+gdle_ref = "PhatSDK/MotionTable.cpp:579"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:102-115 (stop chain), :465 (append_stop)"
+notes = "Stop chains can be attached and appended. The stop computation for substate and modifier stops is not in bace-motion. Modifier subtraction is missing."
+
+[[behaviours]]
+id = "MT-06"
+class = "MotionTable"
+behaviour = "StopObjectCompletely: remove all modifiers (speed 1.0), then set default state and queue Ready"
+ace_ref = "Animation/MotionTable.cs:293-313"
+gdle_ref = "PhatSDK/MotionTable.cpp:624"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/death.rs:1-8 (Motion_Dead path only)"
+notes = "Only the StopCompletely to Motion_Dead chain is prepared. General StopCompletely and modifier clearing are missing."
+
+[[behaviours]]
+id = "MT-07"
+class = "MotionTable"
+behaviour = "SetDefaultState: clear modifiers and actions, set Style=DefaultStyle and Substate=StyleDefaults[DefaultStyle], SubstateMod=1, load that cycle"
+ace_ref = "Animation/MotionTable.cs:266-291"
+gdle_ref = "PhatSDK/MotionTable.cpp:671"
+bace_status = "missing"
+bace_ref = "crates/simulation/bace-motion/src/locomotion.rs:11-18 (LocomotionProfile.ready holds physics only)"
+notes = "No default-state transition exists. Ready physics is stored, but the state reset is not."
+
+[[behaviours]]
+id = "MT-08"
+class = "MotionTable"
+behaviour = "get_link: forward key (style<<16 | substate, motion) then (style<<16, motion); reversed (speed<0) key (style|motion, substate) then (style|substate, defaultMotion)"
+ace_ref = "Animation/MotionTable.cs:395-426"
+gdle_ref = "PhatSDK/MotionTable.cpp:813"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/action_chain.rs:44-64 (resolve_link)"
+notes = "Checked line-by-line against ACE. Both directions and both fallbacks match."
+
+[[behaviours]]
+id = "MT-09"
+class = "MotionTable"
+behaviour = "add_motion: velocity*speed, omega*speed, one AnimData per anim scaled by speed"
+ace_ref = "Animation/MotionTable.cs:358-369"
+gdle_ref = "PhatSDK/PartArray.cpp:425 (CSequence::append_animation)"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:169-270 (prepare)"
+notes = "Rates and clip order are prepared off-thread into an immutable chain."
+
+[[behaviours]]
+id = "MT-10"
+class = "MotionTable"
+behaviour = "change_cycle_speed: multiply cyclic framerate by speedMod/substateMod; if |substateMod| is ~0 and |speedMod| is ~0, set rate 0"
+ace_ref = "Animation/MotionTable.cs:372-378; Animation/Sequence.cs:277"
+gdle_ref = "PhatSDK/PartArray.cpp:61 (multiply_cyclic_animation_framerate)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:321 (same-substate update changes rate only); crates/simulation/bace-motion/src/rate_model.rs:127-130 (retime_current_action)"
+notes = "The rate-role model exists. The zero-speed branch and the live-cursor application are not evidenced."
+
+[[behaviours]]
+id = "MT-11"
+class = "MotionTable"
+behaviour = "combine_motion / subtract_motion: add or remove a motion's velocity and omega (for modifiers and stops)"
+ace_ref = "Animation/MotionTable.cs:381-393; Animation/Sequence.cs:83-88, 345-349"
+gdle_ref = "PhatSDK/PartArray.cpp:407-418"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/rate_model.rs:37-48 (modifier physics added); no subtract path"
+notes = "Only additive modifier physics exists. Subtraction on modifier stop is missing (see MT-05)."
+
+[[behaviours]]
+id = "MT-12"
+class = "MotionTable"
+behaviour = "is_allowed: bitfield 2 motions allowed only when motion equals current substate or the default substate equals current substate"
+ace_ref = "Animation/MotionTable.cs:428-438"
+gdle_ref = "PhatSDK/MotionTable.cpp:877"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/action_chain.rs:191-195"
+notes = "Only the 'motion != current and default != current' rejection is present. The equality exception path is implicit."
+
+[[behaviours]]
+id = "MT-13"
+class = "MotionTable"
+behaviour = "re_modify: after a substate or style change, re-apply each active modifier through GetObjectSequence"
+ace_ref = "Animation/MotionTable.cs:440-460"
+gdle_ref = "PhatSDK/MotionTable.cpp:857"
+bace_status = "missing"
+bace_ref = ""
+notes = "Depends on MT-04 and MI-19. No modifier list exists to re-apply."
+
+[[behaviours]]
+id = "MT-14"
+class = "MotionTable"
+behaviour = "Static queries: GetAttackFrames, GetAnimationLength, GetCycleLength, GetRunSpeed, GetTurnSpeed, GetMotionData, GetLinkData, GetAnimDist"
+ace_ref = "Animation/MotionTable.cs:462-594"
+gdle_ref = "PhatSDK/MotionTable.cpp (CMotionTable accessors)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/timeline.rs:6-14 (Attack payload), :166 (duration_seconds); crates/assets/bace-dat/src/motion_table.rs"
+notes = "Durations and attack payloads exist. RunSpeed/TurnSpeed as DAT-derived scalars are carried through LocomotionProfile (locomotion.rs:11-18) but not derived from the table."
+
+[[behaviours]]
+id = "MT-15"
+class = "MotionTable"
+behaviour = "HasDefaultScript and default-motion queries for PhysicsObj"
+ace_ref = "Animation/MotionTable.cs:594-..."
+gdle_ref = "PhatSDK/MotionTable.cpp"
+bace_status = "missing"
+bace_ref = ""
+notes = "Low priority: no caller in the server path needs it."
+
+# ---- AnimSequenceNode (Animation/AnimSequenceNode.cs) ----
+
+[[behaviours]]
+id = "AS-01"
+class = "AnimSequenceNode"
+behaviour = "Frame bounds: low/high frame, starting frame (framerate sign), ending frame, get_part_frame, get_pos_frame, multiply_framerate"
+ace_ref = "Animation/AnimSequenceNode.cs:31-96"
+gdle_ref = "PhatSDK/AnimHooks.cpp; PhatSDK/Animation.cpp (CSequence node helpers in PartArray.cpp)"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:23-32 (ExecutionClip, inclusive bounds); timeline.rs:94-165 (half-open source ranges)"
+notes = "BACE uses inclusive clip bounds in the execution layer and half-open ranges in the timeline layer. Both are documented."
+
+# ---- Sequence (Animation/Sequence.cs) ----
+
+[[behaviours]]
+id = "SQ-01"
+class = "Sequence"
+behaviour = "Update / update_internal: step frame number by framerate*quantum, run hooks for crossed frames in order (forward or backward), apply_physics per frame, advance on high/low frame, recurse for leftover time"
+ace_ref = "Animation/Sequence.cs:132-143, 351-443"
+gdle_ref = "PhatSDK/PartArray.cpp:209-320"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:323 (continue_cycle), :407 (advance), :423 (advance_tagged); root_motion.rs:91-185 (advance)"
+notes = "Structure matches GDLE and ACE. Validated only by the existing physical fixtures (crates/simulation/bace-motion/tests/physical_locomotion.rs, physical_style.rs), not by an ACE oracle."
+
+[[behaviours]]
+id = "SQ-02"
+class = "Sequence"
+behaviour = "advance_to_next_animation: wrap to FirstCyclic at list end, reverse traversal for negative time, frame-add/subtract of the root frame"
+ace_ref = "Animation/Sequence.cs:145-202"
+gdle_ref = "PhatSDK/PartArray.cpp:337-406"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:276-279 (first_cyclic, completion_clips), root_motion.rs:91-185"
+notes = "Negative-rate reverse traversal is covered by timeline/execution tests."
+
+[[behaviours]]
+id = "SQ-03"
+class = "Sequence"
+behaviour = "apply_physics: origin += velocity*q (q sign-adjusted), rotate by omega*q"
+ace_ref = "Animation/Sequence.cs:221-230"
+gdle_ref = "PhatSDK/PartArray.cpp:166-176"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/root_motion.rs:200-215 (apply_physics)"
+notes = "Rotation is applied through the root frame heading."
+
+[[behaviours]]
+id = "SQ-04"
+class = "Sequence"
+behaviour = "AnimDone hook: when the list is not cyclic, enqueue AnimDoneHook on the physics object"
+ace_ref = "Animation/Sequence.cs:398-404; PhysicsObj.cs:653-657 (Hook_AnimDone)"
+gdle_ref = "PhatSDK/PartArray.cpp:262-320"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:57-66 (MotionExecutionEvent::Completed)"
+notes = "Completion is emitted as an execution event. The caller path back into MotionTableManager.AnimationDone is not verified."
+
+[[behaviours]]
+id = "SQ-05"
+class = "Sequence"
+behaviour = "execute_hooks: part hooks (attack, sound, particle, state, transition, scale, texture velocity, PES) in playback order"
+ace_ref = "Animation/Sequence.cs:262-270"
+gdle_ref = "PhatSDK/PartArray.cpp:321-336"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/timeline.rs:6-55 (MotionHookPayload); execution.rs:57-63 (MotionExecutionEvent::Hook)"
+notes = "Payload variants cover the set. Consumers of attack, sound and particle hooks are not in bace-motion. Combat timing consumption must be verified."
+
+[[behaviours]]
+id = "SQ-06"
+class = "Sequence"
+behaviour = "append_animation, clear_physics, clear_animations, remove_cyclic_anims, remove_link_animations, remove_all_link_animations"
+ace_ref = "Animation/Sequence.cs:203-220, 245-260, 289-344"
+gdle_ref = "PhatSDK/PartArray.cpp:77-135, 419-448"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:465-530 (append_stop with redundant-link removal)"
+notes = "Append and redundant removal exist. Link-animation truncation by amount (remove_link_animations) is not implemented as a separate operation."
+
+[[behaviours]]
+id = "SQ-07"
+class = "Sequence"
+behaviour = "SetVelocity / SetOmega / CombinePhysics / SubtractPhysics / SetPlacementFrame / apricot (post-update physics fix-up)"
+ace_ref = "Animation/Sequence.cs:83-130, 232-244, 345-349"
+gdle_ref = "PhatSDK/PartArray.cpp:137-165, 177-194"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/rate_model.rs:37-48"
+notes = "Combine exists for modifiers. Placement frame and apricot have no BACE counterpart (placement is handled in bace-physics placement.rs)."
+
+# ---- MotionInterp (Animation/MotionInterp.cs) ----
+
+[[behaviours]]
+id = "MI-01"
+class = "MotionInterp"
+behaviour = "DoInterpretedMotion: contact gate, standing-long-jump branch, Dead removes link animations, jump-error code queued per action, apply to interpreted state"
+ace_ref = "Animation/MotionInterp.cs:51-110"
+gdle_ref = "PhatSDK/MovementManager.cpp:558-624"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:476-493 (submit_locomotion); crates/simulation/bace-simulation/src/kernel/locomotion.rs:17-92"
+notes = "Accepted axes replace the whole interpreted state at once (body.rs:476). There is no per-motion queue with jump error codes, no contact gate on air motion, and no standing-long-jump branch."
+
+[[behaviours]]
+id = "MI-02"
+class = "MotionInterp"
+behaviour = "DoMotion: combat-mode refusals (Crouch, Sitting, Sleeping, ChatEmote) and TooManyActions (6 actions max) before DoInterpretedMotion"
+ace_ref = "Animation/MotionInterp.cs:112-158"
+gdle_ref = "PhatSDK/MovementManager.cpp:360-405"
+bace_status = "missing"
+bace_ref = "crates/network/bace-wire/src/weenie_error.rs:76 (TooManyActions code only)"
+notes = "Error codes exist in bace-wire. No refusal logic exists in simulation or physics."
+
+[[behaviours]]
+id = "MI-03"
+class = "MotionInterp"
+behaviour = "adjust_motion: WalkBackwards to WalkForward with negative speed * BackwardsFactor; TurnLeft to TurnRight negated; SideStepLeft to SideStepRight negated; SideStepRight scaled by SidestepFactor*(WalkAnimSpeed/SidestepAnimSpeed); hold-key run applied"
+ace_ref = "Animation/MotionInterp.cs:394-428"
+gdle_ref = "PhatSDK/MovementManager.cpp:625-661"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/raw_locomotion.rs:12-58 (interpret_raw_controls); crates/simulation/bace-motion/src/locomotion.rs:72-147"
+notes = "Behaviour matches ACE and GDLE. GDLE and ACE are identical here (see GDLE table G-03)."
+
+[[behaviours]]
+id = "MI-04"
+class = "MotionInterp"
+behaviour = "apply_run_to_command: WalkForward to RunForward when speed>0, speed*=run rate; TurnRight*RunTurnFactor; SideStepRight*run rate clamped to MaxSidestepAnimRate"
+ace_ref = "Animation/MotionInterp.cs:525-563"
+gdle_ref = "PhatSDK/MovementManager.cpp:663-703"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/locomotion.rs:72-147"
+notes = "run_rate comes from the authoritative body projection (body.rs:95)."
+
+[[behaviours]]
+id = "MI-05"
+class = "MotionInterp"
+behaviour = "apply_interpreted_movement: style, then forward, sidestep, turn; Falling motion when no contact; Ready when standing long jump; stop turn-right otherwise"
+ace_ref = "Animation/MotionInterp.cs:440-504"
+gdle_ref = "PhatSDK/MovementManager.cpp:738-816"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/locomotion.rs:72-147; crates/simulation/bace-physics/src/body.rs:476-516"
+notes = "Forward, sidestep and turn axes are represented. The Falling motion selection when there is no contact and the stop-turn-right path are missing."
+
+[[behaviours]]
+id = "MI-06"
+class = "MotionInterp"
+behaviour = "apply_raw_movement: copy raw state to interpreted state, adjust each axis with its hold key, then apply interpreted"
+ace_ref = "Animation/MotionInterp.cs:506-523"
+gdle_ref = "PhatSDK/MovementManager.cpp:718-737"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-motion/src/raw_locomotion.rs:12-58"
+notes = "Per-axis hold keys are applied."
+
+[[behaviours]]
+id = "MI-07"
+class = "MotionInterp"
+behaviour = "Standing long jump: charge_jump sets StandingLongJump when grounded with forward walk/run and no sidestep or turn; cleared on leave ground"
+ace_ref = "Animation/MotionInterp.cs:564-583; 192-208 (LeaveGround clears it)"
+gdle_ref = "PhatSDK/MovementManager.cpp:989-1003 (jump_charge_is_allowed); no charge_jump function in GDLE"
+bace_status = "missing"
+bace_ref = "crates/network/bace-session/src/locomotion.rs:16,137 (contact_long_jump bit decoded and only observed)"
+notes = "The client bit is decoded but never reaches the authoritative state. AUTH-01 requires the server to derive it. Not implemented."
+
+[[behaviours]]
+id = "MI-08"
+class = "MotionInterp"
+behaviour = "jump(extent): cancel MoveTo, jump_is_allowed, set JumpExtent, set_on_walkable(false); velocity_z from JumpVelocity"
+ace_ref = "Animation/MotionInterp.cs:710-727; 634-652 (get_jump_v_z); WeenieObject.cs:92-118"
+gdle_ref = "PhatSDK/MovementManager.cpp:909-928, 969-988; PhatSDK/Qualities.cpp:5994"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:426-476 (validate and authorize); crates/simulation/bace-simulation/src/kernel/locomotion.rs:93-142; crates/gameplay/bace-character/src/locomotion.rs:98-128 (jump_proposal, same ACE formula)"
+notes = "Vertical velocity sqrt(2*9.8*h) in body.rs equals ACE sqrt(19.6*h). Authorization happens only on the server path. The client velocity is ignored (AUTH-01)."
+
+[[behaviours]]
+id = "MI-08b"
+class = "MotionInterp"
+behaviour = "jump_is_allowed rules: IsFullyConstrained, pending jump error, jump_charge_is_allowed (Fallen, Crouch..Sleeping refused), motion_allows_jump (Reload..Pickup, MagicPowerUp, AimLevel..MagicPray, Falling refused), JumpStaminaCost"
+ace_ref = "Animation/MotionInterp.cs:729-783; Animation/MovementSystem.cs:30-45"
+gdle_ref = "PhatSDK/MovementManager.cpp:989-1033, 427-439"
+bace_status = "partial"
+bace_ref = "crates/gameplay/bace-character/src/locomotion.rs:98-128 (stamina cost, PK cost, TooTired); crates/simulation/bace-simulation/src/kernel/locomotion.rs:93-126 (stamina read, skill zero when stamina is zero)"
+notes = "Stamina and PK cost are implemented. The posture refusals (MotionCommand ranges) and the Falling refusal are missing. The body requires grounded (body.rs:426-440) but has no motion-command table."
+
+[[behaviours]]
+id = "MI-09"
+class = "MotionInterp"
+behaviour = "get_jump_v_z: clamp extent to [0,1]; default 10.0 without a weenie; InqJumpVelocity result; 0 when not a player"
+ace_ref = "Animation/MotionInterp.cs:634-652; Physics/Common/WeenieObject.cs:92-118"
+gdle_ref = "PhatSDK/MovementManager.cpp:909-928"
+bace_status = "implemented"
+bace_ref = "crates/gameplay/bace-character/src/locomotion.rs:98-128"
+notes = "Player formula only. Creature jumps (ACE returns 0) are not modelled and are not needed for players."
+
+[[behaviours]]
+id = "MI-10"
+class = "MotionInterp"
+behaviour = "LeaveGround: velocity = get_leave_ground_velocity (state velocity with z=jump v_z, or local frame velocity if zero); clear StandingLongJump and JumpExtent; remove link anims; re-apply current movement"
+ace_ref = "Animation/MotionInterp.cs:192-208; 654-662 (get_leave_ground_velocity)"
+gdle_ref = "PhatSDK/MovementManager.cpp:832-868"
+bace_status = "missing"
+bace_ref = ""
+notes = "BACE carries accepted velocity through the air (body.rs step paths) but never recomputes the leave-ground velocity from the locomotion state."
+
+[[behaviours]]
+id = "MI-11"
+class = "MotionInterp"
+behaviour = "HitGround: for creatures under gravity, remove link animations and re-apply current movement"
+ace_ref = "Animation/MotionInterp.cs:175-186"
+gdle_ref = "PhatSDK/MovementManager.cpp:1124-..."
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:278-300 (was_grounded and grounded transition)"
+notes = "Grounded transitions are tracked. Re-applying the movement state on landing is missing."
+
+[[behaviours]]
+id = "MI-12"
+class = "MotionInterp"
+behaviour = "get_state_velocity: sidestep (SidestepAnimSpeed*speed), walk or run forward (AnimSpeed*speed), clamp magnitude to run anim speed * run rate"
+ace_ref = "Animation/MotionInterp.cs:678-700"
+gdle_ref = "PhatSDK/MovementManager.cpp:869-907"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/locomotion.rs:72-147 (interpret); crates/simulation/bace-physics/src/body.rs:476 (submit_locomotion)"
+notes = "Magnitude clamp and speed composition are needed by the jump leave velocity (MI-10). Not separately exposed."
+
+[[behaviours]]
+id = "MI-13"
+class = "MotionInterp"
+behaviour = "get_max_speed = RunAnimSpeed * run rate; get_adjusted_max_speed = rate*4 (rate from forward speed for RunForward); used by StickyManager speed"
+ace_ref = "Animation/MotionInterp.cs:618-633, 665-677"
+gdle_ref = "PhatSDK/MovementManager.cpp:929-968"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:95 (locomotion_run_rate projection); crates/simulation/bace-physics/src/intent.rs:4-18 (Capabilities.speed)"
+notes = "Authoritative run rate is projected. There is no derived max-speed function, which Sticky and interpolation would need."
+
+[[behaviours]]
+id = "MI-14"
+class = "MotionInterp"
+behaviour = "SetHoldKey / set_hold_run: toggle raw run hold key, cancel MoveTo, re-apply current movement"
+ace_ref = "Animation/MotionInterp.cs:274-288, 826-838"
+gdle_ref = "PhatSDK/MovementManager.cpp:341-359"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/locomotion.rs:27-35 (LocomotionAxes forward_run, sidestep_run, turn_run)"
+notes = "Hold-run is represented as per-axis booleans in the submitted state. Re-application on toggle is implied by resubmission."
+
+[[behaviours]]
+id = "MI-15"
+class = "MotionInterp"
+behaviour = "move_to_interpreted_state: copy server state, cancel MoveTo, apply current movement, replay actions newer than ServerActionStamp (wrap-aware stamp compare)"
+ace_ref = "Animation/MotionInterp.cs:789-824"
+gdle_ref = "PhatSDK/MovementManager.cpp:463-510"
+bace_status = "missing"
+bace_ref = ""
+notes = "BACE has no action stamp list or stamp comparison. Server-driven state replay is absent."
+
+[[behaviours]]
+id = "MI-16"
+class = "MotionInterp"
+behaviour = "StopInterpretedMotion / StopMotion / StopCompletely: remove forward, sidestep, turn; StopCompletely resets interpreted and raw state"
+ace_ref = "Animation/MotionInterp.cs:301-387"
+gdle_ref = "PhatSDK/MovementManager.cpp:511-557, 406-426, 1034-1061"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:642-661 (stop_motion)"
+notes = "Stop-all exists. Stop-one-motion semantics per command are missing."
+
+[[behaviours]]
+id = "MI-17"
+class = "MotionInterp"
+behaviour = "enter_default_state: new raw and interpreted state, InitializeMotionTables, queue Ready, Initted=true, LeaveGround"
+ace_ref = "Animation/MotionInterp.cs:604-616"
+gdle_ref = "PhatSDK/MovementManager.cpp:818-831"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:358-430 (spawn, spawn_oriented)"
+notes = "Spawn sets initial accepted state. The Ready queueing and initial LeaveGround are not separately modelled."
+
+[[behaviours]]
+id = "MI-18"
+class = "MotionInterp"
+behaviour = "MotionDone / motions_pending / add_to_queue (pending motion nodes with jump error code) / ReportExhaustion"
+ace_ref = "Animation/MotionInterp.cs:210-235, 388-393, 264-273"
+gdle_ref = "PhatSDK/MovementManager.cpp:318-340, 1066-1075"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:369-400 (has_pending_action, pending_tokens, pending_actions)"
+notes = "Pending tokens exist for prepared chains. The pending motion node list with jump error codes and the exhaustion report do not."
+
+[[behaviours]]
+id = "MI-19"
+class = "MotionInterp"
+behaviour = "InterpretedMotionState action list: AddAction (stamped, autonomous), RemoveAction, GetNumActions (max 6), RemoveMotion, ApplyMotion for movement and actions"
+ace_ref = "Animation/InterpretedMotionState.cs:23-127; Animation/MotionState.cs:36-75"
+gdle_ref = "PhatSDK/MotionTable.cpp:376-393 (MotionState::add_action)"
+bace_status = "missing"
+bace_ref = ""
+notes = "No action list exists. Action commands are resolved one at a time in action_chain.rs without a queue or limit."
+
+[[behaviours]]
+id = "MI-20"
+class = "MotionInterp"
+behaviour = "apply_current_movement dispatch: non-creature or non-autonomous uses interpreted path, otherwise raw path"
+ace_ref = "Animation/MotionInterp.cs:430-438"
+gdle_ref = "PhatSDK/MovementManager.cpp:705-717"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:476-516 (submit_locomotion vs submit_animated_locomotion)"
+notes = "BACE uses explicit submission paths chosen by the caller rather than an autonomy check."
+
+# ---- MotionTableManager (Physics/Managers/MotionTableManager.cs) ----
+
+[[behaviours]]
+id = "MTM-01"
+class = "MotionTableManager"
+behaviour = "AnimationDone and CheckForCompletedMotions: count completed animations per pending motion, remove action head, call PhysicsObj.MotionDone and WeenieObj.OnMotionDone"
+ace_ref = "Physics/Managers/MotionTableManager.cs:28-84"
+gdle_ref = "PhatSDK/MotionTable.cpp:85-123, 260-283"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:57-66 (Completed); :369-400 (pending tokens and actions)"
+notes = "Completion is per token. The WeenieObj.OnMotionDone callback and the action-head removal ordering are not mirrored."
+
+[[behaviours]]
+id = "MTM-02"
+class = "MotionTableManager"
+behaviour = "PerformMovement: InterpretedCommand (DoObjectMotion then add_to_queue), StopInterpretedCommand (StopObjectMotion then queue Ready), StopCompletely (queue Ready)"
+ace_ref = "Physics/Managers/MotionTableManager.cs:116-145"
+gdle_ref = "PhatSDK/MotionTable.cpp:222-258"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:169-270 (prepare chains); :465 (append_stop)"
+notes = "Chains are prepared from requested motions. The automatic Ready queueing after a stop is not present."
+
+[[behaviours]]
+id = "MTM-03"
+class = "MotionTableManager"
+behaviour = "add_to_queue + remove_redundant_links (keep newest; action/modifier/style are barriers; drop earlier plain substates) + truncate list"
+ace_ref = "Physics/Managers/MotionTableManager.cs:163-240"
+gdle_ref = "PhatSDK/MotionTable.cpp:136-211"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:507-530 (barrier rules, comment cites the original)"
+notes = "Barrier rule matches the comment. The truncate pass and the counter bookkeeping (AnimationCounter) are not mirrored."
+
+[[behaviours]]
+id = "MTM-04"
+class = "MotionTableManager"
+behaviour = "HandleEnterWorld / HandleExitWorld: remove link animations; flush pending motions with success=false"
+ace_ref = "Physics/Managers/MotionTableManager.cs:103-115"
+gdle_ref = "PhatSDK/MotionTable.cpp:71-84"
+bace_status = "missing"
+bace_ref = ""
+notes = "No exit-world flush exists. A despawned body with a pending chain has no defined drain."
+
+# ---- MovementManager (Physics/Managers/MovementManager.cs) ----
+
+[[behaviours]]
+id = "MM-01"
+class = "MovementManager"
+behaviour = "PerformMovement dispatch: Raw/Interpreted/Stop* to MotionInterp (created on demand); MoveTo/TurnTo to MoveToManager (created on demand)"
+ace_ref = "Physics/Managers/MovementManager.cs:124-157"
+gdle_ref = "PhatSDK/MovementManager.cpp:124-160 (approximate location of dispatch)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-gameplay-api/src/visibility.rs:64-76 (ServerMovementGoal); crates/simulation/bace-physics/src/body.rs:476-516"
+notes = "There is no single MovementStruct dispatch. Goals are typed per producer (magic.rs:663, combat/driver.rs:741, kernel/world_use.rs:160)."
+
+[[behaviours]]
+id = "MM-02"
+class = "MovementManager"
+behaviour = "CancelMoveTo, IsMovingTo, motions_pending, MotionDone forwarding"
+ace_ref = "Physics/Managers/MovementManager.cs:27-30, 97-103, 118-122"
+gdle_ref = "PhatSDK/MovementManager.cpp"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:642-661 (stop_motion); body/server_move.rs:119-124 (finish_server_move)"
+notes = "Server move finish and stop exist. No IsMovingTo query equivalent."
+
+[[behaviours]]
+id = "MM-03"
+class = "MovementManager"
+behaviour = "LeaveGround / HitGround / EnterDefaultState / HandleEnterWorld / HandleExitWorld forwarders"
+ace_ref = "Physics/Managers/MovementManager.cs:38-66, 104-111"
+gdle_ref = "PhatSDK/MovementManager.cpp"
+bace_status = "missing"
+bace_ref = ""
+notes = "See MI-10, MI-11, MI-17 and MTM-04."
+
+[[behaviours]]
+id = "MM-04"
+class = "MovementManager"
+behaviour = "InqInterpretedMotionState / InqRawMotionState projections for replication"
+ace_ref = "Physics/Managers/MovementManager.cs:75-96"
+gdle_ref = "PhatSDK/MovementManager.cpp"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:76-95 (locomotion_projection, prepared_locomotion_style, locomotion_autonomous)"
+notes = "Rendering adapters read the prepared projection, not derived velocity (body.rs:72-75 comment)."
+
+# ---- MoveToManager (Physics/Managers/MoveToManager.cs) ----
+
+[[behaviours]]
+id = "MO-01"
+class = "MoveToManager"
+behaviour = "MoveToObject / MoveToPosition / TurnToObject / TurnToHeading setup: target, radius, height, MovementParameters, StartingPosition, CurrentTargetPosition"
+ace_ref = "Physics/Managers/MoveToManager.cs:114-305"
+gdle_ref = "PhatSDK/MovementManager.cpp:1142-1300 (CMoveToManager; MoveToObject_Internal at 1298)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-gameplay-api/src/visibility.rs:64-76; crates/simulation/bace-simulation/src/kernel/npc/movement.rs:84-260 (NPC MoveToPosition with distance_to_object 0.6, fail_distance MAX); kernel/world_use.rs:160 (MoveToObject)"
+notes = "Server goals exist for NPC, casting, combat and use approach only. Player-initiated MoveTo (GameActionMoveToState path) has no goal producer."
+
+[[behaviours]]
+id = "MO-02"
+class = "MoveToManager"
+behaviour = "TurnToHeading / TurnToObject: heading delta, turn command selection, final heading snap on completion"
+ace_ref = "Physics/Managers/MoveToManager.cs:284-305, 510-622"
+gdle_ref = "PhatSDK/MovementManager.cpp:1142-2080 (BeginTurnToHeading and HandleTurnToHeading region)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/turning.rs:32-40 (heading_delta); crates/simulation/bace-physics/src/body.rs:662-735 (submit_turn_intent, begin_server_turn, continue_server_turn, finish_server_turn)"
+notes = "Turn intent and server turn ownership exist. The final heading snap and the 'AlwaysTurn' override are not evidenced."
+
+[[behaviours]]
+id = "MO-03"
+class = "MoveToManager"
+behaviour = "BeginMoveForward / MovementParameters.get_command: distance to target vs DistanceToObject (WalkForward), MinDistance and moving-away (WalkBackwards), CanRun and WalkRunThreshold choose hold key Run"
+ace_ref = "Physics/Managers/MoveToManager.cs:351-402; Animation/MovementParameters.cs:152-200; :45-50 (constants)"
+gdle_ref = "PhatSDK/Movement.cpp:96-108 (defaults); PhatSDK/MovementManager.cpp:1142-2080"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-simulation/src/kernel/npc/movement.rs:186-260 (approach heading, distance 0.6, speed scalar, walk_run_threshold 15.0)"
+notes = "BACE sends a velocity vector toward the destination (intent = destination - position, movement.rs:~205). It never selects WalkBackwards or the MoveAway branch, and it uses a scalar speed rather than the Run hold key."
+
+[[behaviours]]
+id = "MO-04"
+class = "MoveToManager"
+behaviour = "HandleMoveToPosition: aux turn while moving (heading diff 20..340 deg selects TurnLeft or TurnRight, AuxCommand tracked), in-range rule (dist<1 and decreasing), arrival at DistanceToObject or MinDistance, stop aux command"
+ace_ref = "Physics/Managers/MoveToManager.cs:404-509"
+gdle_ref = "PhatSDK/MovementManager.cpp:1700-1790 (approximate)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-simulation/src/kernel/npc/movement.rs:296-378 (poll_npc_movement); :30-42 (turn_axis)"
+notes = "Arrival is polled by the NPC owner. The heading-diff aux turn rule and the in-range rule are not implemented. Turn toward the target is continuous through turn_axis."
+
+[[behaviours]]
+id = "MO-05"
+class = "MoveToManager"
+behaviour = "CheckProgressMade: when more than 1 s since last sample, progress rate must exceed 0.25 units/s both against last sample and against original distance; otherwise FailProgressCount++"
+ace_ref = "Physics/Managers/MoveToManager.cs:668-689"
+gdle_ref = "PhatSDK/MovementManager.cpp:1797-1813"
+bace_status = "missing"
+bace_ref = ""
+notes = "GDLE and ACE are identical here. BACE has no progress sampling; it uses a 120 s tick deadline instead (kernel/npc/movement.rs ~line 250, deadline 30*120). That is a deviation to document."
+
+[[behaviours]]
+id = "MO-06"
+class = "MoveToManager"
+behaviour = "FailDistance: if StartingPosition is farther than FailDistance from the object, cancel with YouChargedTooFar"
+ace_ref = "Physics/Managers/MoveToManager.cs:479-484; Animation/MovementParameters.cs:46 (Default_FailDistance = float.MaxValue)"
+gdle_ref = "PhatSDK/MovementManager.cpp:1412 (fail_distance copied)"
+bace_status = "missing"
+bace_ref = "crates/simulation/bace-simulation/src/kernel/npc/movement.rs:236 (fail_distance f32::MAX passed through, no check evidenced)"
+notes = "Parameter carried, check absent. With the default MAX the branch is inert, but a non-default value would be ignored."
+
+[[behaviours]]
+id = "MO-07"
+class = "MoveToManager"
+behaviour = "HandleUpdateTarget: moving target updates CurrentTargetPosition, re-issues motion; CheckAndUpdate for interpolated target position"
+ace_ref = "Physics/Managers/MoveToManager.cs:623-667"
+gdle_ref = "PhatSDK/MovementManager.cpp:1244-1297 (HandleUpdateTarget)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-gameplay-api/src/visibility.rs:53-58 (target_position read from accepted owner); crates/simulation/bace-world/src/world/object_views.rs:126"
+notes = "Target position is refreshed from the accepted owner each evaluation. Re-issuing the motion on target change is not a separate step."
+
+[[behaviours]]
+id = "MO-08"
+class = "MoveToManager"
+behaviour = "CancelMoveTo / CleanUp / CleanUpAndCallWeenie: stop motion, clear pending actions, weenie status callback"
+ace_ref = "Physics/Managers/MoveToManager.cs:690-730"
+gdle_ref = "PhatSDK/MovementManager.cpp:1160-1181 (CleanUp)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body/server_move.rs:119-124 (finish_server_move); crates/simulation/bace-simulation/src/kernel/npc/movement.rs:379-393 (cancel_npc_movement)"
+notes = "Cancel exists for NPC movement. No weenie callback equivalent; the owner receives an outcome instead."
+
+[[behaviours]]
+id = "MO-09"
+class = "MoveToManager"
+behaviour = "GetCurrentDistance: distance measured from object sphere edge (radius, height) rather than centre"
+ace_ref = "Physics/Managers/MoveToManager.cs:731-742"
+gdle_ref = "PhatSDK/MovementManager.cpp:1142-2080"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-simulation/src/kernel/npc/movement.rs:226-256 (distance_to_object 0.6 against target position)"
+notes = "BACE measures to a point, not to the target radius. Needs a radius term to match ACE."
+
+[[behaviours]]
+id = "MO-10"
+class = "MoveToManager"
+behaviour = "PendingActions queue of MoveTo nodes (AddMoveToPositionNode, AddTurnToHeadingNode, BeginNextNode, RemovePendingActionsHead)"
+ace_ref = "Physics/Managers/MoveToManager.cs:306-350, 749-754"
+gdle_ref = "PhatSDK/MovementManager.cpp:1142-2080"
+bace_status = "missing"
+bace_ref = ""
+notes = "BACE holds one goal per body. A new server move supersedes the previous one (server_move.rs:70-100)."
+
+# ---- StickyManager (Physics/Managers/StickyManager.cs) ----
+
+[[behaviours]]
+id = "ST-01"
+class = "StickyManager"
+behaviour = "StickTo(objectID, radius, height): set target, StickyTimeoutTime = now + StickyTime, set_target on physics object; UseTime clears target after timeout"
+ace_ref = "Physics/Managers/StickyManager.cs:24-89"
+gdle_ref = "PhatSDK/PositionManager.cpp (sticky)"
+bace_status = "missing"
+bace_ref = ""
+notes = "No sticky state anywhere in bace-physics or bace-motion."
+
+[[behaviours]]
+id = "ST-02"
+class = "StickyManager"
+behaviour = "adjust_offset: horizontal offset toward target (z zeroed), speed = max_speed*5 (or 15 if small), delta clamped to remaining distance, heading turn toward target"
+ace_ref = "Physics/Managers/StickyManager.cs:91-135"
+gdle_ref = "PhatSDK/PositionManager.cpp"
+bace_status = "missing"
+bace_ref = ""
+notes = "Depends on MI-13 for max speed."
+
+# ---- PositionManager, ConstraintManager, InterpolationManager, TargetManager ----
+
+[[behaviours]]
+id = "PM-01"
+class = "PositionManager"
+behaviour = "Composition of sticky, constraint and interpolation managers; AdjustOffset chain; StopInterpolating; Unstick; IsFullyConstrained"
+ace_ref = "Physics/Managers/PositionManager.cs:13-131"
+gdle_ref = "PhatSDK/PositionManager.cpp; PhatSDK/PositionManager.h"
+bace_status = "missing"
+bace_ref = ""
+notes = "Wrapper absent. Its three children are all missing (ST-01, CM-01, IM-01)."
+
+[[behaviours]]
+id = "CM-01"
+class = "ConstraintManager"
+behaviour = "ConstrainTo(position, startDistance, maxDistance): tether offset; adjust_offset pulls back into max distance; UseTime; IsFullyConstrained"
+ace_ref = "Physics/Managers/ConstraintManager.cs:15-79"
+gdle_ref = "PhatSDK/PositionManager.cpp"
+bace_status = "missing"
+bace_ref = ""
+notes = "Used by ACE for constrained motion (for example, pulled objects). No BACE tether."
+
+[[behaviours]]
+id = "IM-01"
+class = "InterpolationManager"
+behaviour = "InterpolateTo(position, keepHeading): interpolate toward a server target over time; NodeCompleted callback; StopInterpolating; adjust_offset per tick"
+ace_ref = "Physics/Managers/InterpolationManager.cs:23-260"
+gdle_ref = "PhatSDK/PositionManager.cpp"
+bace_status = "missing"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:822-851 (server_teleport: instantaneous only)"
+notes = "BACE supports only instant server relocation. Timed interpolation for server-driven movement is absent."
+
+[[behaviours]]
+id = "TG-01"
+class = "TargetManager"
+behaviour = "SetTarget / ReceiveUpdate / HandleTargetting: track an object target with quantum and radius; AddVoyeur / NotifyVoyeurOfEvent / SendVoyeurUpdate to observers"
+ace_ref = "Physics/Managers/TargetManager.cs:16-181"
+gdle_ref = "PhatSDK/PhysicsObj.cpp (set_target path)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-gameplay-api/src/visibility.rs:53-58 (accepted target owner); crates/network/bace-replication (observer projections)"
+notes = "Target tracking is replaced by per-evaluation reads. Voyeur push notifications are replication work, not physics. Accept as a deliberate difference only after main approves."
+
+# ---- PhysicsObj (Physics/PhysicsObj.cs) ----
+
+[[behaviours]]
+id = "PO-01"
+class = "PhysicsObj"
+behaviour = "UpdateObjectInternal (client-style tick): skip inactive, clear JumpedThisFrame, UpdatePositionInternal, validate frame, AlignPath heading"
+ace_ref = "Physics/PhysicsObj.cs:1655-1738"
+gdle_ref = "PhatSDK/PhysicsObj.cpp (UpdateObjectInternal)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:779-820 (step, legacy); body.rs:218-330 (step_geometry_with_access, authentic path)"
+notes = "The authentic path replaces the variable-quantum tick with a fixed step. AlignPath is absent."
+
+[[behaviours]]
+id = "PO-02"
+class = "PhysicsObj"
+behaviour = "UpdateObjectInternalServer: transition from current to RequestPos (block distance <= 1), CachedVelocity = displacement/quantum, then DetectionManager, TargetManager, MovementManager, PartArray, PositionManager, Particle and Script UseTime"
+ace_ref = "Physics/PhysicsObj.cs:1766-1802"
+gdle_ref = "PhatSDK/PhysicsObj.cpp"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:218-330 (server-owned step); body.rs:745-777 (submit_intent with sequence and epoch checks)"
+notes = "BACE is stricter: it never takes a client RequestPos (AUTH-01), so the block-distance check has no counterpart and is not needed. Managers and voyeur updates are absent."
+
+[[behaviours]]
+id = "PO-03"
+class = "PhysicsObj"
+behaviour = "UpdatePositionInternal: PartArray.Update (animation offset), scale by OnWalkable, PositionManager.AdjustOffset, combine frame, UpdatePhysicsInternal, process_hooks"
+ace_ref = "Physics/PhysicsObj.cs:1862-1884"
+gdle_ref = "PhatSDK/PhysicsObj.cpp (UpdatePositionInternal)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:218-330 (root motion and animated locomotion advance, motion_root, root_cursor)"
+notes = "Animation offset is applied to the authentic step. OnWalkable scaling of the offset and the sticky/interpolation adjustment are absent."
+
+[[behaviours]]
+id = "PO-04"
+class = "PhysicsObj"
+behaviour = "UpdatePhysicsInternal: clamp velocity to MaxVelocity 50; calc_friction(quantum); zero when below SmallVelocity 0.25; displacement = accel*0.5*q^2 + vel*q; Velocity += Acceleration*q; rotate by omega*q"
+ace_ref = "Physics/PhysicsObj.cs:1832-1861; Physics/PhysicsGlobals.cs:30-36 (MaxVelocity, SmallVelocity)"
+gdle_ref = "PhatSDK/PhysicsObj.cpp (UpdatePhysicsInternal); no GDLE constants file for the PhysicsGlobals values"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:287-300 (half-step gravity, ACE displacement form); crates/simulation/bace-motion/src/intent.rs:10-16 (speed and jump capability <= 50)"
+notes = "Gravity uses the ACE half-step form. Missing: calc_friction, SmallVelocity cutoff and MaxVelocity clamp on the integrated velocity."
+
+[[behaviours]]
+id = "PO-05"
+class = "PhysicsObj"
+behaviour = "Gravity -9.8 and transient contact flags: Contact, OnWalkable, set_on_walkable"
+ace_ref = "Physics/PhysicsGlobals.cs:13; Physics/PhysicsObj.cs (set_on_walkable, TransientState)"
+gdle_ref = "PhatSDK/PhysicsObj.cpp"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:24-25 (grounded), :287-300 (gravity when airborne or jumping), crates/simulation/bace-physics/src/geometry_scene.rs:828-831"
+notes = "Grounded state is an explicit accepted field and is not derived from client input."
+
+[[behaviours]]
+id = "PO-06"
+class = "PhysicsObj"
+behaviour = "Walkable threshold FloorZ = 0.66417414 on contact normal"
+ace_ref = "Physics/PhysicsGlobals.cs:50"
+gdle_ref = "not present in GDLE PhatSDK (grep returns nothing)"
+bace_status = "implemented"
+bace_ref = "crates/simulation/bace-physics/src/geometry_scene.rs:828, 831, 869"
+notes = "Same constant. Verified by grep of the literal."
+
+[[behaviours]]
+id = "PO-07"
+class = "PhysicsObj"
+behaviour = "LandingZ = 0.0871557 (near-level ground settles), GetStepUpHeight / GetStepDownHeight"
+ace_ref = "Physics/PhysicsGlobals.cs:48; Physics/PhysicsObj.cs:625-636"
+gdle_ref = "not present in GDLE PhatSDK (grep returns nothing)"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/geometry_scene.rs:54-55, 831 (step_up, step_down)"
+notes = "Step up and down are carried. LandingZ is absent (grep for 0.0871 returns nothing)."
+
+[[behaviours]]
+id = "PO-08"
+class = "PhysicsObj"
+behaviour = "Quantum bounds: MinQuantum 1/30, MaxQuantum 0.1, HugeQuantum 2.0 clamp the tick delta"
+ace_ref = "Physics/PhysicsGlobals.cs:38-43"
+gdle_ref = "not present in GDLE PhatSDK; ACE PhysicsGlobals.cs is the reference"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/body.rs:6 (STEP_SECONDS = 1/30 fixed)"
+notes = "BACE takes one fixed step. A clamped variable quantum is not implemented (deliberate for determinism; needs main decision)."
+
+[[behaviours]]
+id = "PO-09"
+class = "PhysicsObj"
+behaviour = "Transition and collision: FindObjCollisions, CheckPositionInternal, SetPositionInternal, SpherePath, cell portal crossing"
+ace_ref = "Physics/PhysicsObj.cs:302-335, 381-535, 1171-1400; Physics/Transition.cs; Physics/SpherePath.cs"
+gdle_ref = "PhatSDK/PhysicsObj.cpp; PhatSDK/Physics.cpp"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-physics/src/sweep.rs:27 (sweep_spheres); crates/simulation/bace-physics/src/geometry_scene.rs:776 (move_body); collision.rs:133 (synthetic legacy move_body)"
+notes = "Continuous sphere sweep against convex polygons and spheres exists. The full Transition/SpherePath state machine and cell-by-cell admission are not ported; legacy collision.rs is test-only and step() refuses to run with geometry (body.rs:781-784)."
+
+[[behaviours]]
+id = "PO-10"
+class = "PhysicsObj"
+behaviour = "Hook processing: process_hooks, add_anim_hook, Hook_AnimDone, anim hook dispatch to PartArray"
+ace_ref = "Physics/PhysicsObj.cs:653-656, 1917-1933"
+gdle_ref = "PhatSDK/PhysicsObj.cpp; PhatSDK/AnimHooks.cpp"
+bace_status = "partial"
+bace_ref = "crates/simulation/bace-motion/src/execution.rs:57-66; timeline.rs:6-55"
+notes = "See SQ-04 and SQ-05."
+
+# ---------------------------------------------------------------------------
+# 3) GDLE differences from ACE (per authority policy)
+# ---------------------------------------------------------------------------
+
+[[gdle_differences]]
+id = "G-01"
+topic = "MovementParameters walk/run threshold default"
+ace = "15.0 commented out; Default_WalkRunThreshold = 1.0f (Animation/MovementParameters.cs:49-50)"
+gdle = "DEFAULT_WALK_RUN_THRESHHOLD = 15.0f (PhatSDK/Movement.cpp:98)"
+bace = "NPC movement passes 15.0 (kernel/npc/movement.rs:238)"
+authority = "GDLE for monster movement. The BACE NPC value matches GDLE. Player MoveTo must use ACE 1.0 when it is added."
+status = "disagreement recorded; no change needed for NPCs"
+
+[[gdle_differences]]
+id = "G-02"
+topic = "Jump velocity inputs"
+ace = "InqJumpVelocity: burden and Jump skill only; stamina zero zeroes skill (Physics/Common/WeenieObject.cs:92-118)"
+gdle = "CACQualities::InqJumpVelocity adds stamina attribute enchantment, augmentation Lum/JoJ bonuses and specialisation (PhatSDK/Qualities.cpp:5994-6038)"
+bace = "bace-character jump_proposal uses ACE formula (crates/gameplay/bace-character/src/locomotion.rs:98-128)"
+authority = "ACE for players (GDLE does not own player jump). Record the GDLE disagreement."
+status = "disagreement recorded; BACE follows ACE"
+
+[[gdle_differences]]
+id = "G-03"
+topic = "adjust_motion, apply_run_to_command, get_state_velocity, get_max_speed, get_adjusted_max_speed"
+ace = "MotionInterp.cs:394-428, 525-563, 678-700, 665-677, 618-633"
+gdle = "MovementManager.cpp:625-661, 663-703, 869-907, 954-968, 929-953"
+bace = "bace-motion locomotion.rs and raw_locomotion.rs"
+authority = "Identical logic in both. No conflict."
+status = "agree"
+
+[[gdle_differences]]
+id = "G-04"
+topic = "CheckProgressMade thresholds"
+ace = "1.0 s window, 0.25 units/s (MoveToManager.cs:668-689)"
+gdle = "1.0 s window, 0.25 units/s (MovementManager.cpp:1797-1813)"
+bace = "not implemented (MO-05)"
+authority = "Both agree. Port identically when MO-05 is built."
+status = "agree"
+
+[[gdle_differences]]
+id = "G-05"
+topic = "Progress-failure counter"
+ace = "FailProgressCount increments but nothing cancels on its value (grep of the pinned tree)"
+gdle = "fail_progress_count increments, no cancel found (MovementManager.cpp:1753, 2071)"
+bace = "120 s tick deadline cancels NPC movement (kernel/npc/movement.rs ~250)"
+authority = "Both ACE and GDLE only stall. BACE deadline is a documented hardening deviation (COST-01, AUTH-04), needs a test."
+status = "BACE deviation, document"
+
+[[gdle_differences]]
+id = "G-06"
+topic = "Sequence update_internal"
+ace = "Sequence.cs:351-443"
+gdle = "PartArray.cpp:209-320"
+bace = "bace-motion execution.rs and root_motion.rs (documented against ACE)"
+authority = "Same structure in both. Confirm by oracle before relying on either."
+status = "agree in structure; verify numerically"
+
+[[gdle_differences]]
+id = "G-07"
+topic = "Player jump trust"
+ace = "Player.HandleActionJump takes JumpPack.Velocity from the client; comment TODO have server verify / scale magnitude (WorldObjects/Player.cs:868-905)"
+gdle = "GDLE does not own player jump; no server velocity from client was found in this pass"
+bace = "server derives vertical velocity from jump_proposal (kernel/locomotion.rs:107-142); client velocity ignored (AUTH-01)"
+authority = "ACE is the default; BACE deliberately diverges to honour AUTH-01. Record as a hardening deviation with invalid-input tests."
+status = "BACE deviation, document"
+
+[[gdle_differences]]
+id = "G-08"
+topic = "MoveTo distance measurement"
+ace = "GetCurrentDistance uses sphere edges (MoveToManager.cs:731-742)"
+gdle = "MovementManager.cpp:1142-2080 (distance to object radius; confirm when porting)"
+bace = "distance to point (kernel/npc/movement.rs:226-256)"
+authority = "GDLE for monsters. Confirm GDLE radius use before porting MO-09."
+status = "to verify"
+
+# ---------------------------------------------------------------------------
+# 4) Port cards, dependency order (each: one pure function or struct)
+# ---------------------------------------------------------------------------
+
+[[cards]]
+id = "M01"
+title = "Substate branch: is_allowed bitfield and same-substate speed update (pure)"
+owner_crate = "bace-motion"
+behaviours = ["MT-02", "MT-10", "MT-12"]
+pure_unit = "fn resolve_substate_speed_update(cycle_bitfield, current_substate, requested_substate, current_mod, requested_mod) -> SubstateDecision"
+files = ["crates/simulation/bace-motion/src/action_chain.rs", "crates/simulation/bace-motion/src/rate_model.rs", "crates/simulation/bace-motion/tests/substate_branch.rs (new)"]
+ace_refs = ["Animation/MotionTable.cs:109-157 (substate)", "Animation/MotionTable.cs:372-378 (change_cycle_speed)", "Animation/MotionTable.cs:428-438 (is_allowed)"]
+gdle_refs = ["PhatSDK/MotionTable.cpp:877 (DoObjectMotion, substate block)"]
+oracle = "Compile GDLE CMotionTable::DoObjectMotion substate block verbatim with g++ (physical_jump_harness.cpp pattern): the generator inserts the verbatim body with synthetic DAT tables and emits (state in, decision out) CSV. Cross-check ACE with ~/.dotnet/dotnet by compiling the verbatim MotionTable.cs substate block with synthetic Cycles and Links."
+depends_on = []
+scalar_and_perf = "Scalar reference is the verbatim C++ block. Decision is a stack struct. No allocation: caller owns the chain buffer. Use fixed-size arrays; no Vec in the decision path. Compile with -fno-fast-math -ffp-contract=off."
+acceptance = "Golden CSV matches for all bitfield and sign combinations. Invalid input (zero style, non-finite speed) returns error. Same-substate branch covered."
+
+[[cards]]
+id = "M02"
+title = "Modifier branch and stop-sequence (pure)"
+owner_crate = "bace-motion"
+behaviours = ["MT-04", "MT-05", "MT-11", "MT-13"]
+pure_unit = "fn resolve_modifier(state: &ModifierList, table, motion, speed) -> ModifierDecision; fn resolve_modifier_stop(...)"
+files = ["crates/simulation/bace-motion/src/modifiers.rs (new)", "crates/simulation/bace-motion/tests/modifiers.rs (new)"]
+ace_refs = ["Animation/MotionTable.cs:210-258", "Animation/MotionTable.cs:320-357", "Animation/MotionTable.cs:440-460"]
+gdle_refs = ["PhatSDK/MotionTable.cpp:579-623 (StopSequenceMotion)", "PhatSDK/MotionTable.cpp:857-876 (re_modify)", "PhatSDK/MotionTable.cpp:394-438 (MotionState modifiers)"]
+oracle = "g++ verbatim GDLE StopSequenceMotion and re_modify with a stub MotionState; ACE dotnet verbatim modifier branch with a synthetic MotionTable dictionary."
+depends_on = ["M01"]
+scalar_and_perf = "Fixed capacity list (16 modifiers, matching GDLE modifiers(16) and ACE Modifiers). Reuse a preallocated array; no per-tick clone. Scalar reference is GDLE verbatim."
+acceptance = "Golden traces for add, overflow stop and retry, stop by motion id and re_modify ordering. Invalid input (unknown modifier, overflow beyond capacity) returns error without partial state change."
+
+[[cards]]
+id = "M03"
+title = "MotionState action queue and TooManyActions (pure)"
+owner_crate = "bace-motion"
+behaviours = ["MI-19", "MI-02"]
+pure_unit = "struct MotionActionQueue { fixed [Action; 6] } with fn add_action(&mut self, action, speed, stamp, autonomous) -> Result<(), ActionQueueError>; fn remove_head; fn len"
+files = ["crates/simulation/bace-motion/src/action_queue.rs (new)", "crates/simulation/bace-motion/tests/action_queue.rs (new)"]
+ace_refs = ["Animation/InterpretedMotionState.cs:23-127", "Animation/MotionInterp.cs:112-158 (TooManyActions at 6)"]
+gdle_refs = ["PhatSDK/MotionTable.cpp:376-393 (MotionState::add_action)", "PhatSDK/MovementManager.cpp:360-405 (DoMotion)"]
+oracle = "g++ verbatim GDLE MotionState::add_action and remove_action_head; ACE dotnet verbatim InterpretedMotionState.AddAction / RemoveAction with synthetic Motion values."
+depends_on = []
+scalar_and_perf = "Fixed array of six entries, no heap, no clone. Stamp compare uses the same wrap-aware rule as ACE (move_to_interpreted_state:789-824) as a pure helper."
+acceptance = "Seventh action refused with TooManyActions (0x45) and queue unchanged. Head removal matches GDLE trace."
+
+[[cards]]
+id = "M04"
+title = "DoMotion combat-posture refusals (pure)"
+owner_crate = "bace-motion"
+behaviours = ["MI-02", "MI-08b"]
+pure_unit = "fn motion_refusal(current_style, motion_command) -> Option<WeenieError>; fn jump_refusal(forward_command, motion_command) -> Option<WeenieError>"
+files = ["crates/simulation/bace-motion/src/refusal.rs (new)", "crates/simulation/bace-motion/tests/refusal.rs (new)"]
+ace_refs = ["Animation/MotionInterp.cs:112-158 (DoMotion refusals)", "Animation/MotionInterp.cs:729-783 (jump_is_allowed, motion_allows_jump, jump_charge_is_allowed)"]
+gdle_refs = ["PhatSDK/MovementManager.cpp:360-405", "PhatSDK/MovementManager.cpp:427-439, 989-1033"]
+oracle = "Compile the verbatim C# methods with ~/.dotnet/dotnet (pure ranges on uint motion ids; WeenieError enum copied verbatim). GDLE g++ verbatim cross-check of the same ranges. Ranges are the oracle, so enumerate every motion id 0..0x1000 in the fixture."
+depends_on = ["M03"]
+scalar_and_perf = "Pure integer range checks; branch-only. No allocation."
+acceptance = "Exhaustive agreement on the enumerated range. Error codes match bace-wire weenie_error.rs values (TooManyActions 0x45 at line 76; CantJumpFromThisPosition codes)."
+
+[[cards]]
+id = "M05"
+title = "Leave-ground and hit-ground velocity (pure)"
+owner_crate = "bace-motion"
+behaviours = ["MI-10", "MI-11", "MI-12"]
+pure_unit = "fn leave_ground_velocity(state: InterpretedAxes, jump_vz: f32, anim: AnimSpeeds, run_rate: f32) -> Vec3"
+files = ["crates/simulation/bace-motion/src/leave_ground.rs (new)", "crates/simulation/bace-motion/tests/leave_ground.rs (new)"]
+ace_refs = ["Animation/MotionInterp.cs:654-662 (get_leave_ground_velocity)", "Animation/MotionInterp.cs:678-700 (get_state_velocity)", "Animation/MotionInterp.cs:192-208 (LeaveGround)"]
+gdle_refs = ["PhatSDK/MovementManager.cpp:832-868", "PhatSDK/MovementManager.cpp:869-907"]
+oracle = "g++ verbatim GDLE get_state_velocity and get_leave_ground_velocity with stub Vector and stub weenie run rate; ACE dotnet verbatim pair with synthetic speeds. Use physical_jump_harness.cpp layout."
+depends_on = ["M03"]
+scalar_and_perf = "Vec3 return by value on the stack. Scalar reference is the verbatim function. No per-tick allocation."
+acceptance = "Golden CSV with and without sidestep and turn commands, clamp active and inactive. Zero-velocity fallback to local frame velocity tested."
+
+[[cards]]
+id = "M06"
+title = "Standing long jump state (pure)"
+owner_crate = "bace-motion"
+behaviours = ["MI-07"]
+pure_unit = "fn charge_jump(grounded_on_walkable, forward_command, sidestep, turn, forward_is_walk_or_run) -> Result<bool, JumpError>"
+files = ["crates/simulation/bace-motion/src/standing_jump.rs (new)", "crates/simulation/bace-motion/tests/standing_jump.rs (new)"]
+ace_refs = ["Animation/MotionInterp.cs:564-583 (charge_jump)", "Animation/MotionInterp.cs:192-208 (LeaveGround clears)"]
+gdle_refs = ["PhatSDK/MovementManager.cpp:240, 520, 567, 762 (standing longjump handling; no charge_jump function in GDLE)"]
+oracle = "g++ verbatim GDLE charge path with stub InterpretedState; ACE dotnet verbatim charge_jump with stub PhysicsObj.TransientState flags."
+depends_on = ["M04"]
+scalar_and_perf = "Pure boolean function, no allocation. The client contact_long_jump bit is an input observation, never an authority (AUTH-01)."
+acceptance = "Golden table. Invalid input (sidestep or turn active) returns no-charge. Client bit alone never sets the server state."
+
+[[cards]]
+id = "M07"
+title = "Physics integrator constants and friction (pure)"
+owner_crate = "bace-physics"
+behaviours = ["PO-04", "PO-08"]
+pure_unit = "fn integrate_velocity(velocity: Vec3, acceleration: Vec3, omega: Vec3, quantum: f32) -> (Vec3, Vec3 displacement, Vec3 omega_step)"
+files = ["crates/simulation/bace-physics/src/integrate.rs (new)", "crates/simulation/bace-physics/tests/integrate.rs (new)"]
+ace_refs = ["Physics/PhysicsObj.cs:1832-1861 (UpdatePhysicsInternal)", "Physics/PhysicsGlobals.cs:9-58 (constants)"]
+gdle_refs = ["PhatSDK/PhysicsObj.cpp (UpdatePhysicsInternal, calc_friction declared in PhysicsObj.h)"]
+oracle = "g++ verbatim GDLE UpdatePhysicsInternal with stub Vector, stub calc_friction (verbatim) and constants; ACE dotnet verbatim UpdatePhysicsInternal with a stub PhysicsObj holding Velocity, Acceleration, Omega. Quantum series from 1/30 to 0.1."
+depends_on = []
+scalar_and_perf = "Scalar f32 reference, the fixed-order arithmetic is preserved (no fused multiply-add: -ffp-contract=off). No allocation. Keep the existing STEP_SECONDS path unchanged until the main decision in PO-08."
+acceptance = "Golden trajectory agreement within a stated float tolerance for both quanta. Cutoff at SmallVelocity and clamp at MaxVelocity covered. Invalid input (negative or non-finite quantum) rejected."
+
+[[cards]]
+id = "M08"
+title = "Sticky, constraint and interpolation offsets (pure)"
+owner_crate = "bace-physics"
+behaviours = ["ST-01", "ST-02", "CM-01", "IM-01", "PM-01"]
+pure_unit = "fn sticky_offset(pos, target, radius_pair, max_speed, quantum) -> Offset; fn constraint_offset(pos, anchor, start, max) -> Offset; fn interpolate_step(from, to, elapsed, duration) -> Offset"
+files = ["crates/simulation/bace-physics/src/position_offsets.rs (new)", "crates/simulation/bace-physics/tests/position_offsets.rs (new)"]
+ace_refs = ["Physics/Managers/StickyManager.cs:91-135", "Physics/Managers/ConstraintManager.cs:27-79", "Physics/Managers/InterpolationManager.cs:36-260"]
+gdle_refs = ["PhatSDK/PositionManager.cpp (sticky, constrain, interpolate)"]
+oracle = "g++ verbatim GDLE PositionManager adjust helpers with stub AFrame; ACE dotnet verbatim StickyManager.adjust_offset (needs Position stub with GetOffset, heading helpers)."
+depends_on = ["M07", "M05"]
+scalar_and_perf = "Offsets returned as Vec3 values. Stick timeout uses the explicit tick count, not wall clock (AUTH-03). No allocation."
+acceptance = "Golden agreement with GDLE/ACE for approach, arrival clamp, constraint pull-back and interpolation completion. Invalid input (zero duration, non-finite target) returns error."
+
+[[cards]]
+id = "M09"
+title = "MoveTo progress and arrival (pure)"
+owner_crate = "bace-motion"
+behaviours = ["MO-05", "MO-06", "MO-09", "MO-04"]
+pure_unit = "struct ProgressSample { previous_distance, previous_time_ticks, original_distance, original_time_ticks }; fn check_progress(sample, distance, now, moving_away) -> ProgressVerdict; fn arrived(distance, distance_to_object, min_distance, moving_away, previous, in_range_rule) -> bool"
+files = ["crates/simulation/bace-motion/src/move_progress.rs (new)", "crates/simulation/bace-motion/tests/move_progress.rs (new)"]
+ace_refs = ["Physics/Managers/MoveToManager.cs:668-689 (CheckProgressMade)", "Physics/Managers/MoveToManager.cs:404-509 (arrival rules)", "Physics/Managers/MoveToManager.cs:731-742 (GetCurrentDistance)"]
+gdle_refs = ["PhatSDK/MovementManager.cpp:1797-1813 (CheckProgressMade)", "PhatSDK/MovementManager.cpp:1700-1790 (arrival rules, approximate)"]
+oracle = "g++ verbatim GDLE CheckProgressMade with stub Timer and stub MoveToManager fields (already identical to ACE; enumerate timings and distances). ACE dotnet verbatim CheckProgressMade with stub PhysicsTimer static."
+depends_on = ["M07"]
+scalar_and_perf = "Samples held in the owner struct (fixed size). Time is an explicit tick count passed in, never a wall clock (AUTH-03). No allocation per tick."
+acceptance = "Golden agreement on 1.0 s window and 0.25 threshold. Stall counted, not cancelled, matching ACE/GDLE. BACE deadline kept as separate documented guard (G-05)."
+
+[[cards]]
+id = "M10"
+title = "MoveTo command selection (get_command, towards_and_away, desired heading)"
+owner_crate = "bace-motion"
+behaviours = ["MO-03"]
+pure_unit = "fn select_move_command(params, distance, heading_delta_deg) -> (MotionCommand, HoldKey, moving_away)"
+files = ["crates/simulation/bace-motion/src/move_command.rs (new)", "crates/simulation/bace-motion/tests/move_command.rs (new)"]
+ace_refs = ["Animation/MovementParameters.cs:152-200 (get_command, get_desired_heading, towards_and_away)", "Physics/Managers/MoveToManager.cs:351-402"]
+gdle_refs = ["PhatSDK/Movement.cpp:96-108 (defaults)", "PhatSDK/MovementManager.cpp:1142-2080 (command selection)"]
+oracle = "ACE dotnet verbatim MovementParameters.get_command, get_desired_heading and towards_and_away (plain class, no deps beyond MotionCommand enum copied verbatim). GDLE g++ cross-check of the same branches."
+depends_on = ["M09"]
+scalar_and_perf = "Integer command, no allocation. Hold key enum values verbatim (Invalid 0, None 1, Run 2 per GameEnums.h:675-681)."
+acceptance = "Exhaustive table over distance buckets, heading and MoveAway flags. Walk-run threshold per caller: ACE 1.0 for players, GDLE 15.0 for monsters (G-01)."
+
+[[cards]]
+id = "M11"
+title = "Aux turn while moving (pure)"
+owner_crate = "bace-motion"
+behaviours = ["MO-04", "MO-02"]
+pure_unit = "fn aux_turn(current_heading, desired_heading, aux_command) -> AuxAction"
+files = ["crates/simulation/bace-motion/src/aux_turn.rs (new)", "crates/simulation/bace-motion/tests/aux_turn.rs (new)"]
+ace_refs = ["Physics/Managers/MoveToManager.cs:404-438 (diff 20..340 rule)", "Physics/Managers/MoveToManager.cs:510-622 (turn to heading)"]
+gdle_refs = ["PhatSDK/MovementManager.cpp (HandleMoveToPosition turn block, approximate)"]
+oracle = "ACE dotnet verbatim heading-diff block (copy the arithmetic verbatim with a stub heading). GDLE g++ verbatim cross-check."
+depends_on = ["M10"]
+scalar_and_perf = "Returns a small enum. No allocation. Preserve the EPSILON constant 0.0002 (PhysicsGlobals.cs:9)."
+acceptance = "Golden table at the 20 and 340 degree edges and near-zero diffs. Invalid input (non-finite heading) returns error."
+
+[[cards]]
+id = "M12"
+title = "Player MoveTo goal (ingress to server goal)"
+owner_crate = "bace-simulation (kernel) with bace-gameplay-api contract approval"
+behaviours = ["MO-01", "MO-07", "MO-08", "MO-10"]
+pure_unit = "struct PlayerMoveTo { target: TargetRef, parameters } with fn accept(request, world_facts) -> Result<ServerMovementGoal, MoveToRejection>"
+files = ["crates/simulation/bace-simulation/src/kernel/player_move_to.rs (new)", "crates/simulation/bace-simulation/tests/player_move_to.rs (new)", "crates/simulation/bace-gameplay-api/src/visibility.rs (shared contract: needs main approval)"]
+ace_refs = ["Physics/Managers/MoveToManager.cs:114-184 (MoveToObject, MoveToPosition)", "Network/GameAction/Actions/GameActionMoveToState.cs (ingress)"]
+gdle_refs = ["PhatSDK/MovementManager.cpp:1142-1300"]
+oracle = "Behavioural: transcript tests built from M09-M11 goldens. No compiled oracle for the ingress itself."
+depends_on = ["M09", "M10", "M11"]
+scalar_and_perf = "Bounded request queue (one active goal, as the body already allows). No allocation per tick."
+acceptance = "Client destination ignored; server derives goal from authoritative object positions (AUTH-01). Cancel on teleport and on combat switch. Invalid input (unknown target, out-of-range distance) rejected without state change."
+
+[[cards]]
+id = "M13"
+title = "Motion table manager queue: stop, default state, exit-world drain (pure)"
+owner_crate = "bace-motion"
+behaviours = ["MT-06", "MT-07", "MTM-02", "MTM-03", "MTM-04", "MI-17"]
+pure_unit = "struct PendingMotionQueue<const N: usize>; fn set_default_state(...); fn enqueue_with_ready(...) -> Result<(), QueueError>; fn drain_exit_world(...)"
+files = ["crates/simulation/bace-motion/src/pending_queue.rs (new)", "crates/simulation/bace-motion/tests/pending_queue.rs (new)"]
+ace_refs = ["Animation/MotionTable.cs:266-313 (SetDefaultState, StopObjectCompletely)", "Physics/Managers/MotionTableManager.cs:103-146, 163-240"]
+gdle_refs = ["PhatSDK/MotionTable.cpp:71-84 (enter and exit world)", "PhatSDK/MotionTable.cpp:124-260 (initialize_state, add_to_queue, PerformMovement)"]
+oracle = "g++ verbatim GDLE MotionTableManager AnimationDone, add_to_queue and PerformMovement with a stub Sequence; ACE dotnet verbatim MotionTableManager queue functions with stub Sequence and MotionTable dictionaries."
+depends_on = ["M02", "M03"]
+scalar_and_perf = "Fixed-capacity ring buffer (const generic N). Exceeding N returns QueueError::Capacity before any state change. No allocation in the tick path; ACE LinkedList is replaced, behaviour kept."
+acceptance = "Golden traces for enqueue, Ready after stop, redundant link removal and exit-world flush with success=false. Capacity error leaves the queue unchanged."
+
+[[cards]]
+id = "M14"
+title = "Physics transition: LandingZ and walkable-contact parity"
+owner_crate = "bace-physics"
+behaviours = ["PO-07", "PO-05", "PO-06"]
+pure_unit = "fn classify_contact(normal_z) -> ContactClass (Floor, Landing, Wall); constants FLOOR_Z, LANDING_Z"
+files = ["crates/simulation/bace-physics/src/contact_class.rs (new)", "crates/simulation/bace-physics/tests/contact_class.rs (new)", "crates/simulation/bace-physics/src/geometry_scene.rs (use the classifier; shared file, coordinate)"]
+ace_refs = ["Physics/PhysicsGlobals.cs:48,50 (LandingZ, FloorZ)", "Physics/PhysicsObj.cs:625-636 (step up and down)"]
+gdle_refs = ["not present in GDLE PhatSDK (grep returns nothing); ACE PhysicsGlobals.cs is the reference"]
+oracle = "g++ verbatim GDLE contact classifier (copy the comparison) and ACE dotnet verbatim constants. Enumerate normal_z over the float grid around both thresholds."
+depends_on = []
+scalar_and_perf = "Scalar comparison with f32 constants verbatim. No allocation. Mirrors the literal constants already at geometry_scene.rs:828."
+acceptance = "Golden agreement at the threshold values (0.66417414 and 0.0871557). Invalid input (NaN normal) classified as no contact and never grounded."
+
+# ---------------------------------------------------------------------------
+# Summary of open decisions for main
+# ---------------------------------------------------------------------------
+
+[[open_decisions]]
+id = "OD-1"
+topic = "Fixed step vs ACE variable quantum (PO-08)"
+recommendation = "Keep fixed STEP_SECONDS for determinism; record as a deviation with a test of the clamp outcome under the tick rate."
+
+[[open_decisions]]
+id = "OD-2"
+topic = "NPC 120 s deadline vs ACE/GDLE no-cancel (G-05)"
+recommendation = "Keep as hardening (COST-01); document with a stall test."
+
+[[open_decisions]]
+id = "OD-3"
+topic = "Player MoveTo ingress (M12) requires a shared bace-gameplay-api contract change"
+recommendation = "Ask main to approve the contract before M12 starts (OWN-04)."
+
+[[open_decisions]]
+id = "OD-4"
+topic = "Walk-run threshold for player MoveTo (G-01)"
+recommendation = "Use ACE 1.0 for players, GDLE 15.0 for monsters. The split is by owner, not by a single constant."
+
+[validation]
+commands = [
+  "cargo test -p bace-motion (filtered: substate, modifiers, action_queue, refusal, leave_ground, standing_jump, pending_queue, move_progress, move_command, aux_turn)",
+  "cargo test -p bace-physics (filtered: integrate, position_offsets, contact_class)",
+  "Oracle generators: compile verbatim C++ with g++ -std=c++20 -fno-fast-math -ffp-contract=off; compile verbatim C# with ${BACE_DOTNET:-/home/jokerfactor/.dotnet/dotnet}"
+]
+note = "Each card needs its own oracle directory under crates/simulation/<crate>/oracle/ and fixtures under tests/fixtures/, per the existing bace-motion fixtures (physical_locomotion.csv, physical_style.csv)."

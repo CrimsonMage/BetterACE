@@ -7,6 +7,10 @@ Runtime entity state and read projections.
 See root ARCHITECTURE.md and AGENTS.md for MUST rules.
 
 `Combatant` holds authoritative health, dirty revision and prepared melee input/profile state. Its schema is an in-memory simulation model, not a frozen save DTO. It does not replace full character vitals/armor/weapon composition.
+Pinned ACE constructs absent creature vitals as zero. A nonplayer with zero
+maximum health is admissible only with melee fully disabled; player and armed
+zero-health profiles remain invalid. This supports authored inert event
+controllers without granting them movement or attacks.
 
 `EntityProperties` provides bounded typed scalar qualities and before/after
 revision proposals for native NPC state. It preserves absent values, validates

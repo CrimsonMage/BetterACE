@@ -517,6 +517,7 @@ fn npc_home_keeps_its_cell_even_when_other_cell_has_identical_local_coordinates(
 
 fn reserved_id_door() -> bace_simulation::PreparedDoor {
     bace_simulation::PreparedDoor {
+        style: 0x3d,
         collider: bace_world::DoorCollider {
             cell: CellId(1),
             position: Vec3::new(5.1, 0.0, 0.5),

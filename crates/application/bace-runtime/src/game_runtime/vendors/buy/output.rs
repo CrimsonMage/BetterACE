@@ -17,12 +17,11 @@ impl GameRuntime {
             account: p.context.account,
             session: p.context.session,
         };
-        let loading = self
-            .sessions
+        self.sessions
             .get(&p.key)
             .and_then(|session| session.loading.as_ref())
             .ok_or("vendor Buy preflight entry missing")?;
-        let chargen = loading
+        let chargen = self
             .character_assets
             .as_ref()
             .ok_or("vendor Buy preflight DAT missing")?
@@ -131,12 +130,11 @@ impl GameRuntime {
                     .as_ref()
                     .ok_or("vendor Buy prepared state missing")?;
                 let ticket = p.ticket.as_ref().ok_or("vendor Buy ticket missing")?;
-                let loading = self
-                    .sessions
+                self.sessions
                     .get(&p.key)
                     .and_then(|session| session.loading.as_ref())
                     .ok_or("vendor Buy entry metadata missing")?;
-                let chargen = loading
+                let chargen = self
                     .character_assets
                     .as_ref()
                     .ok_or("vendor Buy character DAT missing")?
